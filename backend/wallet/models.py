@@ -40,6 +40,9 @@ class Profile(models.Model):
     kyc_id_number = models.CharField(max_length=128, null=True, blank=True)
     kyc_document = models.FileField(upload_to="kyc_docs/", null=True, blank=True)
     kyc_rejection_reason = models.TextField(null=True, blank=True)
+    
+    # Mobile Number for KYC
+    mobile_number = models.CharField(max_length=15, null=True, blank=True)
 
     # Bank Details / UPI
     bank_name = models.CharField(max_length=100, null=True, blank=True)

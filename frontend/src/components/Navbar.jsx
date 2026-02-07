@@ -59,7 +59,7 @@ export default function Navbar() {
                   to="/my-invitations"
                   className="text-gray-700 hover:text-purple-600 font-medium transition-colors"
                 >
-                  Invitations
+                  Create Team
                 </Link>
 
                 <Link
@@ -171,7 +171,7 @@ export default function Navbar() {
                     onClick={closeMobileMenu}
                     className="text-gray-700 hover:text-purple-600 font-medium transition-colors py-2 px-4 rounded-lg hover:bg-gray-50"
                   >
-                    Invitations
+                    Create Team
                   </Link>
 
                   <Link

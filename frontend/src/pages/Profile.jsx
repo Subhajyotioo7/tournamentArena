@@ -18,6 +18,7 @@ export default function Profile() {
     kyc_full_name: '',
     kyc_id_type: 'Aadhar Card',
     kyc_id_number: '',
+    mobile_number: '',
     bank_name: '',
     account_number: '',
     ifsc_code: '',
@@ -44,6 +45,7 @@ export default function Profile() {
         kyc_full_name: profileData.kyc_full_name || '',
         kyc_id_type: profileData.kyc_id_type || 'Aadhar Card',
         kyc_id_number: profileData.kyc_id_number || '',
+        mobile_number: profileData.mobile_number || '',
         bank_name: profileData.bank_name || '',
         account_number: profileData.account_number || '',
         ifsc_code: profileData.ifsc_code || '',
@@ -284,6 +286,17 @@ export default function Profile() {
                           className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-800 disabled:opacity-50"
                           value={formData.kyc_id_number}
                           onChange={(e) => setFormData({ ...formData, kyc_id_number: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Mobile Number</label>
+                        <input
+                          type="tel"
+                          disabled={profile.kyc_status === 'approved'}
+                          className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-800 disabled:opacity-50"
+                          value={formData.mobile_number}
+                          onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
+                          placeholder="Enter 10-digit mobile number"
                         />
                       </div>
                     </div>

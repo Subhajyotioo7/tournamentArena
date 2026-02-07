@@ -63,15 +63,25 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
                         <div>
                             <h3 className="font-bold text-lg mb-3 text-gray-900">💰 Prize Distribution</h3>
                             <div className="grid grid-cols-3 gap-3">
-                                {tournament.prize_distributions.slice(0, 3).map((prize) => (
-                                    <div key={prize.rank} className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg p-3 border border-yellow-200 text-center">
-                                        <div className="text-2xl mb-1">
-                                            {prize.rank === 1 ? '🥇' : prize.rank === 2 ? '🥈' : '🥉'}
+                                {tournament.prize_distributions.slice(0, 3).map((prize) => {
+                                    const isWinner = prize.rank === 1;
+                                    const pAmount = parseFloat(prize.prize_amount);
+                                    const entryFee = parseFloat(tournament.entry_fee);
+                                    const totalPayout = isWinner ? pAmount + entryFee : pAmount;
+
+                                    return (
+                                        <div key={prize.rank} className={`rounded-lg p-3 border text-center ${isWinner ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200 shadow-sm' : 'bg-gray-50 border-gray-100'}`}>
+                                            <div className="text-2xl mb-1">
+                                                {prize.rank === 1 ? '🥇' : prize.rank === 2 ? '🥈' : '🥉'}
+                                            </div>
+                                            <p className="text-xs text-gray-600">Rank #{prize.rank}</p>
+                                            <p className={`text-lg font-bold ${isWinner ? 'text-orange-600' : 'text-gray-700'}`}>₹{totalPayout.toFixed(0)}</p>
+                                            {isWinner && (
+                                                <p className="text-[10px] text-gray-400">({pAmount}+{entryFee})</p>
+                                            )}
                                         </div>
-                                        <p className="text-xs text-gray-600">Rank #{prize.rank}</p>
-                                        <p className="text-lg font-bold text-orange-600">₹{parseFloat(prize.prize_amount)}</p>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
@@ -91,6 +101,10 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
                             <li className="flex items-start gap-2">
                                 <span className="text-green-600 mt-0.5">✓</span>
                                 <span>Entry fee will be deducted from your wallet balance.</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="text-green-600 mt-0.5">✓</span>
+                                <span>The <strong>team leader pays the full entry fee</strong> for all members upfront.</span>
                             </li>
                             <li className="flex items-start gap-2">
                                 <span className="text-green-600 mt-0.5">✓</span>
@@ -117,7 +131,7 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
                             </li>
                             <li className="flex items-start gap-2">
                                 <span className="text-blue-600 mt-0.5">ℹ</span>
-                                <span>Team members pay equal shares of the entry fee.</span>
+                                <span>Invitations are free for teammates (Leader paid all).</span>
                             </li>
                         </ul>
                     </div>

@@ -48,10 +48,13 @@ class PrizeDistribution(models.Model):
 
 class Room(models.Model):
     ROOM_STATUS = (("open","Open"),("full","Full"),("cancelled","Cancelled"),("started","Started"),("completed","Completed"))
+    PAYMENT_TYPES = (("leader_pays_all", "Leader Pays All"), ("split_equally", "Split Equally"))
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tournament = models.OneToOneField(Tournament, on_delete=models.CASCADE, related_name="room")
     owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="owned_rooms")
     status = models.CharField(max_length=20, choices=ROOM_STATUS, default="open")
+    payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPES, default="split_equally", help_text="How team payment is handled")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def current_count(self):

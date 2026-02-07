@@ -281,41 +281,58 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {tournaments.map((t) => (
-                                        <tr key={t.id}>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">{t.name}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800 uppercase">
-                                                    {t.game}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                                                {t.team_mode}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900 font-bold">{t.total_participants || 0} Players</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-bold">
-                                                ₹{(t.total_participants || 0) * parseFloat(t.entry_fee)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <button
-                                                    onClick={() => handleOpenPrizeModal(t.id)}
-                                                    className="text-indigo-600 hover:text-indigo-900 font-semibold text-sm bg-indigo-50 px-3 py-1 rounded-full hover:bg-indigo-100 transition-colors"
-                                                >
-                                                    🏆 Set Prizes
-                                                </button>
-                                                <Link
-                                                    to={`/admin/tournament/${t.id}/participants`}
-                                                    className="inline-flex items-center text-blue-600 hover:text-blue-900 font-semibold text-sm bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition-colors ml-2"
-                                                >
-                                                    👥 Players
-                                                </Link>
-                                            </td >
-                                        </tr >
-                                    ))}
+                                    {tournaments.map((t) => {
+                                        // Check if tournament is new (created within last 24 hours)
+                                        const isNew = t.created_at && (Date.now() - new Date(t.created_at).getTime()) < 24 * 60 * 60 * 1000;
+
+                                        return (
+                                            <tr key={t.id} className={isNew ? 'bg-gradient-to-r from-yellow-50 to-orange-50' : ''}>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="text-sm font-medium text-gray-900">{t.name}</div>
+                                                        {isNew && (
+                                                            <span className="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-sm">
+                                                                ✨ NEW
+                                                            </span>
+                                                        )}
+                                                        {t.created_by && (
+                                                            <span className={`${t.created_by_is_staff ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-blue-100 text-blue-700 border-blue-200'} text-[9px] font-bold px-2 py-0.5 rounded-full border shadow-sm`}>
+                                                                {t.created_by_is_staff ? 'ADMIN' : 'USER'}: {t.created_by_username || 'Unknown'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800 uppercase">
+                                                        {t.game}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                                                    {t.team_mode}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900 font-bold">{t.total_participants || 0} Players</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-bold">
+                                                    ₹{(t.total_participants || 0) * parseFloat(t.entry_fee)}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <button
+                                                        onClick={() => handleOpenPrizeModal(t.id)}
+                                                        className="text-indigo-600 hover:text-indigo-900 font-semibold text-sm bg-indigo-50 px-3 py-1 rounded-full hover:bg-indigo-100 transition-colors"
+                                                    >
+                                                        🏆 Set Prizes
+                                                    </button>
+                                                    <Link
+                                                        to={`/admin/tournament/${t.id}/participants`}
+                                                        className="inline-flex items-center text-blue-600 hover:text-blue-900 font-semibold text-sm bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition-colors ml-2"
+                                                    >
+                                                        👥 Players
+                                                    </Link>
+                                                </td >
+                                            </tr >
+                                        );
+                                    })}
                                 </tbody >
                             </table >
                         </div >
@@ -525,8 +542,24 @@ export default function AdminDashboard() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         {/* Game Verification */}
-                                        <div className={`p-4 rounded-lg border ${prof.game_id_status === 'pending' ? 'bg-white border-purple-200 shadow-sm' : 'bg-gray-50 border-gray-200 opacity-60'}`}>
-                                            <h4 className="font-bold text-sm text-purple-600 mb-2 uppercase tracking-wide">Game IDs</h4>
+                                        <div className={`p-4 rounded-lg border relative ${prof.game_id_status === 'pending'
+                                            ? 'bg-gradient-to-br from-purple-50 to-white border-purple-300 shadow-lg ring-2 ring-purple-200'
+                                            : prof.game_id_status === 'approved'
+                                                ? 'bg-green-50/50 border-green-200'
+                                                : 'bg-gray-50 border-gray-200'
+                                            }`}>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h4 className="font-bold text-sm text-purple-600 uppercase tracking-wide">Game IDs</h4>
+                                                {prof.game_id_status === 'pending' && (
+                                                    <span className="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">NEW</span>
+                                                )}
+                                                {prof.game_id_status === 'approved' && (
+                                                    <span className="bg-green-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">✓ APPROVED</span>
+                                                )}
+                                                {prof.game_id_status === 'rejected' && (
+                                                    <span className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">✕ REJECTED</span>
+                                                )}
+                                            </div>
                                             <div className="text-xs space-y-1 mb-4">
                                                 <p><strong>BGMI:</strong> {prof.bgmi_id || 'N/A'}</p>
                                                 <p><strong>FreeFire:</strong> {prof.freefire_id || 'N/A'}</p>
@@ -534,30 +567,63 @@ export default function AdminDashboard() {
                                             </div>
                                             {prof.game_id_status === 'pending' && (
                                                 <div className="flex gap-2 mt-auto">
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'game_id', 'approve')} className="flex-1 bg-green-600 text-white text-[10px] py-1 rounded font-bold hover:bg-green-700 transition-colors">Approve</button>
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'game_id', 'reject')} className="flex-1 bg-red-600 text-white text-[10px] py-1 rounded font-bold hover:bg-red-700 transition-colors">Reject</button>
+                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'game_id', 'approve')} className="flex-1 bg-green-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-green-700 transition-all shadow-md hover:shadow-lg">✓ Approve</button>
+                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'game_id', 'reject')} className="flex-1 bg-red-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-red-700 transition-all shadow-md hover:shadow-lg">✕ Reject</button>
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* KYC Verification */}
-                                        <div className={`p-4 rounded-lg border ${prof.kyc_status === 'pending' ? 'bg-white border-blue-200 shadow-sm' : 'bg-gray-50 border-gray-200 opacity-60'}`}>
-                                            <h4 className="font-bold text-sm text-blue-600 mb-2 uppercase tracking-wide">KYC Details</h4>
+                                        <div className={`p-4 rounded-lg border relative ${prof.kyc_status === 'pending'
+                                            ? 'bg-gradient-to-br from-blue-50 to-white border-blue-300 shadow-lg ring-2 ring-blue-200'
+                                            : prof.kyc_status === 'approved'
+                                                ? 'bg-green-50/50 border-green-200'
+                                                : 'bg-gray-50 border-gray-200'
+                                            }`}>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h4 className="font-bold text-sm text-blue-600 uppercase tracking-wide">KYC Details</h4>
+                                                {prof.kyc_status === 'pending' && (
+                                                    <span className="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">NEW</span>
+                                                )}
+                                                {prof.kyc_status === 'approved' && (
+                                                    <span className="bg-green-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">✓ APPROVED</span>
+                                                )}
+                                                {prof.kyc_status === 'rejected' && (
+                                                    <span className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">✕ REJECTED</span>
+                                                )}
+                                            </div>
                                             <div className="text-xs space-y-1 mb-4">
                                                 <p><strong>Name:</strong> {prof.kyc_full_name || 'N/A'}</p>
+                                                <p><strong>Mobile:</strong> {prof.mobile_number || 'N/A'}</p>
                                                 <p><strong>ID:</strong> {prof.kyc_id_type}: {prof.kyc_id_number || 'N/A'}</p>
                                             </div>
                                             {prof.kyc_status === 'pending' && (
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'kyc', 'approve')} className="flex-1 bg-green-600 text-white text-[10px] py-1 rounded font-bold hover:bg-green-700 transition-colors">Approve</button>
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'kyc', 'reject')} className="flex-1 bg-red-600 text-white text-[10px] py-1 rounded font-bold hover:bg-red-700 transition-colors">Reject</button>
+                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'kyc', 'approve')} className="flex-1 bg-green-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-green-700 transition-all shadow-md hover:shadow-lg">✓ Approve</button>
+                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'kyc', 'reject')} className="flex-1 bg-red-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-red-700 transition-all shadow-md hover:shadow-lg">✕ Reject</button>
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Payment Verification */}
-                                        <div className={`p-4 rounded-lg border ${prof.payment_details_status === 'pending' ? 'bg-white border-indigo-200 shadow-sm' : 'bg-gray-50 border-gray-200 opacity-60'}`}>
-                                            <h4 className="font-bold text-sm text-indigo-600 mb-2 uppercase tracking-wide">Payments</h4>
+                                        <div className={`p-4 rounded-lg border relative ${prof.payment_details_status === 'pending'
+                                            ? 'bg-gradient-to-br from-indigo-50 to-white border-indigo-300 shadow-lg ring-2 ring-indigo-200'
+                                            : prof.payment_details_status === 'approved'
+                                                ? 'bg-green-50/50 border-green-200'
+                                                : 'bg-gray-50 border-gray-200'
+                                            }`}>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h4 className="font-bold text-sm text-indigo-600 uppercase tracking-wide">Payments</h4>
+                                                {prof.payment_details_status === 'pending' && (
+                                                    <span className="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">NEW</span>
+                                                )}
+                                                {prof.payment_details_status === 'approved' && (
+                                                    <span className="bg-green-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">✓ APPROVED</span>
+                                                )}
+                                                {prof.payment_details_status === 'rejected' && (
+                                                    <span className="bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full">✕ REJECTED</span>
+                                                )}
+                                            </div>
                                             <div className="text-xs space-y-1 mb-4">
                                                 <p><strong>UPI:</strong> {prof.upi_id || 'N/A'}</p>
                                                 <p><strong>Bank:</strong> {prof.bank_name || 'N/A'}</p>
@@ -566,8 +632,8 @@ export default function AdminDashboard() {
                                             </div>
                                             {prof.payment_details_status === 'pending' && (
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'payment', 'approve')} className="flex-1 bg-green-600 text-white text-[10px] py-1 rounded font-bold hover:bg-green-700 transition-colors">Approve</button>
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'payment', 'reject')} className="flex-1 bg-red-600 text-white text-[10px] py-1 rounded font-bold hover:bg-red-700 transition-colors">Reject</button>
+                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'payment', 'approve')} className="flex-1 bg-green-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-green-700 transition-all shadow-md hover:shadow-lg">✓ Approve</button>
+                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'payment', 'reject')} className="flex-1 bg-red-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-red-700 transition-all shadow-md hover:shadow-lg">✕ Reject</button>
                                                 </div>
                                             )}
                                         </div>

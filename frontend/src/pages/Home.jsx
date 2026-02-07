@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { tournamentService } from '../services/api';
 import TournamentCard from '../components/TournamentCard';
 
 export default function Home() {
+  const navigate = useNavigate();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -33,7 +35,15 @@ export default function Home() {
         {/* Filters */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Active Tournaments</h2>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Active Tournaments</h2>
+              <button
+                onClick={() => navigate('/create-tournament')}
+                className="mt-2 inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+              >
+                🏆 Create Your Tournament (₹10)
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {['all', 'fifa', 'bgmi', 'freefire'].map((game) => (
                 <button

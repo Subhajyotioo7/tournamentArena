@@ -274,18 +274,36 @@ export default function Tournament() {
                   <span className="text-xl sm:text-2xl">🏆</span> Prize Distribution
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  {prizes.map((prize) => (
-                    <div key={prize.rank} className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-100 text-center relative overflow-hidden group hover:scale-105 transition-transform duration-300">
-                      <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <svg className="w-16 h-16 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.699-3.177a1 1 0 111.827.86l-1.699 3.178 1.699 3.177a1 1 0 11-1.827.86L14.954 9.323V11a1 1 0 01-1 1h-8a1 1 0 01-1-1v-1.677l-3.954 2.872a1 1 0 11-1.827-.86l1.699-3.177-1.699-3.178a1 1 0 011.827-.86L5.046 4.323V3a1 1 0 011-1h4z" /></svg>
+                  {prizes.map((prize) => {
+                    const isWinner = prize.rank === 1;
+                    const winnerPrize = parseFloat(prize.prize_amount);
+                    const entryFee = parseFloat(tournament.entry_fee);
+                    const totalPayout = isWinner ? winnerPrize + entryFee : winnerPrize;
+
+                    return (
+                      <div key={prize.rank} className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-100 text-center relative overflow-hidden group hover:scale-105 transition-transform duration-300">
+                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                          <svg className="w-16 h-16 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.699-3.177a1 1 0 111.827.86l-1.699 3.178 1.699 3.177a1 1 0 11-1.827.86L14.954 9.323V11a1 1 0 01-1 1h-8a1 1 0 01-1-1v-1.677l-3.954 2.872a1 1 0 11-1.827-.86l1.699-3.177-1.699-3.178a1 1 0 011.827-.86L5.046 4.323V3a1 1 0 011-1h4z" /></svg>
+                        </div>
+                        <div className="text-4xl mb-3 filter drop-shadow-sm">
+                          {prize.rank === 1 ? '🥇' : prize.rank === 2 ? '🥈' : prize.rank === 3 ? '🥉' : '🏅'}
+                        </div>
+                        <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Rank #{prize.rank}</p>
+
+                        {isWinner ? (
+                          <>
+                            <p className="text-2xl font-extrabold text-gray-900">₹{totalPayout.toFixed(0)}</p>
+                            <div className="mt-2 pt-2 border-t border-yellow-200">
+                              <p className="text-xs text-gray-600">Winner Prize: ₹{winnerPrize.toFixed(0)}</p>
+                              <p className="text-xs text-gray-600">+ Entry Fee: ₹{entryFee.toFixed(0)}</p>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-3xl font-extrabold text-gray-900">₹{totalPayout.toFixed(0)}</p>
+                        )}
                       </div>
-                      <div className="text-4xl mb-3 filter drop-shadow-sm">
-                        {prize.rank === 1 ? '🥇' : prize.rank === 2 ? '🥈' : prize.rank === 3 ? '🥉' : '🏅'}
-                      </div>
-                      <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Rank #{prize.rank}</p>
-                      <p className="text-3xl font-extrabold text-gray-900">₹{parseFloat(prize.prize_amount).toFixed(0)}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -335,9 +353,8 @@ export default function Tournament() {
                     </>
                   ) : (tournament.total_participants >= tournament.max_participants) ? (
                     '⛔ TOURNAMENT FULL'
-                  ) : (
-                    '🚀 JOIN TOURNAMENT'
-                  )}
+                  ) : (tournament.team_mode === 'solo' ? '🚀 JOIN TOURNAMENT' : '👥 CREATE TEAM')
+                  }
                 </button>
 
                 <p className="text-xs text-center text-gray-400 leading-relaxed px-4">

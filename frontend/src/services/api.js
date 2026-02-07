@@ -142,6 +142,13 @@ export const tournamentService = {
     });
   },
 
+  createUserTournament: async (tournamentData) => {
+    return apiRequest('/tournaments/user-create/', {
+      method: 'POST',
+      body: JSON.stringify(tournamentData),
+    });
+  },
+
   getPrizeDistribution: async (tournamentId) => {
     return apiRequest(`/tournaments/tournament/${tournamentId}/prizes/`);
   },
@@ -199,6 +206,13 @@ export const roomService = {
   approvePayouts: async (roomId) => {
     return apiRequest(`/tournaments/room/${roomId}/approve-payouts/`, {
       method: 'POST',
+    });
+  },
+
+  addWinner: async (roomId, winnerData) => {
+    return apiRequest(`/tournaments/room/${roomId}/add-winner/`, {
+      method: 'POST',
+      body: JSON.stringify(winnerData),
     });
   },
 };

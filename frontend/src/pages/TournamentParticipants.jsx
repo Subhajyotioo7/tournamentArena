@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { tournamentService } from '../services/api';
+import { tournamentService, roomService } from '../services/api';
 
 export default function TournamentParticipants() {
     const { id } = useParams();
@@ -8,6 +8,7 @@ export default function TournamentParticipants() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [processing, setProcessing] = useState({});
 
     useEffect(() => {
         fetchParticipants();
@@ -21,6 +22,28 @@ export default function TournamentParticipants() {
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSetWinner = async (participantId, roomId) => {
+        const rank = prompt("Enter rank (e.g. 1):");
+        if (!rank) return;
+        const prize = prompt("Enter prize amount (₹):");
+        if (!prize) return;
+
+        setProcessing({ ...processing, [participantId]: true });
+        try {
+            const response = await roomService.addWinner(roomId, {
+                participant_id: participantId,
+                rank: parseInt(rank),
+                prize_amount: parseFloat(prize)
+            });
+            alert("✅ " + response.message);
+            fetchParticipants();
+        } catch (err) {
+            alert("❌ Failed: " + err.message);
+        } finally {
+            setProcessing({ ...processing, [participantId]: false });
         }
     };
 
@@ -73,6 +96,7 @@ export default function TournamentParticipants() {
                                 <th className="p-4 font-semibold">Room Info</th>
                                 <th className="p-4 font-semibold">Joined At</th>
                                 <th className="p-4 font-semibold">Status</th>
+                                <th className="p-4 font-semibold text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -110,11 +134,20 @@ export default function TournamentParticipants() {
                                                 </span>
                                             )}
                                         </td>
+                                        <td className="p-4 text-right">
+                                            <button
+                                                onClick={() => handleSetWinner(participant.id, participant.room_id)}
+                                                disabled={processing[participant.id]}
+                                                className="bg-purple-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-purple-700 disabled:opacity-50"
+                                            >
+                                                {processing[participant.id] ? '...' : '🏆 Set Winner'}
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="5" className="p-8 text-center text-gray-500 italic">
+                                    <td colSpan="6" className="p-8 text-center text-gray-500 italic">
                                         No participants found matching your search.
                                     </td>
                                 </tr>

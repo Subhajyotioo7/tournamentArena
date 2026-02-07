@@ -13,6 +13,8 @@ class TournamentSerializer(serializers.ModelSerializer):
     prize_distributions = PrizeDistributionSerializer(many=True, read_only=True)
     rooms = serializers.SerializerMethodField()
     team_size = serializers.SerializerMethodField()
+    created_by_username = serializers.CharField(source="created_by.username", read_only=True)
+    created_by_is_staff = serializers.BooleanField(source="created_by.is_staff", read_only=True)
 
     class Meta:
         model = Tournament

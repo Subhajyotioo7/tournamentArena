@@ -46,12 +46,41 @@ def get_transactions(request):
 @permission_classes([IsAuthenticated])
 def update_profile(request):
     profile = request.user.profile
+    data = request.data
+    
+    # Check for duplicate mobile number
+    if 'mobile_number' in data and data['mobile_number']:
+        existing_mobile = Profile.objects.filter(
+            mobile_number=data['mobile_number']
+        ).exclude(user=request.user).first()
+        
+        if existing_mobile:
+            return Response({
+                "error": "Mobile number already exists. This number is already registered with another account."
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Check for duplicate game IDs
+    game_id_fields = {
+        'bgmi_id': 'BGMI ID',
+        'freefire_id': 'Free Fire ID',
+        'fifa_id': 'FIFA ID'
+    }
+    
+    for field_name, display_name in game_id_fields.items():
+        if field_name in data and data[field_name]:
+            field_value = data[field_name].strip()
+            if field_value:  # Only check if not empty
+                existing = Profile.objects.filter(**{field_name: field_value}).exclude(user=request.user).first()
+                if existing:
+                    return Response({
+                        "error": f"{display_name} already exists. This {display_name} is already registered with another account."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+    
     serializer = ProfileUpdateSerializer(profile, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
         
         # Reset statuses for updated sections
-        data = request.data
         if any(k in data for k in ["bgmi_id", "freefire_id", "fifa_id"]):
             profile.game_id_status = "pending"
             for gid in [profile.bgmi_id, profile.freefire_id, profile.fifa_id]:

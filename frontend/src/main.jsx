@@ -22,6 +22,7 @@ import Tournament from "./pages/Tournament";
 import TournamentParticipants from "./pages/TournamentParticipants";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import CreateTournament from "./pages/CreateTournament";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -55,6 +56,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password/:uid/:token" element={<ResetPassword />} />
+            <Route path="create-tournament" element={<CreateTournament />} />
           </Route>
         </Routes>
       </AuthProvider>

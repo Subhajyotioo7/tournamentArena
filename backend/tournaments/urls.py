@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path("create/", views.create_tournament),
+    path("user-create/", views.create_user_tournament),
     path("tournaments/", views.TournamentViewSet.as_view({"get":"list","post":"create"})),
     path("tournaments/<int:pk>/", views.TournamentViewSet.as_view({"get":"retrieve"})),
     

@@ -1,4 +1,4 @@
-enaar# Virtual environment
+# Virtual environment
 .venv/
 venv/
 env/
@@ -30,22 +30,62 @@ wheels/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+staticfiles/
+media/
 
 # Node.js
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+frontend/dist/
+frontend/build/
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+*.bak
 
 # Environment variables
 .env
 .env.local
 .env.production
+.env.development
+.env.*.local
+
+# SSH Keys (never commit these!)
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# Backup files
+backups/
+*.sql
+*.dump
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Testing
+.pytest_cache/
+.tox/

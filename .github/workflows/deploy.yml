@@ -1,0 +1,37 @@
+name: Deploy to AWS EC2
+
+# Trigger deployment on push to main branch
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚀 Deploying to Production Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            cd /var/www/tournamentArena
+            ./deploy.sh
+
+      - name: ✅ Deployment Status
+        if: success()
+        run: |
+          echo "Deployment completed successfully!"
+          echo "Application is now live at: http://${{ secrets.EC2_HOST }}"
+
+      - name: ❌ Deployment Failed
+        if: failure()
+        run: |
+          echo "Deployment failed! Please check the logs."
+          exit 1

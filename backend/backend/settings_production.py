@@ -15,7 +15,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'CHANGE-THIS-IN-PRODUCTION')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
 # Allowed hosts
-ALLOWED_HOSTS = ['3.110.159.197', 'localhost', '127.0.0.1', '*']
+ALLOWED_HOSTS = ['13.235.24.56', 'localhost', '127.0.0.1', '*']
 
 
 
@@ -51,11 +51,11 @@ MIDDLEWARE = [
 ]
 
 # CORS Configuration for production
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://3.110.159.197').split(',')
+CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://13.235.24.56').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Configuration
-CSRF_TRUSTED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://3.110.159.197').split(',')
+CSRF_TRUSTED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://13.235.24.56').split(',')
 
 
 ROOT_URLCONF = 'backend.urls'

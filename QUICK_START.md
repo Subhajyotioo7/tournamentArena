@@ -1,219 +1,287 @@
-# ⚡ Quick Start - AWS EC2 Deployment
+# 🚀 Tournament Arena - Quick Deployment
 
-This is a condensed quick-start guide. For detailed instructions, see [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md).
-
-## 🎯 Prerequisites
-
-- AWS EC2 instance (Ubuntu 22.04)
-- SSH access to EC2
-- GitHub account
-- Domain name (optional)
+Backend on **Port 8000** | Frontend on **Port 80** | All Hosts Allowed ✅
 
 ---
 
-## 🚀 Deployment in 4 Steps
+## ⚡ Quick Start (Development on Windows)
 
-### Step 1: Initial Server Setup (5 min)
+### Option 1: Using Scripts (Easiest)
 
+1. **Start Backend** (Terminal 1):
+   ```bash
+   start_backend.bat
+   ```
+
+2. **Start Frontend** (Terminal 2):
+   ```bash
+   start_frontend.bat
+   ```
+
+3. Open browser: `http://localhost:5173` (or the URL shown in terminal)
+
+### Option 2: Manual Start
+
+**Backend:**
 ```bash
-# On EC2 instance (as ubuntu user)
-wget https://raw.githubusercontent.com/YOUR_REPO/main/setup_server.sh
-sudo bash setup_server.sh
-
-# Or if you already have the repo
-cd /path/to/repo
-sudo bash setup_server.sh
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+uvicorn backend.asgi:application --host 0.0.0.0 --port 8000
 ```
 
-### Step 2: Configure Application (10 min)
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 🌐 Production Deployment
+
+### Step 1: Build for Production
 
 ```bash
-# Switch to tournament user
-sudo su - tournament
+build_production.bat
+```
 
-# Generate SSH key for GitHub
-ssh-keygen -t ed25519 -C "your-email@example.com" -N "" -f ~/.ssh/id_ed25519
+Enter your server IP or domain when prompted.
 
-# Show public key (add this to GitHub Deploy Keys)
-cat ~/.ssh/id_ed25519.pub
+### Step 2: Deploy to Server (Linux/Ubuntu)
 
-# Add GitHub to known hosts
-ssh-keyscan github.com >> ~/.ssh/known_hosts
+**Prerequisites:**
+```bash
+sudo apt update
+sudo apt install python3-pip python3-venv nginx supervisor redis-server nodejs npm
+```
 
-# Clone repository
-cd /var/www/tournamentArena
-git clone git@github.com:YOUR_USERNAME/YOUR_REPO.git .
+**Transfer files to server:**
+```bash
+# From your local machine
+scp -r * user@YOUR_SERVER_IP:/var/www/tournamentArena/
+```
 
-# Setup backend
-cd backend
+**On the server:**
+
+1. **Setup Backend:**
+```bash
+cd /var/www/tournamentArena/backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-pip install gunicorn uvicorn[standard] channels-redis psycopg2-binary
-
-# Create .env file
-nano .env
-# Paste your configuration (see below)
-
-# Run migrations
 python manage.py migrate
-python manage.py createsuperuser
 python manage.py collectstatic --noinput
-deactivate
-
-# Setup frontend
-cd ../frontend
-npm ci
-nano .env.production
-# Paste: VITE_API_BASE_URL=http://YOUR_EC2_IP:8000
-npm run build
-
-exit  # Exit tournament user
 ```
 
-**Backend .env template:**
-```env
-DJANGO_SECRET_KEY=$(python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')
-DJANGO_DEBUG=False
-DJANGO_ALLOWED_HOSTS=YOUR_EC2_IP,your-domain.com
-DATABASE_URL=postgresql://tournament_user:YOUR_PASSWORD@localhost:5432/tournament_arena
-REDIS_URL=redis://localhost:6379/0
-RAZORPAY_KEY_ID=your_key
-RAZORPAY_KEY_SECRET=your_secret
-CORS_ALLOWED_ORIGINS=http://YOUR_EC2_IP,https://your-domain.com
-```
-
-### Step 3: Configure Services (5 min)
-
+2. **Setup Frontend:**
 ```bash
-# Copy nginx config
-sudo cp /var/www/tournamentArena/nginx.conf /etc/nginx/conf.d/tournamentArena.conf
+cd /var/www/tournamentArena/frontend
+npm install
+npm run build  # If not already built
+```
 
-# Edit with your IP/domain
-sudo nano /etc/nginx/conf.d/tournamentArena.conf
-# Replace YOUR_EC2_PUBLIC_IP with your actual IP
-
-# Test and restart nginx
+3. **Configure Nginx:**
+```bash
+# Update paths in nginx.conf if needed
+sudo cp /var/www/tournamentArena/nginx.conf /etc/nginx/sites-available/tournamentArena
+sudo ln -s /etc/nginx/sites-available/tournamentArena /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
+```
 
-# Copy supervisor config
+4. **Configure Supervisor:**
+```bash
+# Update paths in supervisor.conf for your server
 sudo cp /var/www/tournamentArena/supervisor.conf /etc/supervisor/conf.d/tournamentArena.conf
-
-# Start supervisor
 sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start tournament_backend
 ```
 
-### Step 4: Setup Auto-Deployment (5 min)
-
+5. **Start Redis:**
 ```bash
-# Make deploy script executable
-sudo chmod +x /var/www/tournamentArena/deploy.sh
-sudo chown tournament:www-data /var/www/tournamentArena/deploy.sh
-
-# Configure sudoers
-sudo visudo
-# Add at the end:
-# tournament ALL=(ALL) NOPASSWD: /usr/bin/supervisorctl restart tournament_backend
-# tournament ALL=(ALL) NOPASSWD: /usr/bin/systemctl reload nginx
+sudo systemctl start redis
+sudo systemctl enable redis
 ```
 
-**On GitHub:**
-1. Go to Repository → Settings → Secrets and variables → Actions
-2. Add these secrets:
-   - `EC2_HOST`: Your EC2 IP
-   - `EC2_USERNAME`: `tournament`
-   - `EC2_SSH_KEY`: Content of `/home/tournament/.ssh/id_ed25519` (private key)
-   - `EC2_PORT`: `22`
-
----
-
-## ✅ Verify Deployment
-
+6. **Verify deployment:**
 ```bash
-# Check services
-sudo supervisorctl status tournament_backend
+# Check backend status
+sudo supervisorctl status
+
+# Check nginx status
 sudo systemctl status nginx
 
-# View logs
-sudo tail -f /var/log/tournament_backend.log
-
-# Test endpoints
-curl http://YOUR_EC2_IP/
-curl http://YOUR_EC2_IP:8000/api/
-curl http://YOUR_EC2_IP:8000/admin/
-```
-
-Open browser: `http://YOUR_EC2_IP`
-
----
-
-## 🔄 Deploy Updates
-
-```bash
-# From your local machine
-git add .
-git commit -m "My changes"
-git push origin main
-# GitHub Actions will auto-deploy!
-
-# Or manually on server
-cd /var/www/tournamentArena
-sudo -u tournament ./deploy.sh
+# Check Redis
+redis-cli ping
 ```
 
 ---
 
-## 🛠️ Quick Commands
+## 🔧 Configuration
 
+### Backend (Port 8000)
+- **File:** `backend/backend/settings.py`
+- **ALLOWED_HOSTS:** `['*']` (accepts all hosts)
+- **Port:** 8000 (configured in supervisor.conf and nginx.conf)
+
+### Frontend (Port 80)
+- **File:** `frontend/.env`
+- **Development:** `VITE_API_BASE_URL=http://localhost:8000`
+- **Production:** `VITE_API_BASE_URL=http://YOUR_SERVER_IP`
+
+### Nginx (Port 80)
+- **File:** `nginx.conf`
+- **Listens:** Port 80
+- **Serves:** Frontend from `frontend/dist`
+- **Proxies:** Backend requests to `127.0.0.1:8000`
+- **server_name:** `_` (accepts all)
+
+### Supervisor
+- **File:** `supervisor.conf`
+- **Manages:** Backend process on port 8000
+- **Auto-restart:** Yes
+- **Logs:** `/var/log/tournament_backend.log`
+
+---
+
+## 📁 Project Structure
+
+```
+fix-frontend-main/
+├── backend/                      # Django backend
+│   ├── backend/settings.py      # ALLOWED_HOSTS = ['*']
+│   ├── manage.py
+│   └── requirements.txt
+├── frontend/                     # React frontend
+│   ├── src/
+│   ├── dist/                    # Production build
+│   ├── .env                     # API configuration
+│   └── package.json
+├── nginx.conf                    # Port 80 config
+├── supervisor.conf               # Port 8000 backend manager
+├── start_backend.bat            # Windows: Start backend
+├── start_frontend.bat           # Windows: Start frontend
+├── build_production.bat         # Build for production
+├── SIMPLE_DEPLOYMENT_GUIDE.md   # Detailed guide
+└── QUICK_START.md              # This file
+```
+
+---
+
+## 🌍 Access URLs
+
+| Service | Development | Production |
+|---------|-------------|------------|
+| **Frontend** | http://localhost:5173 | http://YOUR_SERVER_IP/ |
+| **Backend API** | http://localhost:8000/api/ | http://YOUR_SERVER_IP/api/ |
+| **Admin Panel** | http://localhost:8000/admin/ | http://YOUR_SERVER_IP/admin/ |
+| **WebSocket** | ws://localhost:8000/ws/ | ws://YOUR_SERVER_IP/ws/ |
+
+---
+
+## 🔍 Troubleshooting
+
+### Backend Issues
 ```bash
-# Restart backend
-sudo supervisorctl restart tournament_backend
+# Check if running
+curl http://localhost:8000/admin/
 
-# Restart nginx
-sudo systemctl reload nginx
+# View logs (production)
+sudo supervisorctl tail -f tournament_backend
+```
+
+### Frontend Issues
+```bash
+# Rebuild frontend
+cd frontend
+npm run build
+
+# Check .env file
+cat .env
+```
+
+### Nginx Issues
+```bash
+# Test configuration
+sudo nginx -t
 
 # View logs
-sudo tail -f /var/log/tournament_backend.log
 sudo tail -f /var/log/nginx/tournamentArena_error.log
 
-# Check status
-sudo supervisorctl status
-sudo systemctl status nginx
+# Restart
+sudo systemctl restart nginx
+```
 
-# Deploy
-cd /var/www/tournamentArena && sudo -u tournament ./deploy.sh
+### Redis Issues
+```bash
+# Check if running
+redis-cli ping  # Should return PONG
+
+# Start Redis
+sudo systemctl start redis
 ```
 
 ---
 
-## 🆘 Troubleshooting
+## 📚 Documentation Files
 
-| Issue | Solution |
-|-------|----------|
-| 502 Bad Gateway | `sudo supervisorctl restart tournament_backend` |
-| Static files not loading | `cd backend && source venv/bin/activate && python manage.py collectstatic --noinput` |
-| WebSocket not working | Check port 8000 in Security Group, verify REDIS_URL |
-| Can't push to GitHub | Add SSH key to GitHub Deploy Keys |
+- **SIMPLE_DEPLOYMENT_GUIDE.md** - Comprehensive step-by-step deployment guide
+- **QUICK_START.md** - This file (quick reference)
+- **DEPLOYMENT_GUIDE.md** - Detailed production deployment with GitHub Actions
+- **DEPLOYMENT_README.md** - AWS EC2 specific deployment
 
 ---
 
-## 📚 Full Documentation
+## ✅ Current Configuration Status
 
-- **Complete Guide**: [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
-- **Checklist**: [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)
-- **GitHub Setup**: [GITHUB_SECRETS_SETUP.md](./GITHUB_SECRETS_SETUP.md)
-- **Files Summary**: [DEPLOYMENT_FILES_SUMMARY.md](./DEPLOYMENT_FILES_SUMMARY.md)
+✅ Backend accepts all hosts (`ALLOWED_HOSTS = ['*']`)  
+✅ Nginx configured for port 80  
+✅ Nginx accepts all server names (`server_name _`)  
+✅ Backend configured for port 8000  
+✅ Supervisor ready to auto-start backend  
+✅ Windows scripts created for easy development  
+✅ Production build script ready  
 
 ---
 
-## 🎉 Done!
+## 🎯 Quick Commands Reference
 
-Your application should now be running at:
-- **Frontend**: `http://YOUR_EC2_IP`
-- **Backend API**: `http://YOUR_EC2_IP:8000/api/`
-- **Admin**: `http://YOUR_EC2_IP:8000/admin/`
+```bash
+# Development
+start_backend.bat          # Start backend on port 8000
+start_frontend.bat         # Start frontend dev server
 
-**Next**: Set up SSL with `sudo certbot --nginx -d your-domain.com`
+# Production Build
+build_production.bat       # Build everything for production
+
+# Server Management (Linux)
+sudo supervisorctl status              # Check backend status
+sudo supervisorctl restart tournament_backend  # Restart backend
+sudo systemctl restart nginx           # Restart nginx
+sudo tail -f /var/log/tournament_backend.log  # View backend logs
+
+# Testing
+curl http://localhost:8000/admin/     # Test backend
+curl http://localhost/                # Test frontend via nginx
+redis-cli ping                        # Test Redis
+```
+
+---
+
+## 🎉 You're Ready!
+
+Everything is configured for easy deployment:
+- ✅ No need to change ALLOWED_HOSTS
+- ✅ No need to change Nginx server_name
+- ✅ Backend on port 8000
+- ✅ Frontend on port 80
+- ✅ Simple scripts to get started
+
+Just run the scripts or follow the deployment steps above!
+
+For detailed instructions, see **SIMPLE_DEPLOYMENT_GUIDE.md**

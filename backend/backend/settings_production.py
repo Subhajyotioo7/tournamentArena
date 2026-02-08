@@ -15,7 +15,8 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'CHANGE-THIS-IN-PRODUCTION')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
 # Allowed hosts
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '3.110.159.197,localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['3.110.159.197', 'localhost', '127.0.0.1', '*']
+
 
 
 # Application definition
@@ -58,6 +59,11 @@ CSRF_TRUSTED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://3.110.159.
 
 
 ROOT_URLCONF = 'backend.urls'
+
+# Proxy settings
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 TEMPLATES = [
     {

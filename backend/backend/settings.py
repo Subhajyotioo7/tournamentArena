@@ -206,3 +206,10 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://tournamentarena.bookontime.shop",
+    "https://www.tournamentarena.bookontime.shop",
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

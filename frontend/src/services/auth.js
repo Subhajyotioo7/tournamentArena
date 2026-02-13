@@ -10,11 +10,11 @@ export async function registerUser(username, password) {
 export async function loginUser(username, password) {
   const data = await apiPost("/api/login/", { username, password }, false);
 
-  console.log("LOGIN RESPONSE:", data);
+  // console.log("LOGIN RESPONSE:", data);
 
   localStorage.setItem("token", data.access);
 
-  console.log("TOKEN AFTER SAVE:", localStorage.getItem("token"));
+  // console.log("TOKEN AFTER SAVE:", localStorage.getItem("token"));
 
   return data;
 }

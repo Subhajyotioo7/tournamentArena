@@ -75,11 +75,9 @@ export default function MyRooms() {
 
         setWsStatus('connecting');
 
-        // Create clean WS URL
-        const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-        const cleanBase = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
-        const baseWS = cleanBase.replace('http', 'ws');
-        const wsUrl = `${baseWS}/ws/room/${roomId}/?token=${token}`;
+        // Determine protocol based on current page protocol (SSL-aware)
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = `${protocol}://${window.location.host}/ws/room/${roomId}/?token=${token}`;
 
         console.log('🚀 Connecting to WebSocket:', wsUrl);
         const ws = new WebSocket(wsUrl);

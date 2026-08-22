@@ -22,7 +22,7 @@ const getHeaders = (includeAuth = true) => {
 
 // Generic API request handler
 const apiRequest = async (endpoint, options = {}) => {
-  const url = `${import.meta.env.VITE_API_BASE_URL}${endpoint}`;
+  const url = `${import.meta.env.VITE_API_BASE_URL || ''}${endpoint}`;
   const config = {
     ...options,
     headers: getHeaders(options.auth !== false),

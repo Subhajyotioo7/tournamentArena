@@ -1,0 +1,14 @@
+backend:
+  image: subhajyotimahato007/tournamentarena-backend
+  tag: latest
+  port: 8000
+  replicas: 1
+
+frontend:
+  image: subhajyotimahato007/tournamentarena-frontend
+  tag: latest
+  port: 80
+  replicas: 1
+
+ingress:
+  host: ""

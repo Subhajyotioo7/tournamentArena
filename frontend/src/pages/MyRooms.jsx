@@ -79,7 +79,7 @@ export default function MyRooms() {
         //const protocol = window.location.protocol === "https:" ? "wss" : "ws";
         //const wsUrl = `${protocol}://${window.location.host}/ws/room/${roomId}/?token=${token}`;
             // Derive ws:// or wss:// host from the API base URL, not the frontend's host
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL; // e.g. http://127.0.0.1:8000
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
         const wsProtocol = apiBaseUrl.startsWith('https') ? 'wss' : 'ws';
         const wsHost = apiBaseUrl.replace(/^https?:\/\//, '');
         const wsUrl = `${wsProtocol}://${wsHost}/ws/room/${roomId}/?token=${token}`;

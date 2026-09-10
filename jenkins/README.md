@@ -20,7 +20,7 @@ The Jenkins pipeline is designed for a devsecops workflow and includes the follo
    - Frontend lint
 6. Security scanning
    - Bandit for Python
-   - Safety for Python dependencies
+   - pip-audit for Python dependencies
    - npm audit for frontend dependencies
 7. Build artifacts
    - Django static files
@@ -92,9 +92,9 @@ npm run build
 This pipeline uses:
 
 ```bash
-pip install bandit safety
+pip install bandit pip-audit
 bandit -r backend
-safety scan --target backend
+pip-audit -r backend/requirements.txt --progress-spinner off
 npm audit --audit-level=high
 ```
 

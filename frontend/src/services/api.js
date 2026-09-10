@@ -20,9 +20,11 @@ const getHeaders = (includeAuth = true) => {
   return headers;
 };
 
+export const getApiBaseUrl = () => import.meta.env.VITE_API_BASE_URL || '';
+
 // Generic API request handler
 const apiRequest = async (endpoint, options = {}) => {
-  const url = `${import.meta.env.VITE_API_BASE_URL || ''}${endpoint}`;
+  const url = `${getApiBaseUrl()}${endpoint}`;
   const config = {
     ...options,
     headers: getHeaders(options.auth !== false),
@@ -182,6 +184,13 @@ export const roomService = {
   joinSolo: async (roomId) => {
     return apiRequest(`/tournaments/room/${roomId}/join-solo/`, {
       method: 'POST',
+    });
+  },
+
+  createTeam: async (roomId, gameIds) => {
+    return apiRequest(`/tournaments/room/${roomId}/create-team/`, {
+      method: 'POST',
+      body: JSON.stringify({ game_ids: gameIds }),
     });
   },
 

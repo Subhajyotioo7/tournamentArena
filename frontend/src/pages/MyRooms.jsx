@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getApiBaseUrl } from '../services/api';
 
 
 export default function MyRooms() {
@@ -18,6 +19,7 @@ export default function MyRooms() {
     const wsRef = useRef(null);
 
     const isAdmin = user && (user.is_staff || user.is_superuser);
+    const apiBaseUrl = getApiBaseUrl();
 
     const fetchMyRooms = useCallback(async () => {
         try {
@@ -27,7 +29,7 @@ export default function MyRooms() {
                 return;
             }
 
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tournaments/my-rooms/`, {
+            const response = await fetch(`${apiBaseUrl}/tournaments/my-rooms/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -58,27 +60,10 @@ export default function MyRooms() {
         };
     }, [fetchMyRooms]);
 
-    // 🔄 WebSocket Connection Lifecycle
-    useEffect(() => {
-        const shouldConnect = selectedRoom && (isAdmin || activeTab === 'messages');
-
-        if (shouldConnect) {
-            connectWebSocket(selectedRoom);
-            fetchMessageHistory(selectedRoom);
-        }
-
-        return () => {
-            if (wsRef.current) {
-                wsRef.current.close();
-                wsRef.current = null;
-            }
-        };
-    }, [connectWebSocket, fetchMessageHistory, selectedRoom, activeTab, isAdmin]);
-
     const fetchMessageHistory = useCallback(async (roomId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/room/${roomId}/messages/`, {
+            const response = await fetch(`${apiBaseUrl}/chat/room/${roomId}/messages/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -144,10 +129,27 @@ export default function MyRooms() {
         wsRef.current = ws;
     }, []);
 
+    // WebSocket connection lifecycle
+    useEffect(() => {
+        const shouldConnect = selectedRoom && (isAdmin || activeTab === 'messages');
+
+        if (shouldConnect) {
+            connectWebSocket(selectedRoom);
+            fetchMessageHistory(selectedRoom);
+        }
+
+        return () => {
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
+        };
+    }, [connectWebSocket, fetchMessageHistory, selectedRoom, activeTab, isAdmin]);
+
     const handleViewRoom = async (roomId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tournaments/room/${roomId}/`, {
+            const response = await fetch(`${apiBaseUrl}/tournaments/room/${roomId}/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -196,7 +198,7 @@ export default function MyRooms() {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tournaments/room/${selectedRoom}/add-winner/`, {
+            const response = await fetch(`${apiBaseUrl}/tournaments/room/${selectedRoom}/add-winner/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

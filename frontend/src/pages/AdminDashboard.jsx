@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { adminService, tournamentService, roomService } from '../services/api'; // Consolidated imports
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 export default function AdminDashboard() {
+    const { user, loading: authLoading } = useAuth();
+    const isAdmin = user?.is_staff || user?.is_superuser;
     const [pendingPayouts, setPendingPayouts] = useState([]);
     const [tournaments, setTournaments] = useState([]);
     const [withdrawals, setWithdrawals] = useState([]);
@@ -26,8 +29,10 @@ export default function AdminDashboard() {
     const [prizeDistributions, setPrizeDistributions] = useState([]);
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (!authLoading && isAdmin) {
+            fetchData();
+        }
+    }, [authLoading, isAdmin]);
 
     const fetchData = async () => {
         try {
@@ -49,6 +54,20 @@ export default function AdminDashboard() {
             setLoading(false);
         }
     };
+
+    if (authLoading) {
+        return <div className="p-8 text-center">Loading...</div>;
+    }
+
+    if (!isAdmin) {
+        return (
+            <div className="p-8 text-center">
+                <h1 className="text-2xl font-bold mb-3">Admin access required</h1>
+                <p className="mb-5">Your account does not have permission to view this page.</p>
+                <Link to="/" className="text-blue-600 hover:underline">Return home</Link>
+            </div>
+        );
+    }
 
     const handleVerifyDeposit = async (depositId, action) => {
         let note = '';

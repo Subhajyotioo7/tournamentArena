@@ -84,50 +84,27 @@ export default function Tournament() {
 
   const handleJoinSolo = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tournaments/room/${selectedRoom}/join-solo/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-      if (response.ok) {
+      const data = await roomService.joinSolo(selectedRoom);
+      if (data) {
         alert(`✅ ${data.message}\nPaid: ₹${data.payment}`);
         setShowTeamModal(false);
         navigate('/my-rooms');
-      } else {
-        alert(`❌ ${data.error || 'Failed to join'}`);
       }
-    } catch {
-      alert('❌ Error joining tournament');
+    } catch (error) {
+      alert(`❌ ${error.message || 'Error joining tournament'}`);
     }
   };
 
   const handleCreateTeam = async (gameIds) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tournaments/room/${selectedRoom}/create-team/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ game_ids: gameIds }),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
+      const data = await roomService.createTeam(selectedRoom, gameIds);
+      if (data) {
         alert(`✅ ${data.message}\nInvitations sent to ${data.invitations.length} players`);
         setShowTeamModal(false);
         navigate('/my-rooms');
-      } else {
-        alert(`❌ ${data.error || 'Failed to create team'}`);
       }
-    } catch {
-      alert('❌ Error creating team');
+    } catch (error) {
+      alert(`❌ ${error.message || 'Error creating team'}`);
     }
   };
 

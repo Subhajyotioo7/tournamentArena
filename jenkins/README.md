@@ -94,7 +94,7 @@ This pipeline uses:
 ```bash
 pip install bandit safety
 bandit -r backend
-safety check -r backend/requirements.txt --full-report
+safety scan --target backend/requirements.txt
 npm audit --audit-level=high
 ```
 

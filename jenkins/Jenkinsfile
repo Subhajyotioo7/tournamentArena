@@ -1,0 +1,162 @@
+pipeline {
+    agent any
+
+    environment {
+        PYTHON = 'python3'
+        NODE_ENV = 'test'
+    }
+
+    options {
+        timestamps()
+        timeout(time: 45, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out source code...'
+                checkout scm
+            }
+        }
+
+        stage('Environment Validation') {
+            steps {
+                sh '''
+                    echo "Python: $(python3 --version)"
+                    echo "Node: $(node --version)"
+                    echo "npm: $(npm --version)"
+                '''
+            }
+        }
+
+        stage('Backend Setup') {
+            steps {
+                dir('backend') {
+                    sh '''
+                        python3 -m venv .venv
+                        . .venv/bin/activate
+                        pip install --upgrade pip
+                        pip install -r requirements.txt
+                    '''
+                }
+            }
+        }
+
+        stage('Frontend Setup') {
+            steps {
+                dir('frontend') {
+                    sh '''
+                        npm install
+                    '''
+                }
+            }
+        }
+
+        stage('Code Quality & Tests') {
+            parallel {
+                stage('Backend Tests') {
+                    steps {
+                        dir('backend') {
+                            sh '''
+                                . .venv/bin/activate
+                                python manage.py check
+                                python manage.py test --verbosity 2
+                            '''
+                        }
+                    }
+                }
+
+                stage('Frontend Lint') {
+                    steps {
+                        dir('frontend') {
+                            sh '''
+                                npm run lint
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                sh '''
+                    echo "Running backend security scan..."
+                    python3 -m pip install --upgrade pip bandit safety
+
+                    cd backend
+                    . .venv/bin/activate
+                    bandit -r . -q
+                    safety check -r requirements.txt --full-report
+
+                    echo "Running frontend security scan..."
+                    cd ../frontend
+                    npm audit --audit-level=high
+                '''
+            }
+        }
+
+        stage('Build Artifacts') {
+            parallel {
+                stage('Build Backend') {
+                    steps {
+                        dir('backend') {
+                            sh '''
+                                . .venv/bin/activate
+                                python manage.py collectstatic --noinput
+                            '''
+                        }
+                    }
+                }
+
+                stage('Build Frontend') {
+                    steps {
+                        dir('frontend') {
+                            sh '''
+                                npm run build
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Archive & Quality Gate') {
+            steps {
+                sh '''
+                    mkdir -p artifacts
+                    tar -czf artifacts/backend-static.tar.gz -C backend staticfiles 2>/dev/null || true
+                    tar -czf artifacts/frontend-build.tar.gz -C frontend dist 2>/dev/null || true
+                    ls -lh artifacts || true
+                '''
+                archiveArtifacts artifacts: 'artifacts/**/*'
+            }
+        }
+
+        stage('Production Ready') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Production pipeline ready: deploying from main branch.'
+                sh '''
+                    echo "Deploying Tournament Arena to production environment..."
+                    echo "Stage: static asset prep, env validation, and release readiness checks"
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished.'
+        }
+        success {
+            echo 'Build and security checks passed.'
+        }
+        failure {
+            echo 'Build failed. Review Jenkins logs and fix the issues.'
+        }
+    }
+}

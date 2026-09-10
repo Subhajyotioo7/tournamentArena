@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { authService } from '../services/api';
 import { Button } from '../components/ui/button';
+import VerifyEmail from './VerifyEmail';
 
 export default function Register() {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ username: '', email: '', password: '', password2: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -19,8 +20,7 @@ export default function Register() {
     setLoading(true);
     try {
       await authService.register(formData);
-      alert('Registration successful! Please login.');
-      navigate('/login');
+      setRegisteredEmail(formData.email);
     } catch (submitError) {
       setError(submitError.message || 'Registration failed');
     } finally {
@@ -29,6 +29,10 @@ export default function Register() {
   };
 
   const updateField = (field) => (event) => setFormData({ ...formData, [field]: event.target.value });
+
+  if (registeredEmail) {
+    return <VerifyEmail initialEmail={registeredEmail} />;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">

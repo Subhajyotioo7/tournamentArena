@@ -15,10 +15,14 @@ from django.db import transaction
 from django.utils import timezone
 
 
+def is_game_id_verified(profile):
+    return profile.game_id_verified or profile.game_id_status == "approved"
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_room(request, tournament_id):
-    if not request.user.profile.game_id_verified:
+    if not is_game_id_verified(request.user.profile):
         return Response({"error": "Game ID not verified"}, status=400)
     t = get_object_or_404(Tournament, pk=tournament_id)
     
@@ -37,7 +41,7 @@ def create_room(request, tournament_id):
 @permission_classes([IsAuthenticated])
 def join_room_solo(request, room_id):
     """Join room as solo player (pays full entry fee)"""
-    if not request.user.profile.game_id_verified:
+    if not is_game_id_verified(request.user.profile):
         return Response({"error": "Game ID not verified"}, status=400)
     
     room = get_object_or_404(Room, pk=room_id)
@@ -98,7 +102,7 @@ def join_room_solo(request, room_id):
 @permission_classes([IsAuthenticated])
 def create_team_and_invite(request, room_id):
     """Create team and send invitations for duo/squad"""
-    if not request.user.profile.game_id_verified:
+    if not is_game_id_verified(request.user.profile):
         return Response({"error": "Game ID not verified"}, status=400)
     
     room = get_object_or_404(Room, pk=room_id)
@@ -649,7 +653,7 @@ def add_single_winner(request, room_id):
 def create_user_tournament(request):
     """Allow a user to create a tournament after paying a creation fee"""
     profile = request.user.profile
-    if not profile.game_id_verified:
+    if not is_game_id_verified(profile):
         return Response({"error": "Game ID not verified. Please verify in profile first."}, status=400)
     
     data = request.data

@@ -11,9 +11,12 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
-from django.core.mail import send_mail
-from django.conf import settings
-from wallet.models import Profile
+from django.utils import timezone
+import logging
+from wallet.models import EmailVerification, Profile
+from .utils import send_verification_email
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -26,27 +29,28 @@ def register_api(request):
     password = request.data.get("password")
     game_id = request.data.get("game_id")
 
+    if not all([username, email, password]):
+        return Response({"error": "Username, email, and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+
     if User.objects.filter(username=username).exists():
         return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
+    if User.objects.filter(email__iexact=email).exists():
+        return Response({"error": "Email already registered. Use the resend verification code option."}, status=status.HTTP_400_BAD_REQUEST)
+
     user = User.objects.create_user(username=username, email=email, password=password)
     
-    # Profile is created by signal, but let's be sure we update it
-    profile, created = Profile.objects.get_or_create(user=user)
-    profile.game_id = game_id
-    if not profile.player_uuid:
-        import uuid
-        profile.player_uuid = uuid.uuid4()
-    profile.save()
-
-    # Generate JWT tokens after register
-    refresh = RefreshToken.for_user(user)
+    try:
+        send_verification_email(user, game_id=game_id)
+    except Exception:
+        logger.exception("Unable to send verification email during registration")
+        return Response(
+            {"error": "Account created, but the verification email could not be sent. Check the Resend sender configuration."},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
 
     return Response({
-        "message": "User registered successfully",
-        "refresh": str(refresh),
-        "access": str(refresh.access_token),
-        "player_uuid": str(user.profile.player_uuid),
+        "message": "Registration successful. Check your email to verify your account before logging in.",
     }, status=status.HTTP_201_CREATED)
 
 
@@ -62,6 +66,12 @@ def login_api(request):
     if user is None:
         return Response({"error": "Invalid username or password"}, status=status.HTTP_401_UNAUTHORIZED)
 
+    if not hasattr(user, "profile") or not user.profile.is_email_verified:
+        return Response(
+            {"error": "Please verify your email address before logging in."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     refresh = RefreshToken.for_user(user)
 
     return Response({
@@ -69,6 +79,80 @@ def login_api(request):
         "refresh": str(refresh),
         "access": str(refresh.access_token)
     }, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def verify_email(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return Response({"error": "Invalid verification link"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not default_token_generator.check_token(user, token):
+        return Response({"error": "This verification link is invalid or expired"}, status=status.HTTP_400_BAD_REQUEST)
+
+    verification = EmailVerification.objects.filter(user=user).first()
+    profile, _ = Profile.objects.get_or_create(user=user, defaults={"game_id": verification.game_id if verification else None})
+    profile.is_email_verified = True
+    profile.save(update_fields=["is_email_verified"])
+    if verification:
+        verification.delete()
+
+    return Response({"message": "Email verified successfully. You can now log in."}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def verify_email_code(request):
+    email = request.data.get("email")
+    code = request.data.get("code")
+
+    if not email or not code:
+        return Response({"error": "Email and verification code are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    verification = EmailVerification.objects.filter(
+        user__email__iexact=email,
+        code=str(code).strip(),
+        expires_at__gt=timezone.now(),
+    ).select_related("user").first()
+
+    if verification is None:
+        return Response({"error": "Invalid or expired verification code"}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = verification.user
+    profile, _ = Profile.objects.get_or_create(user=user, defaults={"game_id": verification.game_id})
+    profile.is_email_verified = True
+    profile.save(update_fields=["is_email_verified"])
+    verification.delete()
+
+    return Response({"message": "Email verified successfully. You can now log in."}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def resend_verification_email(request):
+    email = request.data.get("email")
+    if not email:
+        return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(email__iexact=email).first()
+    if user is None:
+        return Response({"message": "If an account exists, a new verification code has been sent."}, status=status.HTTP_200_OK)
+
+    if hasattr(user, "profile") and user.profile.is_email_verified:
+        return Response({"message": "This email is already verified."}, status=status.HTTP_200_OK)
+
+    try:
+        send_verification_email(user)
+    except Exception:
+        logger.exception("Unable to resend verification email")
+        return Response(
+            {"error": "The verification email could not be sent. Check the Resend sender configuration."},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+    return Response({"message": "A new verification code has been sent."}, status=status.HTTP_200_OK)
 
 
 

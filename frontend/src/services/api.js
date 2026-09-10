@@ -33,10 +33,10 @@ const apiRequest = async (endpoint, options = {}) => {
   try {
     const response = await fetch(url, config);
 
-    // Check if response is JSON
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('Server returned non-JSON response. Please check if backend is running.');
+      const responseText = await response.text();
+      throw new Error(`Server error (${response.status}). ${responseText.slice(0, 160)}`);
     }
 
     const data = await response.json();
@@ -72,6 +72,22 @@ export const authService = {
 
   getProfile: async () => {
     return apiRequest('/api/me/');
+  },
+
+  verifyEmailCode: async (email, code) => {
+    return apiRequest('/api/verify-email/code/', {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify({ email, code }),
+    });
+  },
+
+  resendVerificationEmail: async (email) => {
+    return apiRequest('/api/verify-email/resend/', {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify({ email }),
+    });
   },
 };
 

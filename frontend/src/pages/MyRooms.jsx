@@ -252,7 +252,7 @@ export default function MyRooms() {
             {/* Header */}
             {/* Header Removed */}
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
                 {rooms.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {rooms.map((room) => (
@@ -262,7 +262,7 @@ export default function MyRooms() {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-white/80 text-xs font-medium uppercase">{room.tournament_game}</p>
-                                            <h3 className="text-white font-bold text-lg">{room.tournament_name}</h3>
+                                            <h3 className="text-white font-bold text-lg break-words">{room.tournament_name}</h3>
                                         </div>
                                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(room.status)}`}>
                                             {room.status}
@@ -369,17 +369,17 @@ export default function MyRooms() {
             {/* Room Details Modal */}
             {selectedRoom && roomDetails && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-                    <div className={`bg-white rounded-[2rem] ${isAdmin ? 'max-w-7xl' : 'max-w-2xl'} w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-white/20`}>
+                    <div className={`bg-white rounded-2xl sm:rounded-[2rem] ${isAdmin ? 'max-w-7xl' : 'max-w-2xl'} w-full max-h-[94vh] flex flex-col overflow-hidden shadow-2xl border border-white/20`}>
 
                         {/* Modal Header */}
-                        <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 p-6 flex flex-shrink-0 justify-between items-center shadow-lg">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+                        <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 p-4 sm:p-6 flex flex-shrink-0 justify-between items-center shadow-lg">
+                            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                                <div className="hidden w-12 h-12 shrink-0 bg-white/20 rounded-2xl sm:flex items-center justify-center backdrop-blur-md">
                                     <span className="text-2xl">🎮</span>
                                 </div>
-                                <div>
-                                    <h2 className="text-2xl font-black text-white leading-none mb-1">{roomDetails.tournament_name}</h2>
-                                    <p className="text-white/70 text-[10px] font-black uppercase tracking-[0.2em]">ROOM #{roomDetails.room_number || '1'} • {roomDetails.game.toUpperCase()}</p>
+                                <div className="min-w-0">
+                                    <h2 className="text-lg sm:text-2xl font-black text-white leading-tight mb-1 break-words">{roomDetails.tournament_name}</h2>
+                                    <p className="text-white/70 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.12em] sm:tracking-[0.2em] truncate">ROOM #{roomDetails.room_number || '1'} • {roomDetails.game.toUpperCase()}</p>
                                 </div>
                             </div>
                             <Button
@@ -397,7 +397,7 @@ export default function MyRooms() {
                         <div className="flex-1 overflow-y-auto bg-gray-50/50">
                             {isAdmin ? (
                                 /* --- 🛠️ ADMIN MASTER DASHBOARD (3-Pane) --- */
-                                <div className="p-8 flex flex-col lg:flex-row gap-8 min-h-[600px]">
+                                <div className="p-4 sm:p-8 flex flex-col lg:flex-row gap-4 sm:gap-8 min-h-[600px]">
 
                                     {/* Column 1: Participants */}
                                     <div className="w-full lg:w-72 flex flex-col bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-sm">
@@ -512,14 +512,14 @@ export default function MyRooms() {
                                 </div>
                             ) : (
                                 /* --- 👤 STANDARD PLAYER INTERFACE (Tabs) --- */
-                                <div className="p-8">
-                                    <div className="flex bg-gray-100/80 backdrop-blur-md p-1.5 rounded-[1.5rem] mb-8 shadow-inner">
+                                <div className="p-4 sm:p-8">
+                                    <div className="grid grid-cols-3 gap-1 bg-gray-100/80 backdrop-blur-md p-1 sm:p-1.5 rounded-xl sm:rounded-[1.5rem] mb-5 sm:mb-8 shadow-inner">
                                         {['participants', 'messages', 'results'].map(tab => (
                                             <Button
                                                 key={tab}
                                                 onClick={() => setActiveTab(tab)}
                                                 variant={activeTab === tab ? 'secondary' : 'ghost'}
-                                                className="flex-1 uppercase tracking-wider"
+                                                className="min-w-0 px-2 text-[10px] sm:text-sm uppercase tracking-normal sm:tracking-wider"
                                             >
                                                 {tab}
                                             </Button>
@@ -544,7 +544,7 @@ export default function MyRooms() {
                                         )}
 
                                         {activeTab === 'messages' && (
-                                            <div className="flex flex-col h-[500px] bg-white border border-gray-100 rounded-[2.5rem] overflow-hidden shadow-sm animate-in zoom-in-95 duration-500">
+                                            <div className="flex flex-col h-[55vh] min-h-[320px] max-h-[500px] bg-white border border-gray-100 rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-sm animate-in zoom-in-95 duration-500">
                                                 <div className="flex-1 p-6 space-y-4 overflow-y-auto bg-gray-50/30">
                                                     {messages.map((msg, i) => {
                                                         const isMe = (msg.username || '').toLowerCase() === (user?.username || '').toLowerCase();
@@ -564,8 +564,8 @@ export default function MyRooms() {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="p-4 bg-white border-t flex gap-4">
-                                                    <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} className="flex-1 px-6 py-4 bg-gray-50 border-none rounded-2xl text-xs font-black tracking-tight focus:ring-2 focus:ring-purple-500 transition-all shadow-inner" placeholder="Message the entire room..." />
+                                                <div className="p-3 sm:p-4 bg-white border-t flex gap-2 sm:gap-4">
+                                                    <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} className="min-w-0 flex-1 px-3 sm:px-6 py-3 sm:py-4 bg-gray-50 border-none rounded-2xl text-xs font-black tracking-tight focus:ring-2 focus:ring-purple-500 transition-all shadow-inner" placeholder="Message the entire room..." />
                                                     <Button onClick={handleSendMessage} size="icon" aria-label="Send message">🚀</Button>
                                                 </div>
                                             </div>
@@ -604,12 +604,12 @@ export default function MyRooms() {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="p-6 border-t bg-white flex-shrink-0 flex justify-center lg:justify-end">
+                        <div className="p-3 sm:p-6 border-t bg-white flex-shrink-0 flex justify-center lg:justify-end">
                             <Button
                                 onClick={() => { setSelectedRoom(null); setRoomDetails(null); }}
                                 variant="secondary"
                                 size="lg"
-                                className="uppercase tracking-wider"
+                                className="w-full sm:w-auto uppercase tracking-wider"
                             >
                                 Leave Arena
                             </Button>

@@ -83,6 +83,7 @@ def update_profile(request):
         # Reset statuses for updated sections
         if any(k in data for k in ["bgmi_id", "freefire_id", "fifa_id"]):
             profile.game_id_status = "pending"
+            profile.game_id_verified = False
             for gid in [profile.bgmi_id, profile.freefire_id, profile.fifa_id]:
                 if gid:
                     profile.game_id = gid

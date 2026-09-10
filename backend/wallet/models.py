@@ -3,8 +3,6 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 import uuid
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 
 class Profile(models.Model):
@@ -24,6 +22,7 @@ class Profile(models.Model):
     # Keep legacy field for compatibility
     game_id = models.CharField(max_length=50, null=True, blank=True)
     game_id_verified = models.BooleanField(default=False)
+    is_email_verified = models.BooleanField(default=False)
     
     VERIFICATION_STATUS = (
         ("pending", "Pending"),
@@ -113,14 +112,9 @@ class SiteConfiguration(models.Model):
     def __str__(self):
         return "Site Global Settings"
 
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.create(user=instance, player_uuid=uuid.uuid4())
-
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    try:
-        instance.profile.save()
-    except Profile.DoesNotExist:
-        Profile.objects.create(user=instance, player_uuid=uuid.uuid4())
+class EmailVerification(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="email_verification")
+    game_id = models.CharField(max_length=50, null=True, blank=True)
+    code = models.CharField(max_length=6)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)

@@ -163,6 +163,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh");
+    setIsLoggedIn(false);
+    setUser(null);
+  }, []);
+
   // � Load profile (contains is_staff)
   const loadProfile = useCallback(async () => {
     try {
@@ -181,7 +188,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [logout]);
 
   // 🔁 Run once on app load
   useEffect(() => {
@@ -199,14 +206,6 @@ export const AuthProvider = ({ children }) => {
     setIsLoggedIn(true);
     loadProfile();
   }, [loadProfile]);
-
-  // ✅ Logout
-  const logout = useCallback(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refresh");
-    setIsLoggedIn(false);
-    setUser(null);
-  }, []);
 
   return (
     <AuthContext.Provider

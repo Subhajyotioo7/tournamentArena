@@ -73,9 +73,9 @@ export default function MyRooms() {
                 wsRef.current = null;
             }
         };
-    }, [selectedRoom, activeTab, isAdmin]);
+    }, [connectWebSocket, fetchMessageHistory, selectedRoom, activeTab, isAdmin]);
 
-    const fetchMessageHistory = async (roomId) => {
+    const fetchMessageHistory = useCallback(async (roomId) => {
         try {
             const token = localStorage.getItem('token');
             const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/room/${roomId}/messages/`, {
@@ -95,9 +95,9 @@ export default function MyRooms() {
         } catch (error) {
             console.error('Error fetching chat history:', error);
         }
-    };
+    }, []);
 
-    const connectWebSocket = (roomId) => {
+    const connectWebSocket = useCallback((roomId) => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
@@ -142,7 +142,7 @@ export default function MyRooms() {
         };
 
         wsRef.current = ws;
-    };
+    }, []);
 
     const handleViewRoom = async (roomId) => {
         try {

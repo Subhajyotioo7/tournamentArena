@@ -79,8 +79,8 @@ export default function MyInvitations() {
                 }
                 alert(`❌ ${errorMsg}`);
             }
-        } catch (error) {
-            alert(`❌ Error accepting invitation: ${error.message}`);
+        } catch {
+            alert('❌ Error accepting invitation');
 
         }
     };

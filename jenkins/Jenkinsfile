@@ -92,7 +92,7 @@ pipeline {
                     python -m pip install --upgrade pip
                     python -m pip install bandit safety
                     bandit -r api backend chat payments tournaments wallet manage.py run_migrations.py -q
-                    safety check -r requirements.txt --full-report
+                    safety scan --target requirements.txt
 
                     echo "Running frontend security scan..."
                     cd ../frontend

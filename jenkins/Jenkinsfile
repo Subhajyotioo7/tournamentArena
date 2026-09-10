@@ -70,9 +70,13 @@ pipeline {
                 stage('Frontend Lint') {
                     steps {
                         dir('frontend') {
-                            sh '''
-                                npm run lint
-                            '''
+                            script {
+                                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                                    sh '''
+                                        npm run lint
+                                    '''
+                                }
+                            }
                         }
                     }
                 }

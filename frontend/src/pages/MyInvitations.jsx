@@ -98,12 +98,11 @@ export default function MyInvitations() {
                 },
             });
 
-            const data = await response.json();
             if (response.ok) {
                 alert('Invitation rejected');
                 fetchInvitations();
             }
-        } catch (error) {
+        } catch {
             alert('Error rejecting invitation');
         }
     };
@@ -124,7 +123,6 @@ export default function MyInvitations() {
     const handleSaveTeam = () => {
         if (!newTeam.name) return alert('Enter team name');
         const filledMembers = newTeam.members.filter(m => m.trim());
-        const required = newTeam.mode === 'duo' ? 1 : 3;
 
         if (filledMembers.length === 0) return alert('Enter at least one teammate Game ID');
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,6 +19,34 @@ export default function MyRooms() {
 
     const isAdmin = user && (user.is_staff || user.is_superuser);
 
+    const fetchMyRooms = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                navigate('/login');
+                return;
+            }
+
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tournaments/my-rooms/`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                setRooms(data.rooms || []);
+            } else {
+                console.error('Failed to fetch rooms:', data);
+            }
+        } catch (error) {
+            console.error('Error fetching rooms:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [navigate]);
+
     useEffect(() => {
         fetchMyRooms();
 
@@ -28,7 +56,7 @@ export default function MyRooms() {
                 wsRef.current.close();
             }
         };
-    }, []);
+    }, [fetchMyRooms]);
 
     // 🔄 WebSocket Connection Lifecycle
     useEffect(() => {
@@ -114,34 +142,6 @@ export default function MyRooms() {
         };
 
         wsRef.current = ws;
-    };
-
-    const fetchMyRooms = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                navigate('/login');
-                return;
-            }
-
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tournaments/my-rooms/`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            const data = await response.json();
-            if (response.ok) {
-                setRooms(data.rooms || []);
-            } else {
-                console.error('Failed to fetch rooms:', data);
-            }
-        } catch (error) {
-            console.error('Error fetching rooms:', error);
-        } finally {
-            setLoading(false);
-        }
     };
 
     const handleViewRoom = async (roomId) => {

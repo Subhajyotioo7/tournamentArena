@@ -206,7 +206,7 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
-    'TOKEN_TYPE_CLAIM': 'token_type',  # nosec B105
+    'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
 CSRF_TRUSTED_ORIGINS = [

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { tournamentService, roomService } from '../services/api';
 
@@ -10,11 +10,7 @@ export default function TournamentParticipants() {
     const [searchTerm, setSearchTerm] = useState('');
     const [processing, setProcessing] = useState({});
 
-    useEffect(() => {
-        fetchParticipants();
-    }, [id]);
-
-    const fetchParticipants = async () => {
+    const fetchParticipants = useCallback(async () => {
         try {
             const data = await tournamentService.getParticipants(id);
             setParticipants(data);
@@ -23,7 +19,11 @@ export default function TournamentParticipants() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        fetchParticipants();
+    }, [fetchParticipants]);
 
     const handleSetWinner = async (participantId, roomId) => {
         const rank = prompt("Enter rank (e.g. 1):");

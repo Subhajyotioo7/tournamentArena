@@ -152,7 +152,8 @@
 // };
 
 
-import { createContext, useContext, useEffect, useState } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { getProfile } from "../services/auth";
 
 const AuthContext = createContext(null);
@@ -162,19 +163,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔁 Run once on app load
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      setIsLoggedIn(true);
-      loadProfile();
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  // 🔽 Load profile (contains is_staff)
-  const loadProfile = async () => {
+  // � Load profile (contains is_staff)
+  const loadProfile = useCallback(async () => {
     try {
       const profile = await getProfile();
 
@@ -191,21 +181,32 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // 🔁 Run once on app load
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setIsLoggedIn(true);
+      loadProfile();
+    } else {
+      setLoading(false);
+    }
+  }, [loadProfile]);
 
   // ✅ Login (store token already done in auth.js)
-  const login = () => {
+  const login = useCallback(() => {
     setIsLoggedIn(true);
     loadProfile();
-  };
+  }, [loadProfile]);
 
   // ✅ Logout
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("refresh");
     setIsLoggedIn(false);
     setUser(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function MyInvitations() {
@@ -6,11 +6,7 @@ export default function MyInvitations() {
     const [invitations, setInvitations] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchInvitations();
-    }, []);
-
-    const fetchInvitations = async () => {
+    const fetchInvitations = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -34,7 +30,11 @@ export default function MyInvitations() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [navigate]);
+
+    useEffect(() => {
+        fetchInvitations();
+    }, [fetchInvitations]);
 
     const handleAccept = async (invitationId) => {
         try {

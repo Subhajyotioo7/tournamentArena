@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tournamentService, roomService } from '../services/api';
 import RulesModal from '../components/RulesModal';
@@ -16,11 +16,7 @@ export default function Tournament() {
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
 
-  useEffect(() => {
-    fetchTournamentData();
-  }, [id]);
-
-  const fetchTournamentData = async () => {
+  const fetchTournamentData = useCallback(async () => {
     try {
       console.log('Fetching tournament with ID:', id);
       const [tournamentData, prizeData] = await Promise.all([
@@ -41,7 +37,11 @@ export default function Tournament() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchTournamentData();
+  }, [fetchTournamentData]);
 
   const handleCreateRoom = async () => {
     // Check if logged in
@@ -101,7 +101,7 @@ export default function Tournament() {
       } else {
         alert(`❌ ${data.error || 'Failed to join'}`);
       }
-    } catch (error) {
+    } catch {
       alert('❌ Error joining tournament');
     }
   };
@@ -126,22 +126,9 @@ export default function Tournament() {
       } else {
         alert(`❌ ${data.error || 'Failed to create team'}`);
       }
-    } catch (error) {
+    } catch {
       alert('❌ Error creating team');
     }
-  };
-
-  const handleJoinRoom = async (roomId) => {
-    // Check if logged in
-    const token = localStorage.getItem('token');
-    if (!token) {
-      alert('⚠️ Please login first to join tournaments!\n\nClick "Login" in the top menu to continue.');
-      navigate('/login');
-      return;
-    }
-
-    setSelectedRoom(roomId);
-    setShowRulesModal(true);
   };
 
   if (loading) {

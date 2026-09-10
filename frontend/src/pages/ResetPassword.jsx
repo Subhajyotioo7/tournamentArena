@@ -34,7 +34,7 @@ export default function ResetPassword() {
             } else {
                 setError(data.error || 'Reset failed');
             }
-        } catch (err) {
+        } catch {
             setError('Connection error');
         } finally {
             setLoading(false);

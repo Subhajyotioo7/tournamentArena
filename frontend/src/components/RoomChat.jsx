@@ -56,7 +56,7 @@ import { useEffect, useState, useRef } from "react";
 export default function RoomChat({ roomId }) {
   const token = localStorage.getItem("token");
 
-  const [socket, setSocket] = useState(null);
+  const socketRef = useRef(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
@@ -109,7 +109,7 @@ export default function RoomChat({ roomId }) {
       console.warn("WebSocket closed");
     };
 
-    setSocket(ws);
+    socketRef.current = ws;
 
     return () => {
       ws.close();
@@ -123,6 +123,7 @@ export default function RoomChat({ roomId }) {
 
   // ================== SEND MESSAGE ==================
   const sendMessage = (type = "chat") => {
+    const socket = socketRef.current;
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       console.error("WebSocket not ready");
       return;

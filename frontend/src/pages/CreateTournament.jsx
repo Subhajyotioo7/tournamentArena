@@ -48,18 +48,6 @@ export default function CreateTournament() {
         setFormData(prev => ({ ...prev, prize_distributions: newPrizes }));
     };
 
-    const addPrizeRow = () => {
-        setFormData(prev => ({
-            ...prev,
-            prize_distributions: [...prev.prize_distributions, { rank: prev.prize_distributions.length + 1, prize: 0 }]
-        }));
-    };
-
-    const removePrizeRow = (index) => {
-        const newPrizes = formData.prize_distributions.filter((_, i) => i !== index);
-        setFormData(prev => ({ ...prev, prize_distributions: newPrizes }));
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.name) return alert('Name is required');

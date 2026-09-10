@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
-export default function TeamFormationModal({ tournament, room, onClose, onJoinSolo, onCreateTeam }) {
-    const [teamMode, setTeamMode] = useState(null);
+export default function TeamFormationModal({ tournament, onClose, onJoinSolo, onCreateTeam }) {
     const [gameIds, setGameIds] = useState(['', '', '']);
     const [loading, setLoading] = useState(false);
 

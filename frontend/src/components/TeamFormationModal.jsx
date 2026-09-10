@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button } from './ui/button';
 
 export default function TeamFormationModal({ tournament, onClose, onJoinSolo, onCreateTeam }) {
     const [gameIds, setGameIds] = useState(['', '', '']);
@@ -72,12 +73,15 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                             <h2 className="text-2xl font-bold mb-1">Join Tournament</h2>
                             <p className="text-purple-100">{tournament.name}</p>
                         </div>
-                        <button
+                        <Button
                             onClick={onClose}
-                            className="text-white hover:bg-white/20 p-2 rounded-lg transition-all text-2xl"
+                            variant="ghost"
+                            size="icon"
+                            className="text-white hover:bg-white/10 hover:text-white"
+                            aria-label="Close team dialog"
                         >
                             ✕
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -114,13 +118,13 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                             <p className="text-sm text-gray-600 mb-4">
                                 You'll join this tournament alone and pay the full entry fee.
                             </p>
-                            <button
+                            <Button
                                 onClick={handleJoinSolo}
                                 disabled={loading}
-                                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50"
+                                className="w-full"
                             >
                                 {loading ? 'Joining...' : `Join Solo - Pay ₹${paymentShare}`}
-                            </button>
+                            </Button>
                         </div>
                     )}
 
@@ -146,7 +150,7 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Saved Team Presets</p>
                                     <div className="grid grid-cols-1 gap-2">
                                         {presetTeams.map(team => (
-                                            <button
+                                            <Button
                                                 key={team.id}
                                                 type="button"
                                                 onClick={() => {
@@ -154,7 +158,8 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                                                     team.members.forEach((m, i) => { if (i < info.invites) newIds[i] = m; });
                                                     setGameIds(newIds);
                                                 }}
-                                                className="flex items-center justify-between p-3 rounded-xl border border-purple-100 bg-purple-50 hover:bg-purple-100 transition-colors text-left group"
+                                                variant="outline"
+                                                className="h-auto w-full justify-between p-3 text-left"
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <span className="text-xl">{team.mode === 'duo' ? '👥' : '👨‍👩‍👧‍👦'}</span>
@@ -164,7 +169,7 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                                                     </div>
                                                 </div>
                                                 <span className="text-purple-400 text-xs font-bold bg-white px-2 py-1 rounded-lg">Select</span>
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
                                 </div>
@@ -197,14 +202,16 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Recent Teammates</p>
                                     <div className="flex flex-wrap gap-2">
                                         {savedTeammates.filter(id => !gameIds.includes(id)).map(id => (
-                                            <button
+                                            <Button
                                                 key={id}
                                                 type="button"
                                                 onClick={() => selectSavedTeammate(id)}
-                                                className="bg-gray-100 hover:bg-purple-100 hover:text-purple-700 text-gray-600 px-3 py-1 rounded-full text-xs font-semibold transition-colors border border-gray-200"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 rounded-full text-xs"
                                             >
                                                 + {id}
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
                                 </div>
@@ -216,13 +223,13 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                                 </p>
                             </div>
 
-                            <button
+                            <Button
                                 onClick={handleCreateTeam}
                                 disabled={loading}
-                                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50"
+                                className="w-full"
                             >
                                 {loading ? 'Sending Invitations...' : `Send Invitations`}
-                            </button>
+                            </Button>
                         </div>
                     )}
                 </div>

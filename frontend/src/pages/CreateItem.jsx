@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { apiPost } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { Button } from "../components/ui/button";
 
 export default function CreateItem() {
   const [name, setName] = useState("");
@@ -32,9 +33,9 @@ export default function CreateItem() {
           onChange={(e) => setPrice(e.target.value)}
         />
 
-        <button className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700">
+        <Button type="submit" className="w-full">
           Add Item
-        </button>
+        </Button>
       </form>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tournamentService } from '../services/api';
 import TournamentCard from '../components/TournamentCard';
+import { Button } from '../components/ui/button';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -37,25 +38,24 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Active Tournaments</h2>
-              <button
+              <Button
                 onClick={() => navigate('/create-tournament')}
-                className="mt-2 inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                className="mt-2"
+                size="sm"
               >
-                🏆 Create Your Tournament (₹10)
-              </button>
+                Create tournament (₹10)
+              </Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {['all', 'fifa', 'bgmi', 'freefire'].map((game) => (
-                <button
+                <Button
                   key={game}
                   onClick={() => setFilter(game)}
-                  className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${filter === game
-                    ? 'bg-purple-600 text-white shadow-lg'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
+                  variant={filter === game ? 'default' : 'outline'}
+                  size="sm"
                 >
                   {game === 'all' ? 'All' : game.toUpperCase()}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

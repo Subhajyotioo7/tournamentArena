@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { tournamentService, roomService } from '../services/api';
+import { Button } from '../components/ui/button';
 
 export default function TournamentParticipants() {
     const { id } = useParams();
@@ -135,13 +136,13 @@ export default function TournamentParticipants() {
                                             )}
                                         </td>
                                         <td className="p-4 text-right">
-                                            <button
+                                            <Button
                                                 onClick={() => handleSetWinner(participant.id, participant.room_id)}
                                                 disabled={processing[participant.id]}
-                                                className="bg-purple-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-purple-700 disabled:opacity-50"
+                                                size="sm"
                                             >
                                                 {processing[participant.id] ? '...' : '🏆 Set Winner'}
-                                            </button>
+                                            </Button>
                                         </td>
                                     </tr>
                                 ))

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getApiBaseUrl } from '../services/api';
+import { Button } from '../components/ui/button';
 
 
 export default function MyRooms() {
@@ -315,33 +316,35 @@ export default function MyRooms() {
                                     {/* Action Buttons */}
                                     <div className="space-y-2">
                                         {room.status === 'started' ? (
-                                            <button
+                                            <Button
                                                 onClick={() => handleViewRoom(room.id)}
-                                                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all"
+                                                className="w-full"
                                             >
                                                 🎮 Enter Room
-                                            </button>
+                                            </Button>
                                         ) : room.status === 'completed' ? (
-                                            <button
+                                            <Button
                                                 onClick={() => handleViewRoom(room.id)}
-                                                className="w-full bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700 transition-all"
+                                                variant="secondary"
+                                                className="w-full"
                                             >
                                                 👁️ View Results
-                                            </button>
+                                            </Button>
                                         ) : room.status === 'full' || room.current_players >= room.max_players ? (
-                                            <button
+                                            <Button
                                                 onClick={() => handleViewRoom(room.id)}
-                                                className="w-full bg-yellow-100 text-yellow-800 py-3 rounded-lg font-semibold text-center border border-yellow-200 hover:bg-yellow-200 transition-all"
+                                                variant="outline"
+                                                className="w-full"
                                             >
                                                 👁️ View Room
-                                            </button>
+                                            </Button>
                                         ) : (
-                                            <button
+                                            <Button
                                                 onClick={() => handleViewRoom(room.id)}
-                                                className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-all"
+                                                className="w-full"
                                             >
                                                 👁️ View Room
-                                            </button>
+                                            </Button>
                                         )}
                                     </div>
                                 </div>
@@ -353,12 +356,12 @@ export default function MyRooms() {
                         <div className="text-6xl mb-4">🎮</div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">No Rooms Yet</h2>
                         <p className="text-gray-600 mb-6">You haven't joined any tournaments yet</p>
-                        <button
+                        <Button
                             onClick={() => navigate('/')}
-                            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all"
+                            size="lg"
                         >
                             Browse Tournaments
-                        </button>
+                        </Button>
                     </div>
                 )}
             </div>
@@ -379,12 +382,15 @@ export default function MyRooms() {
                                     <p className="text-white/70 text-[10px] font-black uppercase tracking-[0.2em]">ROOM #{roomDetails.room_number || '1'} • {roomDetails.game.toUpperCase()}</p>
                                 </div>
                             </div>
-                            <button
+                            <Button
                                 onClick={() => { setSelectedRoom(null); setRoomDetails(null); }}
-                                className="text-white bg-white/10 hover:bg-white/30 p-3 rounded-2xl transition-all duration-300 hover:rotate-90 active:scale-90"
+                                variant="ghost"
+                                size="icon"
+                                className="text-white hover:bg-white/10 hover:text-white"
+                                aria-label="Close room details"
                             >
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
+                            </Button>
                         </div>
 
                         {/* Modal Body */}
@@ -448,7 +454,7 @@ export default function MyRooms() {
                                                 className="flex-1 px-5 py-3.5 bg-gray-50 border-none rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400"
                                                 placeholder="Send a message to everyone..."
                                             />
-                                            <button onClick={handleSendMessage} className="bg-blue-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-blue-700 transition-all shadow-lg active:scale-95 text-xl">🚀</button>
+                                            <Button onClick={handleSendMessage} size="icon" aria-label="Send message">🚀</Button>
                                         </div>
                                     </div>
 
@@ -478,7 +484,7 @@ export default function MyRooms() {
                                                         <input type="number" placeholder="₹0.00" value={winnerForm.prize_amount} onChange={(e) => setWinnerForm({ ...winnerForm, prize_amount: e.target.value })} className="w-full border border-yellow-200 rounded-2xl px-4 py-3 text-xs font-black text-green-700 placeholder:text-gray-300" />
                                                     </div>
                                                 </div>
-                                                <button onClick={handleAddWinner} className="w-full mt-2 bg-yellow-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-xl shadow-yellow-200 hover:bg-black active:scale-95">Verify & Payout 💰</button>
+                                                <Button onClick={handleAddWinner} className="mt-2 w-full uppercase tracking-wider">Verify & Payout</Button>
                                             </div>
                                         </div>
 
@@ -509,13 +515,14 @@ export default function MyRooms() {
                                 <div className="p-8">
                                     <div className="flex bg-gray-100/80 backdrop-blur-md p-1.5 rounded-[1.5rem] mb-8 shadow-inner">
                                         {['participants', 'messages', 'results'].map(tab => (
-                                            <button
+                                            <Button
                                                 key={tab}
                                                 onClick={() => setActiveTab(tab)}
-                                                className={`flex-1 py-3.5 text-[10px] font-black uppercase tracking-widest transition-all duration-300 rounded-[1.1rem] ${activeTab === tab ? 'bg-white text-purple-600 shadow-md transform scale-[1.02]' : 'text-gray-500 hover:text-gray-800'}`}
+                                                variant={activeTab === tab ? 'secondary' : 'ghost'}
+                                                className="flex-1 uppercase tracking-wider"
                                             >
                                                 {tab}
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
 
@@ -559,7 +566,7 @@ export default function MyRooms() {
                                                 </div>
                                                 <div className="p-4 bg-white border-t flex gap-4">
                                                     <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} className="flex-1 px-6 py-4 bg-gray-50 border-none rounded-2xl text-xs font-black tracking-tight focus:ring-2 focus:ring-purple-500 transition-all shadow-inner" placeholder="Message the entire room..." />
-                                                    <button onClick={handleSendMessage} className="bg-black text-white w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-purple-600 transition-all shadow-2xl active:scale-90 text-2xl">🚀</button>
+                                                    <Button onClick={handleSendMessage} size="icon" aria-label="Send message">🚀</Button>
                                                 </div>
                                             </div>
                                         )}
@@ -598,12 +605,14 @@ export default function MyRooms() {
 
                         {/* Modal Footer */}
                         <div className="p-6 border-t bg-white flex-shrink-0 flex justify-center lg:justify-end">
-                            <button
+                            <Button
                                 onClick={() => { setSelectedRoom(null); setRoomDetails(null); }}
-                                className="px-16 bg-gray-900 text-white py-4.5 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-black transition-all transform active:scale-95 shadow-2xl hover:shadow-purple-200 hover:-translate-y-1"
+                                variant="secondary"
+                                size="lg"
+                                className="uppercase tracking-wider"
                             >
                                 Leave Arena
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

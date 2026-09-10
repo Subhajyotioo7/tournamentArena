@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Button } from '../components/ui/button';
 
 export default function ResetPassword() {
     const { uid, token } = useParams();
@@ -94,13 +95,13 @@ export default function ResetPassword() {
                             />
                         </div>
 
-                        <button
+                        <Button
                             type="submit"
                             disabled={loading}
                             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-2xl transition-all disabled:opacity-50"
                         >
                             {loading ? 'Updating...' : 'Set New Password 🔒'}
-                        </button>
+                        </Button>
                     </form>
                 )}
             </div>

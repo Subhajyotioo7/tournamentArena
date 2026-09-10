@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { tournamentService, roomService } from '../services/api';
 import RulesModal from '../components/RulesModal';
 import TeamFormationModal from '../components/TeamFormationModal';
+import { Button } from '../components/ui/button';
 
 export default function Tournament() {
   const { id } = useParams();
@@ -125,9 +126,9 @@ export default function Tournament() {
         <div className="text-center">
           <div className="text-6xl mb-4">❌</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Tournament Not Found</h2>
-          <button onClick={() => navigate('/')} className="text-purple-600 hover:underline">
+          <Button onClick={() => navigate('/')} variant="link" className="p-0 text-purple-600">
             Go back home
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -144,12 +145,12 @@ export default function Tournament() {
       {/* Tournament Header */}
       <div className={`bg-gradient-to-r ${gameGradients[tournament.game] || 'from-purple-600 to-blue-600'} text-white shadow-lg`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-          <button onClick={() => navigate('/')} className="text-white/80 hover:text-white mb-4 sm:mb-6 flex items-center gap-2 transition-colors">
+          <Button onClick={() => navigate('/')} variant="ghost" className="mb-4 flex items-center gap-2 p-0 text-white/80 sm:mb-6">
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back to Tournaments
-          </button>
+          </Button>
 
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
             <div>
@@ -301,14 +302,10 @@ export default function Tournament() {
               </div>
 
               <div className="space-y-4">
-                <button
+                <Button
                   onClick={handleCreateRoom}
                   disabled={creating || (tournament.total_participants >= tournament.max_participants)}
-                  className={`w-full py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2
-                            ${(tournament.total_participants >= tournament.max_participants)
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
-                    }`}
+                  className="w-full py-3 text-base sm:py-4 sm:text-lg"
                 >
                   {creating ? (
                     <>
@@ -319,7 +316,7 @@ export default function Tournament() {
                     '⛔ TOURNAMENT FULL'
                   ) : (tournament.team_mode === 'solo' ? '🚀 JOIN TOURNAMENT' : '👥 CREATE TEAM')
                   }
-                </button>
+                </Button>
 
                 <p className="text-xs text-center text-gray-400 leading-relaxed px-4">
                   By joining, you agree to the rules. Entry fee will be deducted immediately.

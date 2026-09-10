@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { adminService, tournamentService, roomService } from '../services/api'; // Consolidated imports
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Button } from '../components/ui/button';
 export default function AdminDashboard() {
     const { user, loading: authLoading } = useAuth();
     const isAdmin = user?.is_staff || user?.is_superuser;
@@ -273,12 +274,12 @@ export default function AdminDashboard() {
                 <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-900">Tournament Registrations</h2>
-                        <button
+                        <Button
                             onClick={() => setShowCreateModal(true)}
-                            className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-all shadow-md flex items-center gap-2"
+                            className="flex items-center gap-2"
                         >
                             <span>➕</span> Create Tournament
-                        </button>
+                        </Button>
                     </div>
 
                     {loading ? (
@@ -336,12 +337,13 @@ export default function AdminDashboard() {
                                                     ₹{(t.total_participants || 0) * parseFloat(t.entry_fee)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <button
+                                                    <Button
                                                         onClick={() => handleOpenPrizeModal(t.id)}
-                                                        className="text-indigo-600 hover:text-indigo-900 font-semibold text-sm bg-indigo-50 px-3 py-1 rounded-full hover:bg-indigo-100 transition-colors"
+                                                        variant="outline"
+                                                        size="sm"
                                                     >
                                                         🏆 Set Prizes
-                                                    </button>
+                                                    </Button>
                                                     <Link
                                                         to={`/admin/tournament/${t.id}/participants`}
                                                         className="inline-flex items-center text-blue-600 hover:text-blue-900 font-semibold text-sm bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition-colors ml-2"
@@ -383,13 +385,13 @@ export default function AdminDashboard() {
                                                 <h3 className="text-lg font-bold text-gray-900">Room #{roomId.slice(0, 8)}</h3>
                                                 <p className="text-sm text-gray-500">{payouts.length} winners</p>
                                             </div>
-                                            <button
+                                            <Button
                                                 onClick={() => handleApprovePayouts(roomId)}
                                                 disabled={processing[roomId]}
-                                                className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                variant="default"
                                             >
                                                 {processing[roomId] ? 'Processing...' : 'Approve All'}
-                                            </button>
+                                            </Button>
                                         </div>
 
                                         <div className="space-y-3">
@@ -465,18 +467,18 @@ export default function AdminDashboard() {
 
                                     {withdrawal.status === 'pending' && (
                                         <div className="flex gap-3">
-                                            <button
+                                            <Button
                                                 onClick={() => handleApproveWithdrawal(withdrawal.id)}
-                                                className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-all"
+                                                variant="default"
                                             >
                                                 Approve
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => handleRejectWithdrawal(withdrawal.id)}
-                                                className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-all"
+                                                variant="destructive"
                                             >
                                                 Reject
-                                            </button>
+                                            </Button>
                                         </div>
                                     )}
 
@@ -517,18 +519,19 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
                                     <div className="flex gap-4">
-                                        <button
+                                        <Button
                                             onClick={() => handleVerifyDeposit(dep.id, 'approve')}
-                                            className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-emerald-100"
+                                            className="flex-1"
                                         >
                                             Approve & Credit
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={() => handleVerifyDeposit(dep.id, 'reject')}
-                                            className="flex-1 bg-white border-2 border-red-500 text-red-500 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-red-50 transition-all"
+                                            variant="destructive"
+                                            className="flex-1"
                                         >
                                             Reject
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
@@ -586,8 +589,8 @@ export default function AdminDashboard() {
                                             </div>
                                             {prof.game_id_status === 'pending' && (
                                                 <div className="flex gap-2 mt-auto">
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'game_id', 'approve')} className="flex-1 bg-green-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-green-700 transition-all shadow-md hover:shadow-lg">✓ Approve</button>
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'game_id', 'reject')} className="flex-1 bg-red-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-red-700 transition-all shadow-md hover:shadow-lg">✕ Reject</button>
+                                                    <Button onClick={() => handleVerifySection(prof.player_uuid, 'game_id', 'approve')} size="sm" className="flex-1">Approve</Button>
+                                                    <Button onClick={() => handleVerifySection(prof.player_uuid, 'game_id', 'reject')} variant="destructive" size="sm" className="flex-1">Reject</Button>
                                                 </div>
                                             )}
                                         </div>
@@ -618,8 +621,8 @@ export default function AdminDashboard() {
                                             </div>
                                             {prof.kyc_status === 'pending' && (
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'kyc', 'approve')} className="flex-1 bg-green-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-green-700 transition-all shadow-md hover:shadow-lg">✓ Approve</button>
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'kyc', 'reject')} className="flex-1 bg-red-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-red-700 transition-all shadow-md hover:shadow-lg">✕ Reject</button>
+                                                    <Button onClick={() => handleVerifySection(prof.player_uuid, 'kyc', 'approve')} size="sm" className="flex-1">Approve</Button>
+                                                    <Button onClick={() => handleVerifySection(prof.player_uuid, 'kyc', 'reject')} variant="destructive" size="sm" className="flex-1">Reject</Button>
                                                 </div>
                                             )}
                                         </div>
@@ -651,8 +654,8 @@ export default function AdminDashboard() {
                                             </div>
                                             {prof.payment_details_status === 'pending' && (
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'payment', 'approve')} className="flex-1 bg-green-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-green-700 transition-all shadow-md hover:shadow-lg">✓ Approve</button>
-                                                    <button onClick={() => handleVerifySection(prof.player_uuid, 'payment', 'reject')} className="flex-1 bg-red-600 text-white text-[10px] py-2 rounded-lg font-bold hover:bg-red-700 transition-all shadow-md hover:shadow-lg">✕ Reject</button>
+                                                    <Button onClick={() => handleVerifySection(prof.player_uuid, 'payment', 'approve')} size="sm" className="flex-1">Approve</Button>
+                                                    <Button onClick={() => handleVerifySection(prof.player_uuid, 'payment', 'reject')} variant="destructive" size="sm" className="flex-1">Reject</Button>
                                                 </div>
                                             )}
                                         </div>
@@ -673,12 +676,13 @@ export default function AdminDashboard() {
                         <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-purple-50 to-indigo-50">
                                 <h3 className="text-xl font-bold text-gray-900">Create New Tournament</h3>
-                                <button
+                                <Button
                                     onClick={() => setShowCreateModal(false)}
-                                    className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+                                    variant="ghost"
+                                    size="icon"
                                 >
                                     ✕
-                                </button>
+                                </Button>
                             </div>
 
                             <div className="p-6">
@@ -769,13 +773,13 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
 
-                                    <button
+                                    <Button
                                         type="submit"
                                         disabled={loading}
-                                        className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-lg font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full"
                                     >
                                         {loading ? 'Creating Tournament...' : '🚀 Launch Tournament'}
-                                    </button>
+                                    </Button>
                                 </form>
                             </div>
                         </div>
@@ -790,12 +794,13 @@ export default function AdminDashboard() {
                         <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
                             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-yellow-50">
                                 <h3 className="text-xl font-bold text-gray-900">🏆 Set Prize Distribution</h3>
-                                <button
+                                <Button
                                     onClick={() => setShowPrizeModal(false)}
-                                    className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+                                    variant="ghost"
+                                    size="icon"
                                 >
                                     ✕
-                                </button>
+                                </Button>
                             </div>
 
                             <div className="p-6">
@@ -837,26 +842,29 @@ export default function AdminDashboard() {
                                                     <span className="absolute right-3 top-2 text-gray-400">₹</span>
                                                 </div>
                                             </div>
-                                            <button
+                                            <Button
                                                 onClick={() => {
                                                     const newDist = prizeDistributions.filter((_, i) => i !== index);
                                                     setPrizeDistributions(newDist);
                                                 }}
-                                                className="mt-5 text-red-500 hover:text-red-700 font-bold p-2"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="mt-5"
                                                 title="Remove Rank"
                                             >
                                                 ✕
-                                            </button>
+                                            </Button>
                                         </div>
                                     ))}
                                 </div>
 
-                                <button
+                                <Button
                                     onClick={() => setPrizeDistributions([...prizeDistributions, { rank: prizeDistributions.length + 1, prize_amount: 100 }])}
-                                    className="w-full py-2 border-2 border-dashed border-gray-300 text-gray-500 rounded-lg hover:border-purple-300 hover:text-purple-600 transition-colors mb-6 font-semibold"
+                                    variant="outline"
+                                    className="w-full mb-6"
                                 >
                                     + Add Rank
-                                </button>
+                                </Button>
 
                                 <div className="bg-gray-50 p-4 rounded-lg flex justify-between items-center mb-6">
                                     <span className="font-semibold text-gray-700">Total Prizes:</span>
@@ -865,12 +873,12 @@ export default function AdminDashboard() {
                                     </span>
                                 </div>
 
-                                <button
+                                <Button
                                     onClick={handleSavePrizes}
-                                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-xl transition-all"
+                                    className="w-full"
                                 >
                                     💾 Save Distribution
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </div>

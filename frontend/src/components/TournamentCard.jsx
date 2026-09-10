@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Button } from './ui/button';
 
 export default function TournamentCard({ tournament }) {
   const gameIcons = {
@@ -102,9 +103,9 @@ export default function TournamentCard({ tournament }) {
 
 
           {/* Action Button */}
-          <button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:from-purple-700 hover:to-blue-700 transition-all transform group-hover:scale-105">
+          <Button className="w-full" size="lg">
             View Tournament
-          </button>
+          </Button>
         </div>
       </div>
     </Link>

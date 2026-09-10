@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { walletService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '../components/ui/button';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -125,12 +126,12 @@ export default function Profile() {
           <div className="text-6xl mb-4">⚠️</div>
           <h2 className="text-xl font-black text-gray-900 mb-2">Fetch Failed</h2>
           <p className="text-gray-500 mb-6 font-medium">We couldn't load your profile details. Please check your connection or try again.</p>
-          <button
+          <Button
             onClick={() => { setLoading(true); fetchProfile(); }}
-            className="w-full bg-purple-600 text-white font-black py-4 rounded-2xl shadow-lg hover:bg-purple-700 transition-all active:scale-95 cursor-pointer uppercase tracking-widest text-xs"
+            className="w-full"
           >
             Retry Connection 🔄
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -162,12 +163,12 @@ export default function Profile() {
                 <span className="text-emerald-400">💰</span>
                 <span className="font-black">₹{balance.toFixed(2)}</span>
               </div>
-              <button
+              <Button
                 onClick={() => setShowAddMoney(true)}
-                className="bg-white text-purple-600 px-6 py-2 rounded-xl font-black text-sm uppercase tracking-widest hover:bg-purple-50 transition-all shadow-lg active:scale-95"
+                className="bg-white !text-gray-900 hover:bg-gray-100"
               >
                 Add Money ➕
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -187,16 +188,17 @@ export default function Profile() {
                   { id: 'kyc', label: '🪪 KYC Verify', color: 'blue' },
                   { id: 'payment', label: '🏦 Bank & UPI', color: 'indigo' }
                 ].map(tab => (
-                  <button
+                  <Button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 py-5 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${activeTab === tab.id
-                      ? `border-purple-600 text-purple-600 bg-white`
-                      : 'border-transparent text-gray-400 hover:text-gray-600'
+                    variant="ghost"
+                    className={`flex-1 py-5 text-sm font-bold uppercase tracking-wider border-b-2 ${activeTab === tab.id
+                      ? 'border-orange-600 !text-orange-600 bg-white'
+                      : 'border-transparent !text-gray-500'
                       }`}
                   >
                     {tab.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
@@ -356,24 +358,25 @@ export default function Profile() {
 
                 {/* Footer Actions */}
                 <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col sm:flex-row gap-4">
-                  <button
+                  <Button
                     type="submit"
                     disabled={saving}
-                    className="flex-[2] bg-gradient-to-r from-purple-600 to-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:shadow-2xl hover:scale-[1.01] transition-all active:scale-95 disabled:opacity-50 h-16 flex items-center justify-center cursor-pointer"
+                    className="flex-[2] h-16"
                   >
                     {saving ? (
                       <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     ) : (
                       'Save Changes & Verify 🚀'
                     )}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => fetchProfile()}
-                    className="flex-1 bg-gray-100 text-gray-600 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-200 transition-all h-16 cursor-pointer"
+                    variant="secondary"
+                    className="flex-1 h-16"
                   >
                     Discard
-                  </button>
+                  </Button>
                 </div>
 
               </form>
@@ -390,12 +393,12 @@ export default function Profile() {
                   <p className="text-3xl font-black text-gray-900">₹{balance.toFixed(2)}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-4">
-                  <button onClick={() => navigate('/wallet/transactions')} className="bg-purple-50 text-purple-600 p-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-purple-100 transition-colors cursor-pointer">
+                  <Button onClick={() => navigate('/wallet/transactions')} variant="outline" className="p-4 !text-gray-700 text-xs uppercase tracking-widest">
                     History
-                  </button>
-                  <button onClick={() => navigate('/withdraw')} className="bg-blue-50 text-blue-600 p-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-100 transition-colors cursor-pointer">
+                  </Button>
+                  <Button onClick={() => navigate('/withdraw')} variant="outline" className="p-4 !text-gray-700 text-xs uppercase tracking-widest">
                     Withdraw
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -429,7 +432,7 @@ export default function Profile() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] max-w-lg w-full overflow-hidden shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-8 text-white relative">
-              <button onClick={() => setShowAddMoney(false)} className="absolute top-6 right-6 text-white/50 hover:text-white text-2xl">✕</button>
+              <Button onClick={() => setShowAddMoney(false)} variant="ghost" size="icon" className="absolute top-6 right-6 !text-white/80 hover:!text-white">✕</Button>
               <h3 className="text-3xl font-black italic tracking-tighter">ADD MONEY 🚀</h3>
               <p className="text-emerald-100 font-bold text-xs uppercase tracking-widest mt-1">Manual UPI Verification</p>
             </div>
@@ -445,7 +448,7 @@ export default function Profile() {
                 )}
                 <div className="bg-white py-3 px-4 rounded-xl inline-flex items-center gap-3 border border-emerald-200">
                   <span className="font-black text-emerald-700">{siteConfig?.upi_id || 'Loading...'}</span>
-                  <button onClick={() => { navigator.clipboard.writeText(siteConfig?.upi_id); alert('UPI ID Copied!'); }} className="text-[10px] font-black text-emerald-400 uppercase">Copy</button>
+                  <Button onClick={() => { navigator.clipboard.writeText(siteConfig?.upi_id); alert('UPI ID Copied!'); }} variant="link" className="h-auto p-0 text-[10px] font-black uppercase">Copy</Button>
                 </div>
               </div>
 
@@ -474,7 +477,7 @@ export default function Profile() {
                   </div>
                 </div>
 
-                <button
+                <Button
                   onClick={async () => {
                     if (!depositForm.amount || !depositForm.utr_number) return alert('Please fill all details');
                     try {
@@ -485,10 +488,10 @@ export default function Profile() {
                       setShowAddMoney(false);
                     } catch (e) { alert(e.message); }
                   }}
-                  className="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl hover:bg-emerald-600 transition-all active:scale-95 text-[10px]"
+                  className="w-full py-5 text-[10px] uppercase tracking-[0.2em]"
                 >
                   Submit & Send Screenshot 📲
-                </button>
+                </Button>
 
                 <p className="text-[9px] text-gray-400 text-center font-bold px-4">Note: Your wallet will be credited after our team verifies the transaction UTR. This usually takes 5-15 minutes.</p>
               </div>

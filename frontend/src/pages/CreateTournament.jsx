@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tournamentService } from '../services/api';
+import { Button } from '../components/ui/button';
 
 export default function CreateTournament() {
     const navigate = useNavigate();
@@ -184,7 +185,7 @@ export default function CreateTournament() {
                                     <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2">Saved Team Presets</p>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         {presetTeams.map(team => (
-                                            <button
+                                            <Button
                                                 key={team.id}
                                                 type="button"
                                                 onClick={() => {
@@ -193,7 +194,8 @@ export default function CreateTournament() {
                                                     team.members.forEach((m, i) => { if (i < invites) newIds[i] = m; });
                                                     setFormData(prev => ({ ...prev, teammate_ids: newIds }));
                                                 }}
-                                                className="flex items-center justify-between p-3 rounded-xl border border-blue-200 bg-white hover:bg-blue-100 transition-colors text-left group shadow-sm"
+                                                variant="outline"
+                                                className="flex items-center justify-between p-3 text-left group"
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <span className="text-xl">{team.mode === 'duo' ? '👥' : '👨‍👩‍👧‍👦'}</span>
@@ -203,7 +205,7 @@ export default function CreateTournament() {
                                                     </div>
                                                 </div>
                                                 <span className="text-blue-500 text-[10px] font-bold bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">Use</span>
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
                                 </div>
@@ -229,14 +231,16 @@ export default function CreateTournament() {
                                     <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2">Recent Teammates</p>
                                     <div className="flex flex-wrap gap-2">
                                         {savedTeammates.filter(id => !formData.teammate_ids.includes(id)).map(id => (
-                                            <button
+                                            <Button
                                                 key={id}
                                                 type="button"
                                                 onClick={() => selectSavedTeammate(id)}
-                                                className="bg-white hover:bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-semibold transition-colors border border-blue-200 shadow-sm"
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-xs"
                                             >
                                                 + {id}
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
                                 </div>
@@ -284,13 +288,13 @@ export default function CreateTournament() {
                     </div>
 
                     <div className="pt-6">
-                        <button
+                        <Button
                             type="submit"
                             disabled={loading}
-                            className={`w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-lg font-bold text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className="w-full text-lg"
                         >
                             {loading ? 'Creating...' : '🚀 Create Tournament'}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </div>

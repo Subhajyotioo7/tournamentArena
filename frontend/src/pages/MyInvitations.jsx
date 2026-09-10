@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '../components/ui/button';
 
 export default function MyInvitations() {
     const navigate = useNavigate();
@@ -161,12 +162,13 @@ export default function MyInvitations() {
                         <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                             <span>👥</span> My Saved Teams
                         </h2>
-                        <button
+                        <Button
                             onClick={() => setIsCreatingTeam(!isCreatingTeam)}
-                            className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-all text-sm"
+                            size="sm"
+                            className="text-sm"
                         >
                             {isCreatingTeam ? '✕ Cancel' : '+ Create Preset Team'}
-                        </button>
+                        </Button>
                     </div>
 
                     {isCreatingTeam && (
@@ -214,12 +216,12 @@ export default function MyInvitations() {
                                 ))}
                             </div>
 
-                            <button
+                            <Button
                                 onClick={handleSaveTeam}
-                                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
+                                className="w-full"
                             >
                                 ✅ Save Team Preset
-                            </button>
+                            </Button>
                         </div>
                     )}
 
@@ -237,12 +239,13 @@ export default function MyInvitations() {
                                             IDs: {team.members.join(', ')}
                                         </p>
                                     </div>
-                                    <button
+                                    <Button
                                         onClick={() => deleteTeam(team.id)}
-                                        className="text-gray-300 hover:text-red-500 p-2 transition-colors"
+                                        variant="ghost"
+                                        size="icon"
                                     >
                                         ✕
-                                    </button>
+                                    </Button>
                                 </div>
                             ))}
                         </div>
@@ -304,18 +307,19 @@ export default function MyInvitations() {
 
                                     {/* Action Buttons */}
                                     <div className="flex gap-3">
-                                        <button
+                                        <Button
                                             onClick={() => handleAccept(inv.id)}
-                                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all flex items-center justify-center gap-2"
+                                            className="flex-1"
                                         >
                                             ✓ Accept & Pay ₹{inv.payment_share}
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={() => handleReject(inv.id)}
-                                            className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-red-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
+                                            variant="destructive"
+                                            className="flex-1"
                                         >
                                             ✕ Reject
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             </div>

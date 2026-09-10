@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { walletService } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { Button } from '../components/ui/button';
 
 export default function WalletTransactions() {
   const navigate = useNavigate();
@@ -68,40 +69,40 @@ export default function WalletTransactions() {
             <h1 className="text-3xl font-extrabold text-gray-900">Wallet History</h1>
             <p className="text-gray-500 text-sm mt-1">Track your earnings and payouts</p>
           </div>
-          <button
+          <Button
             onClick={() => navigate("/profile")}
             className="bg-white border text-gray-700 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-gray-50 transition-all"
           >
             ← Back
-          </button>
+          </Button>
         </div>
 
         {/* Action Button */}
         <div className="flex gap-4 mb-8">
-          <button
+          <Button
             onClick={() => navigate("/withdraw")}
             className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-bold shadow-lg shadow-purple-200 hover:scale-[1.02] active:scale-95 transition-all text-center"
           >
             💸 New Withdrawal Request
-          </button>
+          </Button>
         </div>
 
         {/* Tabs */}
         <div className="flex p-1 bg-gray-200/50 rounded-2xl mb-6 shadow-inner">
-          <button
+          <Button
             onClick={() => setActiveTab("transactions")}
             className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${activeTab === "transactions" ? "bg-white text-purple-600 shadow-md" : "text-gray-500 hover:text-gray-700"
               }`}
           >
             Transactions
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setActiveTab("withdrawals")}
             className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${activeTab === "withdrawals" ? "bg-white text-purple-600 shadow-md" : "text-gray-500 hover:text-gray-700"
               }`}
           >
             Withdrawals
-          </button>
+          </Button>
         </div>
 
         {/* Content */}

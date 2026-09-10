@@ -1,3 +1,5 @@
+import { Button } from './ui/button';
+
 export default function RulesModal({ tournament, onClose, onAccept }) {
     if (!tournament) return null;
 
@@ -22,12 +24,15 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
                             <h2 className="text-2xl font-bold mb-1">{tournament.name}</h2>
                             <p className="text-purple-100">Rules & Regulations</p>
                         </div>
-                        <button
+                        <Button
                             onClick={onClose}
-                            className="text-white hover:bg-white/20 p-2 rounded-lg transition-all text-2xl"
+                            variant="ghost"
+                            size="icon"
+                            className="text-white hover:bg-white/10 hover:text-white"
+                            aria-label="Close rules"
                         >
                             ✕
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -139,18 +144,16 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
 
                 {/* Footer Actions */}
                 <div className="sticky bottom-0 bg-gray-50 p-6 rounded-b-2xl border-t flex gap-3">
-                    <button
+                    <Button
                         onClick={onClose}
-                        className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-100 transition-all"
+                        variant="outline"
+                        className="flex-1"
                     >
                         Cancel
-                    </button>
-                    <button
-                        onClick={onAccept}
-                        className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
-                    >
+                    </Button>
+                    <Button onClick={onAccept} className="flex-1">
                         Accept & Continue
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

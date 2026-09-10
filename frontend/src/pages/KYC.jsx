@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Button } from '../components/ui/button';
 
 export default function KYC() {
   const navigate = useNavigate();
@@ -113,13 +114,13 @@ export default function KYC() {
                 className="w-full p-3 border rounded"
               />
 
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-purple-600 text-white py-3 rounded font-semibold"
+                className="w-full"
               >
                 {loading ? "Sending OTP..." : "Submit & Get OTP"}
-              </button>
+              </Button>
             </form>
           </>
         )}
@@ -140,21 +141,22 @@ export default function KYC() {
                 className="w-full p-3 border rounded text-center text-xl tracking-widest"
               />
 
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-green-600 text-white py-3 rounded font-semibold"
+                className="w-full"
               >
                 {loading ? "Verifying..." : "Verify OTP"}
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
                 onClick={() => setStep(1)}
-                className="w-full text-purple-600 font-semibold"
+                variant="ghost"
+                className="w-full"
               >
                 Change Aadhaar Number
-              </button>
+              </Button>
             </form>
           </>
         )}

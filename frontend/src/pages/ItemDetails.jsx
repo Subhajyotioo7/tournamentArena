@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiGet } from "../services/api";
+import { Button } from "../components/ui/button";
 
 export default function ItemDetails() {
   const { id } = useParams();
@@ -17,12 +18,12 @@ export default function ItemDetails() {
       <h1 className="text-3xl font-bold mb-4">{item.name}</h1>
       <p className="text-gray-700 text-xl mb-4">₹{item.price}</p>
 
-      <button
+      <Button
         onClick={() => window.history.back()}
-        className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+        variant="secondary"
       >
         Go Back
-      </button>
+      </Button>
     </div>
   );
 }

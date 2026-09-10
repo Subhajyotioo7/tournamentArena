@@ -1,3 +1,4 @@
+import { Button } from './ui/button';
 // import { useEffect, useState } from "react";
 
 // export default function RoomChat({ roomId }) {
@@ -183,12 +184,12 @@ export default function RoomChat({ roomId }) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
         />
-        <button
+        <Button
           onClick={() => sendMessage("chat")}
-          className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-white font-semibold"
+          size="sm"
         >
           Send
-        </button>
+        </Button>
       </div>
     </div>
   );

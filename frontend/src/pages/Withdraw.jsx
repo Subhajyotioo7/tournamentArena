@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Button } from '../components/ui/button';
 import { walletService } from "../services/api";
 
 export default function Withdraw() {
@@ -102,21 +103,21 @@ export default function Withdraw() {
             />
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
             className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50"
           >
             {loading ? "Submitting..." : "Submit Withdrawal"}
-          </button>
+          </Button>
         </form>
 
-        <button
+        <Button
           onClick={() => navigate("/wallet/transactions")}
           className="mt-4 w-full text-purple-600 font-semibold hover:underline"
         >
           ← Back to Wallet
-        </button>
+        </Button>
       </div>
     </div>
   );

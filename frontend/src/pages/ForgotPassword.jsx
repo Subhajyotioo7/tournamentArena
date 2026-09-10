@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Button } from '../components/ui/button';
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState('');
@@ -88,7 +89,7 @@ export default function ForgotPassword() {
                             />
                         </div>
 
-                        <button
+                        <Button
                             type="submit"
                             disabled={loading}
                             className={`w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:scale-100`}
@@ -101,7 +102,7 @@ export default function ForgotPassword() {
                             ) : (
                                 'Send Reset Link 📧'
                             )}
-                        </button>
+                        </Button>
 
                         <div className="text-center">
                             <Link to="/login" className="text-sm font-semibold text-gray-500 hover:text-purple-600 transition-colors">

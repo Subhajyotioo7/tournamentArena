@@ -24,11 +24,14 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import CreateTournament from "./pages/CreateTournament";
 import VerifyEmail from "./pages/VerifyEmail";
+import ErrorPage from "./pages/ErrorPage";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Router>
-      <AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
         <Routes>
           <Route path="/" element={<App />}>
             <Route index element={<Home />} />
@@ -60,9 +63,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             <Route path="verify-email" element={<VerifyEmail />} />
             <Route path="verify-email/:uid/:token" element={<VerifyEmail />} />
             <Route path="create-tournament" element={<CreateTournament />} />
+            <Route path="*" element={<ErrorPage title="Page not found" message="The page you requested does not exist." />} />
           </Route>
         </Routes>
-      </AuthProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </Router>
   </React.StrictMode>
 );

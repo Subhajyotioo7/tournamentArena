@@ -19,10 +19,22 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://localhost:8000', changeOrigin: true },
       '/wallet': { target: 'http://localhost:8000', changeOrigin: true },
-      '/tournaments': { target: 'http://localhost:8000', changeOrigin: true },
+      '/tournaments': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        bypass(req) {
+          return req.headers.accept?.includes('text/html') ? req.url : undefined;
+        },
+      },
       '/payments': { target: 'http://localhost:8000', changeOrigin: true },
       '/chat': { target: 'http://localhost:8000', changeOrigin: true },
-      '/admin': { target: 'http://localhost:8000', changeOrigin: true },
+      '/admin': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        bypass(req) {
+          return req.headers.accept?.includes('text/html') ? req.url : undefined;
+        },
+      },
       '/ws': { target: 'ws://localhost:8000', ws: true },
     },
   },

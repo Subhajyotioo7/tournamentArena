@@ -1,3 +1,4 @@
+import { Crosshair, User, Users, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
 
@@ -19,13 +20,14 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
     };
 
     const teamInfo = {
-        solo: { players: 1, share: 100, icon: '👤', invites: 0 },
-        duo: { players: 2, share: 50, icon: '👥', invites: 1 },
-        squad: { players: 4, share: 25, icon: '👨‍👩‍👧‍👦', invites: 3 }
+        solo: { players: 1, share: 100, icon: User, invites: 0 },
+        duo: { players: 2, share: 50, icon: Users, invites: 1 },
+        squad: { players: 4, share: 25, icon: UsersRound, invites: 3 }
     };
 
     const info = teamInfo[tournament.team_mode];
     const paymentShare = (tournament.entry_fee / info.players).toFixed(2);
+    const TeamIcon = info.icon;
 
     const handleJoinSolo = async () => {
         setLoading(true);
@@ -91,7 +93,7 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                     <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-4 border-2 border-purple-200">
                         <div className="flex items-center gap-3 mb-3">
                             <div className="bg-purple-600 p-3 rounded-lg text-2xl">
-                                {info.icon}
+                                <TeamIcon className="h-6 w-6" aria-hidden="true" />
                             </div>
                             <div>
                                 <h3 className="font-bold text-gray-900">
@@ -133,7 +135,7 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                         <div>
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="font-bold text-gray-900">
-                                    {tournament.team_mode === 'duo' ? '👥 Make Duo Team' : '👨‍👩‍👧‍👦 Make Squad Team'}
+                                    {tournament.team_mode === 'duo' ? <><Users className="mr-2 inline h-4 w-4" aria-hidden="true" />Make Duo Team</> : <><UsersRound className="mr-2 inline h-4 w-4" aria-hidden="true" />Make Squad Team</>}
                                 </h3>
                                 <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold uppercase">
                                     {info.invites} Teammates Needed
@@ -141,7 +143,7 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                             </div>
 
                             <p className="text-sm text-gray-600 mb-6 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                🎯 Enter the <strong>Game IDs</strong> of your teammates below. We will send them invitations to join your team.
+                                <Crosshair className="mr-1 inline h-4 w-4" aria-hidden="true" />Enter the <strong>Game IDs</strong> of your teammates below. We will send them invitations to join your team.
                             </p>
 
                             {/* Team Presets Selection */}
@@ -162,7 +164,7 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                                                 className="h-auto w-full justify-between p-3 text-left"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-xl">{team.mode === 'duo' ? '👥' : '👨‍👩‍👧‍👦'}</span>
+                                                    {team.mode === 'duo' ? <Users className="h-5 w-5" aria-hidden="true" /> : <UsersRound className="h-5 w-5" aria-hidden="true" />}
                                                     <div>
                                                         <p className="text-sm font-bold text-gray-900 group-hover:text-purple-700">{team.name}</p>
                                                         <p className="text-[10px] text-gray-500">{team.members.join(', ')}</p>

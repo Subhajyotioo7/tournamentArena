@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { walletService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
+import { AlertTriangle, Banknote, Camera, CheckCircle, Gamepad2, IdCard, LockKeyhole, LogOut, Plus, Rocket, RotateCw, Smartphone, User, Wallet, X } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -75,10 +76,10 @@ export default function Profile() {
     setSaving(true);
     try {
       await walletService.updateProfile(formData);
-      alert('✅ Profile updated and submitted for verification!');
+      alert('Profile updated and submitted for verification!');
       fetchProfile();
     } catch (error) {
-      alert('❌ Update failed: ' + error.message);
+      alert('Update failed: ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -123,14 +124,14 @@ export default function Profile() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center p-8 bg-white rounded-3xl shadow-xl max-w-sm w-full mx-4">
-          <div className="text-6xl mb-4">⚠️</div>
+          <AlertTriangle className="mx-auto mb-4 h-16 w-16 text-amber-500" aria-hidden="true" />
           <h2 className="text-xl font-black text-gray-900 mb-2">Fetch Failed</h2>
           <p className="text-gray-500 mb-6 font-medium">We couldn't load your profile details. Please check your connection or try again.</p>
           <Button
             onClick={() => { setLoading(true); fetchProfile(); }}
             className="w-full"
           >
-            Retry Connection 🔄
+            <span className="inline-flex items-center gap-2"><RotateCw className="h-4 w-4" aria-hidden="true" />Retry Connection</span>
           </Button>
         </div>
       </div>
@@ -147,7 +148,7 @@ export default function Profile() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16 relative z-10 flex flex-col md:flex-row items-center md:items-start gap-8">
           <div className="relative group">
             <div className="w-24 h-24 sm:w-32 sm:h-32 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border-4 border-white/30 shadow-2xl transition-transform group-hover:scale-105">
-              <span className="text-5xl sm:text-6xl">👤</span>
+              <User className="h-12 w-12 sm:h-16 sm:w-16" aria-hidden="true" />
             </div>
           </div>
 
@@ -160,14 +161,14 @@ export default function Profile() {
                 <span className="font-mono text-sm">{profile.player_uuid?.split('-')[0]}...</span>
               </div>
               <div className="bg-emerald-500/20 backdrop-blur-sm border border-emerald-500/30 px-4 py-2 rounded-xl flex items-center gap-2">
-                <span className="text-emerald-400">💰</span>
+                <Wallet className="h-4 w-4 text-emerald-400" aria-hidden="true" />
                 <span className="font-black">₹{balance.toFixed(2)}</span>
               </div>
               <Button
                 onClick={() => setShowAddMoney(true)}
                 className="bg-white !text-gray-900 hover:bg-gray-100"
               >
-                Add Money ➕
+                <span className="inline-flex items-center gap-2"><Plus className="h-4 w-4" aria-hidden="true" />Add Money</span>
               </Button>
             </div>
           </div>
@@ -184,9 +185,9 @@ export default function Profile() {
               {/* Profile Tabs */}
               <div className="flex border-b border-gray-100 bg-gray-50/50">
                 {[
-                  { id: 'games', label: '🎮 Game IDs', color: 'purple' },
-                  { id: 'kyc', label: '🪪 KYC Verify', color: 'blue' },
-                  { id: 'payment', label: '🏦 Bank & UPI', color: 'indigo' }
+                  { id: 'games', label: 'Game IDs', icon: Gamepad2, color: 'purple' },
+                  { id: 'kyc', label: 'KYC Verify', icon: IdCard, color: 'blue' },
+                  { id: 'payment', label: 'Bank & UPI', icon: Banknote, color: 'indigo' }
                 ].map(tab => (
                   <Button
                     key={tab.id}
@@ -197,7 +198,7 @@ export default function Profile() {
                       : 'border-transparent !text-gray-500'
                       }`}
                   >
-                    {tab.label}
+                    <span className="inline-flex items-center gap-2"><tab.icon className="h-4 w-4" aria-hidden="true" />{tab.label}</span>
                   </Button>
                 ))}
               </div>
@@ -366,7 +367,7 @@ export default function Profile() {
                     {saving ? (
                       <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      'Save Changes & Verify 🚀'
+                      <span className="inline-flex items-center gap-2"><CheckCircle className="h-4 w-4" aria-hidden="true" />Save Changes &amp; Verify</span>
                     )}
                   </Button>
                   <Button
@@ -407,7 +408,7 @@ export default function Profile() {
               <h3 className="text-xl font-black text-gray-900 mb-6">Security</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-4 group cursor-pointer" onClick={() => navigate('/forgot-password')}>
-                  <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center text-xl group-hover:rotate-12 transition-transform">🔒</div>
+                  <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform"><LockKeyhole className="h-5 w-5" aria-hidden="true" /></div>
                   <div>
                     <h4 className="font-bold text-gray-900">Reset Password</h4>
                     <p className="text-xs text-gray-400">Changed recently?</p>
@@ -415,7 +416,7 @@ export default function Profile() {
                 </div>
                 <hr className="border-gray-50" />
                 <div className="flex items-center gap-4 group cursor-pointer" onClick={handleLogout}>
-                  <div className="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center text-xl group-hover:rotate-12 transition-transform">🚪</div>
+                  <div className="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform"><LogOut className="h-5 w-5" aria-hidden="true" /></div>
                   <div>
                     <h4 className="font-bold text-gray-900">Logout</h4>
                     <p className="text-xs text-gray-400">Exit secure session</p>
@@ -427,13 +428,13 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* 💳 ADD MONEY MODAL (Manual UPI) */}
+      {/* ADD MONEY MODAL (Manual UPI) */}
       {showAddMoney && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] max-w-lg w-full overflow-hidden shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-8 text-white relative">
-              <Button onClick={() => setShowAddMoney(false)} variant="ghost" size="icon" className="absolute top-6 right-6 !text-white/80 hover:!text-white">✕</Button>
-              <h3 className="text-3xl font-black italic tracking-tighter">ADD MONEY 🚀</h3>
+              <Button onClick={() => setShowAddMoney(false)} variant="ghost" size="icon" className="absolute top-6 right-6 !text-white/80 hover:!text-white" aria-label="Close add money dialog"><X className="h-5 w-5" aria-hidden="true" /></Button>
+              <h3 className="flex items-center gap-2 text-3xl font-black italic tracking-tighter"><Rocket className="h-7 w-7" aria-hidden="true" />ADD MONEY</h3>
               <p className="text-emerald-100 font-bold text-xs uppercase tracking-widest mt-1">Manual UPI Verification</p>
             </div>
 
@@ -444,7 +445,7 @@ export default function Profile() {
                 {siteConfig?.qr_code ? (
                   <img src={siteConfig.qr_code} alt="UPI QR" className="w-48 h-48 mx-auto rounded-2xl shadow-inner mb-4 border-4 border-white" />
                 ) : (
-                  <div className="w-48 h-48 mx-auto bg-white rounded-2xl flex items-center justify-center text-5xl mb-4 shadow-inner">📸</div>
+                  <div className="w-48 h-48 mx-auto bg-white rounded-2xl flex items-center justify-center mb-4 shadow-inner"><Camera className="h-12 w-12 text-gray-400" aria-hidden="true" /></div>
                 )}
                 <div className="bg-white py-3 px-4 rounded-xl inline-flex items-center gap-3 border border-emerald-200">
                   <span className="font-black text-emerald-700">{siteConfig?.upi_id || 'Loading...'}</span>
@@ -482,7 +483,7 @@ export default function Profile() {
                     if (!depositForm.amount || !depositForm.utr_number) return alert('Please fill all details');
                     try {
                       await walletService.submitDepositRequest(depositForm);
-                      alert('✅ Request submitted! Now send screenshot on WhatsApp.');
+                      alert('Request submitted! Now send screenshot on WhatsApp.');
                       const wpMsg = encodeURIComponent(`Hi Admin, I just added ₹${depositForm.amount} to my wallet. UTR: ${depositForm.utr_number}. Please verify. Username: ${profile.username}`);
                       window.open(`https://wa.me/${siteConfig?.whatsapp_number?.replace(/\+/g, '')}?text=${wpMsg}`, '_blank');
                       setShowAddMoney(false);
@@ -490,7 +491,7 @@ export default function Profile() {
                   }}
                   className="w-full py-5 text-[10px] uppercase tracking-[0.2em]"
                 >
-                  Submit & Send Screenshot 📲
+                  <span className="inline-flex items-center gap-2"><Smartphone className="h-4 w-4" aria-hidden="true" />Submit &amp; Send Screenshot</span>
                 </Button>
 
                 <p className="text-[9px] text-gray-400 text-center font-bold px-4">Note: Your wallet will be credited after our team verifies the transaction UTR. This usually takes 5-15 minutes.</p>

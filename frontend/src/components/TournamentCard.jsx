@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
+import { Flame, Gamepad2, Trophy, Volleyball } from 'lucide-react';
 
 export default function TournamentCard({ tournament }) {
   const gameIcons = {
-    fifa: '⚽',
-    bgmi: '🎮',
-    freefire: '🔥',
+    fifa: Volleyball,
+    bgmi: Gamepad2,
+    freefire: Flame,
   };
 
   const gameColors = {
@@ -20,7 +21,7 @@ export default function TournamentCard({ tournament }) {
         {/* Header with gradient */}
         <div className={`bg-gradient-to-r ${gameColors[tournament.game] || 'from-purple-500 to-blue-600'} p-4 sm:p-6 relative overflow-hidden`}>
           <div className="absolute top-0 right-0 text-6xl sm:text-8xl opacity-10 transform translate-x-4 -translate-y-4">
-            {gameIcons[tournament.game] || '🏆'}
+            {(() => { const GameIcon = gameIcons[tournament.game] || Trophy; return <GameIcon className="h-16 w-16 sm:h-24 sm:w-24" aria-hidden="true" />; })()}
           </div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-2">

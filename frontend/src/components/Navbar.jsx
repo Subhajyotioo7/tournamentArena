@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { buttonVariants } from './ui/button-variants';
+import { Trophy } from 'lucide-react';
 
 const navLinkClass = 'text-sm font-medium text-gray-700 transition-colors hover:text-[#FF5500]';
 const mobileLinkClass = 'rounded-md px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-[#FF5500]';
@@ -25,7 +26,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2" onClick={closeMobileMenu}>
-            <span className="text-xl" aria-hidden="true">🏆</span>
+            <Trophy className="h-5 w-5" aria-hidden="true" />
             <span className="text-base font-bold tracking-tight text-gray-950 sm:text-lg">Tournament Arena</span>
           </Link>
 

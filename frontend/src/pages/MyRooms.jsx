@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getApiBaseUrl } from '../services/api';
 import { Button } from '../components/ui/button';
+import { Check, Gamepad2, Hourglass, Mail, MessageCircle, Send, Trophy, Users, X } from 'lucide-react';
 
 
 export default function MyRooms() {
@@ -280,17 +281,17 @@ export default function MyRooms() {
                                                     room.status === 'completed' ? 'text-gray-600' :
                                                         'text-green-600'
                                                 }`}>
-                                                {room.status === 'full' || room.current_players >= room.max_players ? 'FULL ⛔' :
-                                                    room.status === 'open' ? 'OPEN ✅' :
-                                                        room.status === 'started' ? 'STARTED 🎮' :
-                                                            room.status === 'completed' ? 'COMPLETED 🏆' :
+                                                {room.status === 'full' || room.current_players >= room.max_players ? 'FULL' :
+                                                    room.status === 'open' ? 'OPEN' :
+                                                        room.status === 'started' ? 'STARTED' :
+                                                            room.status === 'completed' ? 'COMPLETED' :
                                                                 room.status.toUpperCase()}
                                             </span>
                                         </div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-gray-600">Players</span>
                                             <span className="font-semibold text-gray-900">
-                                                👥 {room.current_players}/{room.max_players}
+                                                <span className="inline-flex items-center gap-1"><Users className="h-4 w-4" aria-hidden="true" />{room.current_players}/{room.max_players}</span>
                                             </span>
                                         </div>
                                         <div className="flex justify-between text-sm">
@@ -304,7 +305,7 @@ export default function MyRooms() {
                                         <div className="flex justify-between text-sm">
                                             <span className="text-gray-600">Payment</span>
                                             <span className={`font-semibold ${room.paid ? 'text-green-600' : 'text-red-600'}`}>
-                                                {room.paid ? '✅ Paid' : '❌ Unpaid'}
+                                                <span className="inline-flex items-center gap-1">{room.paid ? <Check className="h-4 w-4" aria-hidden="true" /> : <X className="h-4 w-4" aria-hidden="true" />}{room.paid ? 'Paid' : 'Unpaid'}</span>
                                             </span>
                                         </div>
                                         <div className="flex justify-between text-sm">
@@ -320,7 +321,7 @@ export default function MyRooms() {
                                                 onClick={() => handleViewRoom(room.id)}
                                                 className="w-full"
                                             >
-                                                🎮 Enter Room
+                                                <span className="inline-flex items-center gap-2"><Gamepad2 className="h-4 w-4" aria-hidden="true" />Enter Room</span>
                                             </Button>
                                         ) : room.status === 'completed' ? (
                                             <Button
@@ -353,7 +354,7 @@ export default function MyRooms() {
                     </div>
                 ) : (
                     <div className="text-center py-16">
-                        <div className="text-6xl mb-4">🎮</div>
+                        <Gamepad2 className="mx-auto mb-4 h-16 w-16 text-gray-400" aria-hidden="true" />
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">No Rooms Yet</h2>
                         <p className="text-gray-600 mb-6">You haven't joined any tournaments yet</p>
                         <Button
@@ -375,7 +376,7 @@ export default function MyRooms() {
                         <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 p-4 sm:p-6 flex flex-shrink-0 justify-between items-center shadow-lg">
                             <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                                 <div className="hidden w-12 h-12 shrink-0 bg-white/20 rounded-2xl sm:flex items-center justify-center backdrop-blur-md">
-                                    <span className="text-2xl">🎮</span>
+                                    <Gamepad2 className="h-6 w-6" aria-hidden="true" />
                                 </div>
                                 <div className="min-w-0">
                                     <h2 className="text-lg sm:text-2xl font-black text-white leading-tight mb-1 break-words">{roomDetails.tournament_name}</h2>
@@ -421,7 +422,7 @@ export default function MyRooms() {
                                     {/* Column 2: Live Room Chat */}
                                     <div className="flex-1 flex flex-col bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-sm min-h-[500px]">
                                         <div className="bg-blue-600 px-5 py-4 flex items-center justify-between">
-                                            <span className="text-white font-black text-xs uppercase tracking-widest">💬 Room Chat</span>
+                                            <span className="flex items-center gap-2 text-white font-black text-xs uppercase tracking-widest"><MessageCircle className="h-4 w-4" aria-hidden="true" />Room Chat</span>
                                             <div className="flex items-center gap-2 bg-white/10 px-2.5 py-1 rounded-full">
                                                 <span className={`w-2 h-2 rounded-full ${wsStatus === 'connected' ? 'bg-green-400' : 'bg-red-400 animate-pulse'}`}></span>
                                                 <span className="text-[9px] text-white font-black uppercase tracking-tighter">{wsStatus}</span>
@@ -440,7 +441,7 @@ export default function MyRooms() {
                                                 );
                                             }) : (
                                                 <div className="h-full flex flex-col items-center justify-center text-gray-300 space-y-3 py-20">
-                                                    <span className="text-4xl">💭</span>
+                                                    <MessageCircle className="h-10 w-10" aria-hidden="true" />
                                                     <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Quiet Room</p>
                                                 </div>
                                             )}
@@ -454,14 +455,14 @@ export default function MyRooms() {
                                                 className="flex-1 px-5 py-3.5 bg-gray-50 border-none rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400"
                                                 placeholder="Send a message to everyone..."
                                             />
-                                            <Button onClick={handleSendMessage} size="icon" aria-label="Send message">🚀</Button>
+                                            <Button onClick={handleSendMessage} size="icon" aria-label="Send message"><Send className="h-4 w-4" aria-hidden="true" /></Button>
                                         </div>
                                     </div>
 
                                     {/* Column 3: Winners & Payouts */}
                                     <div className="w-full lg:w-80 flex flex-col gap-6">
                                         <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200 rounded-[2rem] p-6 shadow-sm">
-                                            <h4 className="text-sm font-black text-gray-900 mb-5 flex items-center gap-2 tracking-tight">🏆 Declare Winners</h4>
+                                            <h4 className="text-sm font-black text-gray-900 mb-5 flex items-center gap-2 tracking-tight"><Trophy className="h-4 w-4 text-yellow-600" aria-hidden="true" />Declare Winners</h4>
                                             <div className="space-y-4">
                                                 <div>
                                                     <label className="text-[10px] font-black text-gray-400 uppercase ml-1 block mb-1.5">Award To</label>
@@ -559,14 +560,14 @@ export default function MyRooms() {
                                                     })}
                                                     {messages.length === 0 && (
                                                         <div className="h-full flex flex-col items-center justify-center space-y-4 py-20 grayscale opacity-40">
-                                                            <span className="text-5xl">📫</span>
+                                                            <Mail className="h-12 w-12" aria-hidden="true" />
                                                             <p className="text-[10px] font-black uppercase tracking-[0.3em]">Inbox Empty</p>
                                                         </div>
                                                     )}
                                                 </div>
                                                 <div className="p-3 sm:p-4 bg-white border-t flex gap-2 sm:gap-4">
                                                     <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} className="min-w-0 flex-1 px-3 sm:px-6 py-3 sm:py-4 bg-gray-50 border-none rounded-2xl text-xs font-black tracking-tight focus:ring-2 focus:ring-purple-500 transition-all shadow-inner" placeholder="Message the entire room..." />
-                                                    <Button onClick={handleSendMessage} size="icon" aria-label="Send message">🚀</Button>
+                                                    <Button onClick={handleSendMessage} size="icon" aria-label="Send message"><Send className="h-4 w-4" aria-hidden="true" /></Button>
                                                 </div>
                                             </div>
                                         )}
@@ -580,7 +581,7 @@ export default function MyRooms() {
                                                                 <span className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center font-black text-2xl ${res.rank === 1 ? 'bg-yellow-400 text-white shadow-xl shadow-yellow-200' : 'bg-white text-gray-600 border'}`}>{res.rank}</span>
                                                                 <div>
                                                                     <p className="font-black text-gray-900 text-lg uppercase tracking-tighter leading-tight">{res.username}</p>
-                                                                    <p className="text-[10px] text-yellow-700 font-black uppercase tracking-[0.2em] mt-1">Status: Paid ✅</p>
+                                                                    <p className="flex items-center gap-1 text-[10px] text-yellow-700 font-black uppercase tracking-[0.2em] mt-1"><Check className="h-3 w-3" aria-hidden="true" />Status: Paid</p>
                                                                 </div>
                                                             </div>
                                                             <div className="text-right">
@@ -591,7 +592,7 @@ export default function MyRooms() {
                                                     ))}
                                                     {roomDetails.results.length === 0 && (
                                                         <div className="py-24 text-center space-y-4 grayscale opacity-30">
-                                                            <span className="text-6xl">⏱️</span>
+                                                            <Hourglass className="h-16 w-16" aria-hidden="true" />
                                                             <p className="text-xs font-black uppercase tracking-[0.4em]">Awaiting Outcome</p>
                                                         </div>
                                                     )}

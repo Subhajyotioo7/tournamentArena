@@ -4,6 +4,7 @@ import { tournamentService, roomService } from '../services/api';
 import RulesModal from '../components/RulesModal';
 import TeamFormationModal from '../components/TeamFormationModal';
 import { Button } from '../components/ui/button';
+import { ArrowLeft, Ban, ClipboardList, CircleX, Info, Medal, Rocket, Trophy, Users } from 'lucide-react';
 
 export default function Tournament() {
   const { id } = useParams();
@@ -48,7 +49,7 @@ export default function Tournament() {
     // Check if logged in
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('⚠️ Please login first to join tournaments!\n\nClick "Login" in the top menu to continue.');
+      alert('Please login first to join tournaments!\n\nClick "Login" in the top menu to continue.');
       navigate('/login');
       return;
     }
@@ -65,11 +66,11 @@ export default function Tournament() {
     } catch (error) {
       console.error('Create room error:', error);
       if (error.message.includes('Game ID not verified')) {
-        alert('❌ Cannot create room: Your Game ID is not verified yet. Please verify your Game ID in your profile first.');
+        alert('Cannot create room: Your Game ID is not verified yet. Please verify your Game ID in your profile first.');
       } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-        alert('❌ Please login first to create a room.');
+        alert('Please login first to create a room.');
       } else {
-        alert('❌ Failed to create room: ' + error.message);
+        alert('Failed to create room: ' + error.message);
       }
     } finally {
       setCreating(false);
@@ -87,12 +88,12 @@ export default function Tournament() {
     try {
       const data = await roomService.joinSolo(selectedRoom);
       if (data) {
-        alert(`✅ ${data.message}\nPaid: ₹${data.payment}`);
+        alert(`${data.message}\nPaid: ₹${data.payment}`);
         setShowTeamModal(false);
         navigate('/my-rooms');
       }
     } catch (error) {
-      alert(`❌ ${error.message || 'Error joining tournament'}`);
+      alert(error.message || 'Error joining tournament');
     }
   };
 
@@ -100,12 +101,12 @@ export default function Tournament() {
     try {
       const data = await roomService.createTeam(selectedRoom, gameIds);
       if (data) {
-        alert(`✅ ${data.message}\nInvitations sent to ${data.invitations.length} players`);
+        alert(`${data.message}\nInvitations sent to ${data.invitations.length} players`);
         setShowTeamModal(false);
         navigate('/my-rooms');
       }
     } catch (error) {
-      alert(`❌ ${error.message || 'Error creating team'}`);
+      alert(error.message || 'Error creating team');
     }
   };
 
@@ -124,7 +125,7 @@ export default function Tournament() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">❌</div>
+          <CircleX className="mx-auto mb-4 h-16 w-16 text-red-500" aria-hidden="true" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Tournament Not Found</h2>
           <Button onClick={() => navigate('/')} variant="link" className="p-0 text-purple-600">
             Go back home
@@ -146,9 +147,7 @@ export default function Tournament() {
       <div className={`bg-gradient-to-r ${gameGradients[tournament.game] || 'from-purple-600 to-blue-600'} text-white shadow-lg`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <Button onClick={() => navigate('/')} variant="ghost" className="mb-4 flex items-center gap-2 p-0 text-white/80 sm:mb-6">
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
             Back to Tournaments
           </Button>
 
@@ -177,7 +176,7 @@ export default function Tournament() {
             {/* Tournament Info Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
-                <span className="text-xl sm:text-2xl">ℹ️</span> Tournament Info
+                <Info className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" aria-hidden="true" /> Tournament Info
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 sm:gap-y-6 gap-x-4 sm:gap-x-8">
                 <div>
@@ -210,7 +209,7 @@ export default function Tournament() {
             {/* Rules Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
-                <span className="text-xl sm:text-2xl">📋</span> Rules
+                <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" aria-hidden="true" /> Rules
               </h2>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
@@ -236,7 +235,7 @@ export default function Tournament() {
             {prizes.length > 0 && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
-                  <span className="text-xl sm:text-2xl">🏆</span> Prize Distribution
+                  <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" aria-hidden="true" /> Prize Distribution
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {prizes.map((prize) => {
@@ -250,8 +249,8 @@ export default function Tournament() {
                         <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
                           <svg className="w-16 h-16 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.699-3.177a1 1 0 111.827.86l-1.699 3.178 1.699 3.177a1 1 0 11-1.827.86L14.954 9.323V11a1 1 0 01-1 1h-8a1 1 0 01-1-1v-1.677l-3.954 2.872a1 1 0 11-1.827-.86l1.699-3.177-1.699-3.178a1 1 0 011.827-.86L5.046 4.323V3a1 1 0 011-1h4z" /></svg>
                         </div>
-                        <div className="text-4xl mb-3 filter drop-shadow-sm">
-                          {prize.rank === 1 ? '🥇' : prize.rank === 2 ? '🥈' : prize.rank === 3 ? '🥉' : '🏅'}
+                        <div className="mb-3 flex justify-center text-yellow-600 filter drop-shadow-sm">
+                          <Medal className="h-10 w-10" aria-hidden="true" />
                         </div>
                         <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Rank #{prize.rank}</p>
 
@@ -313,8 +312,8 @@ export default function Tournament() {
                       Processing...
                     </>
                   ) : (tournament.total_participants >= tournament.max_participants) ? (
-                    '⛔ TOURNAMENT FULL'
-                  ) : (tournament.team_mode === 'solo' ? '🚀 JOIN TOURNAMENT' : '👥 CREATE TEAM')
+                    <span className="inline-flex items-center gap-2"><Ban className="h-4 w-4" aria-hidden="true" />TOURNAMENT FULL</span>
+                  ) : (tournament.team_mode === 'solo' ? <span className="inline-flex items-center gap-2"><Rocket className="h-4 w-4" aria-hidden="true" />JOIN TOURNAMENT</span> : <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" aria-hidden="true" />CREATE TEAM</span>)
                   }
                 </Button>
 

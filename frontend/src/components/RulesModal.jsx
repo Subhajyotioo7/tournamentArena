@@ -1,3 +1,4 @@
+import { Banknote, CreditCard } from 'lucide-react';
 import { Button } from './ui/button';
 
 export default function RulesModal({ tournament, onClose, onAccept }) {
@@ -66,7 +67,7 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
                     {/* Prize Distribution */}
                     {tournament.prize_distributions && tournament.prize_distributions.length > 0 && (
                         <div>
-                            <h3 className="font-bold text-lg mb-3 text-gray-900">💰 Prize Distribution</h3>
+                            <h3 className="flex items-center gap-2 font-bold text-lg mb-3 text-gray-900"><Banknote className="h-5 w-5 text-emerald-600" aria-hidden="true" />Prize Distribution</h3>
                             <div className="grid grid-cols-3 gap-3">
                                 {tournament.prize_distributions.slice(0, 3).map((prize) => {
                                     const isWinner = prize.rank === 1;
@@ -124,7 +125,7 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
 
                     {/* Payment & Refund Policy */}
                     <div>
-                        <h3 className="font-bold text-lg mb-3 text-gray-900">💳 Payment & Refund Policy</h3>
+                        <h3 className="flex items-center gap-2 font-bold text-lg mb-3 text-gray-900"><CreditCard className="h-5 w-5 text-blue-600" aria-hidden="true" />Payment &amp; Refund Policy</h3>
                         <ul className="space-y-2 text-sm text-gray-700">
                             <li className="flex items-start gap-2">
                                 <span className="text-red-600 mt-0.5">⚠</span>

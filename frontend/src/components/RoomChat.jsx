@@ -53,6 +53,7 @@ import { Button } from './ui/button';
 // }
 
 import { useEffect, useState, useRef } from "react";
+import { Crown, MessageCircle, Send } from "lucide-react";
 
 export default function RoomChat({ roomId }) {
   const token = localStorage.getItem("token");
@@ -147,7 +148,7 @@ export default function RoomChat({ roomId }) {
     <div className="flex flex-col h-[500px] bg-gray-900 rounded-xl shadow-xl border border-gray-700">
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-700 flex justify-between items-center">
-        <h2 className="text-lg font-bold text-white">💬 Room Chat</h2>
+        <h2 className="flex items-center gap-2 text-lg font-bold text-white"><MessageCircle className="h-5 w-5" aria-hidden="true" />Room Chat</h2>
         <span className="text-xs text-gray-400">Live</span>
       </div>
 
@@ -167,7 +168,7 @@ export default function RoomChat({ roomId }) {
           >
             {msg.msg_type !== "winner" && (
               <div className="text-xs text-gray-300 mb-1">
-                {msg.is_admin ? "👑 Admin" : msg.sender}
+                {msg.is_admin ? <span className="flex items-center gap-1"><Crown className="h-3 w-3" aria-hidden="true" />Admin</span> : msg.sender}
               </div>
             )}
             <div>{msg.message}</div>
@@ -188,7 +189,8 @@ export default function RoomChat({ roomId }) {
           onClick={() => sendMessage("chat")}
           size="sm"
         >
-          Send
+          <Send className="h-4 w-4" aria-hidden="true" />
+          <span className="sr-only">Send</span>
         </Button>
       </div>
     </div>

@@ -296,10 +296,15 @@ export default function CreateTournament() {
                                 onChange={(e) => {
                                     const mode = e.target.value;
                                     const maxPlayers = mode === 'solo' ? 2 : mode === 'duo' ? 4 : 8;
-                                    setFormData(prev => ({ ...prev, team_mode: mode, max_participants: formData.tournament_type === 'br' ? Math.max(maxPlayers, prev.custom_player_count || maxPlayers) : maxPlayers }));
+                                    const brPlayerCount = mode === 'solo' ? 16 : mode === 'duo' ? 16 : 16;
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        team_mode: mode,
+                                        custom_player_count: formData.tournament_type === 'br' ? Math.max(brPlayerCount, prev.custom_player_count || brPlayerCount) : prev.custom_player_count,
+                                        max_participants: formData.tournament_type === 'br' ? Math.max(brPlayerCount, prev.custom_player_count || brPlayerCount) : maxPlayers
+                                    }));
                                 }}
                                 className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500"
-                                disabled={formData.tournament_type === 'br'}
                             >
                                 <option value="solo">Solo (1 vs 1)</option>
                                 <option value="duo">Duo (2 vs 2)</option>
@@ -316,7 +321,9 @@ export default function CreateTournament() {
                                     value={formData.custom_player_count}
                                     onChange={(e) => {
                                         const value = Number(e.target.value || 0);
-                                        setFormData(prev => ({ ...prev, custom_player_count: value, max_participants: value > 0 ? value : 0 }));
+                                        const teamSize = formData.team_mode === 'solo' ? 1 : formData.team_mode === 'duo' ? 2 : 4;
+                                        const roundedValue = value > 0 ? Math.max(teamSize, value - (value % teamSize)) : 0;
+                                        setFormData(prev => ({ ...prev, custom_player_count: roundedValue, max_participants: roundedValue }));
                                     }}
                                     className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500"
                                 />

@@ -28,8 +28,6 @@ class Tournament(models.Model):
     
     def get_team_size(self):
         """Get number of players based on team mode"""
-        if self.tournament_type == "br":
-            return max(1, self.custom_player_count or 1)
         return {"solo": 1, "duo": 2, "squad": 4}.get(self.team_mode, 1)
 
     def __str__(self):

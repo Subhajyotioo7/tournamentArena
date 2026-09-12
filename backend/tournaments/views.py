@@ -687,6 +687,15 @@ def create_user_tournament(request):
                 "error": "Only approved host partners can create BR / long tournaments. Request access first."
             }, status=403)
 
+        team_size = {"solo": 1, "duo": 2, "squad": 4}.get(team_mode)
+        if not team_size:
+            return Response({"error": "Invalid BR team mode"}, status=400)
+        if custom_player_count < team_size or custom_player_count % team_size != 0:
+            return Response({
+                "error": f"BR player count must be a multiple of {team_size} for {team_mode} mode"
+            }, status=400)
+        max_participants = custom_player_count
+
     # Calculate total costs
     creation_fee = Decimal("10.00")
     

@@ -9,6 +9,7 @@ from rest_framework import status as http_status
 
 from payments.utils import create_razorpay_order, verify_signature
 from wallet.models import Transaction, Profile
+from hostpartner.models import HostPartnerRequest
 from .models import Tournament, Room, RoomParticipant, PrizeDistribution, RoomResult, TeamInvitation
 from .serializers import RoomSerializer, TournamentSerializer, PrizeDistributionSerializer, RoomResultSerializer, TournamentParticipantSerializer
 from django.db import transaction
@@ -56,10 +57,14 @@ def join_room_solo(request, room_id):
     if total_participants >= tournament.max_participants:
         return Response({"error": "Tournament is full (Max participants reached)"}, status=400)
     
-    # Get payment amount based on team mode
+    # BR entrants pay the full entry fee; regular team tournaments split it.
     tournament = room.tournament
     team_size = tournament.get_team_size()
-    payment_share = tournament.entry_fee / team_size
+    payment_share = (
+        tournament.entry_fee
+        if tournament.tournament_type == "br"
+        else tournament.entry_fee / team_size
+    )
     
     profile = request.user.profile
     
@@ -659,14 +664,28 @@ def create_user_tournament(request):
     data = request.data
     name = data.get('name')
     game = data.get('game')
+    tournament_type = data.get('tournament_type', 'one_vs_one')
     entry_fee = Decimal(str(data.get('entry_fee', 0)))
     team_mode = data.get('team_mode', 'solo')
     max_participants = int(data.get('max_participants', 100))
+    custom_player_count = int(data.get('custom_player_count', 0) or 0)
     start_time = data.get('start_time')
     prize_distributions = data.get('prize_distributions', []) # List of {rank: int, prize: float}
 
     if not name or not game:
         return Response({"error": "Name and Game are required"}, status=400)
+
+    approved_request = None
+    if tournament_type == 'br':
+        approved_request = HostPartnerRequest.objects.filter(
+            requested_by=request.user,
+            status='approved',
+        ).order_by('-created_at').first()
+
+        if not approved_request:
+            return Response({
+                "error": "Only approved host partners can create BR / long tournaments. Request access first."
+            }, status=403)
 
     # Calculate total costs
     creation_fee = Decimal("10.00")
@@ -711,12 +730,15 @@ def create_user_tournament(request):
         tournament = Tournament.objects.create(
             name=name,
             game=game,
+            tournament_type=tournament_type,
             entry_fee=entry_fee,
             team_mode=team_mode,
             max_participants=max_participants,
+            custom_player_count=custom_player_count if tournament_type == 'br' else 0,
             start_time=start_time or timezone.now() + timezone.timedelta(hours=1),
             created_by=request.user,
-            is_active=True
+            is_active=True,
+            host_partner_request=approved_request if tournament_type == 'br' else None,
         )
 
         # 4. Create Prize Distributions

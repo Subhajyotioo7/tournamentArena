@@ -1,23 +1,55 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { tournamentService } from '../services/api';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { hostPartnerService, tournamentService } from '../services/api';
 import { Button } from '../components/ui/button';
 
 export default function CreateTournament() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
+    const [requestingAccess, setRequestingAccess] = useState(false);
+    const [hostRequestStatus, setHostRequestStatus] = useState(null);
+    const [hostRequestMessage, setHostRequestMessage] = useState('');
+    const [requestForm, setRequestForm] = useState({
+        game: 'bgmi',
+        requested_tournament_name: '',
+        player_count: 16,
+        note: ''
+    });
     const [formData, setFormData] = useState({
         name: '',
         game: 'bgmi',
+        tournament_type: 'one_vs_one',
         entry_fee: 10,
         team_mode: 'solo',
         max_participants: 2,
+        custom_player_count: 0,
         start_time: '',
         teammate_ids: ['', '', ''],
         prize_distributions: [
             { rank: 1, prize: 100 }
         ]
     });
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const type = params.get('tournamentType');
+        if (type === 'br') {
+            setFormData(prev => ({ ...prev, tournament_type: 'br', team_mode: 'solo', max_participants: 16, custom_player_count: 16 }));
+        }
+
+        const loadHostStatus = async () => {
+            try {
+                const data = await hostPartnerService.getStatus();
+                setHostRequestStatus(data.status || 'pending');
+                setHostRequestMessage(data.message || '');
+            } catch (error) {
+                setHostRequestStatus('not_requested');
+            }
+        };
+
+        loadHostStatus();
+    }, [location.search]);
 
     const savedTeammates = JSON.parse(localStorage.getItem('savedTeammates') || '[]');
     const presetTeams = JSON.parse(localStorage.getItem('presetTeams') || '[]').filter(t => t.mode === formData.team_mode);
@@ -49,6 +81,26 @@ export default function CreateTournament() {
         setFormData(prev => ({ ...prev, prize_distributions: newPrizes }));
     };
 
+    const handleHostRequest = async () => {
+        if (!requestForm.requested_tournament_name || !requestForm.game) {
+            alert('Please enter tournament name and select a game');
+            return;
+        }
+
+        setRequestingAccess(true);
+        try {
+            const response = await hostPartnerService.requestAccess(requestForm);
+            setHostRequestStatus('pending');
+            setHostRequestMessage(response.message || 'Host partner request submitted.');
+            alert(response.message || 'Host partner request submitted successfully');
+        } catch (error) {
+            console.error('Failed to request host access:', error);
+            alert(error.message || 'Failed to submit host partner request');
+        } finally {
+            setRequestingAccess(false);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.name) return alert('Name is required');
@@ -69,6 +121,8 @@ export default function CreateTournament() {
 
             const payload = {
                 ...formData,
+                tournament_type: formData.tournament_type,
+                custom_player_count: formData.tournament_type === 'br' ? Number(formData.custom_player_count || 0) : 0,
                 teammate_ids: filledTeammateIds
             };
 
@@ -96,6 +150,105 @@ export default function CreateTournament() {
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="md:col-span-2">
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <Button
+                                    type="button"
+                                    variant={formData.tournament_type === 'one_vs_one' ? 'default' : 'outline'}
+                                    onClick={() => setFormData(prev => ({ ...prev, tournament_type: 'one_vs_one', team_mode: 'solo', max_participants: 2 }))}
+                                >
+                                    One vs One
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={formData.tournament_type === 'br' ? 'default' : 'outline'}
+                                    onClick={() => setFormData(prev => ({ ...prev, tournament_type: 'br', team_mode: 'solo', max_participants: 16, custom_player_count: 16 }))}
+                                >
+                                    BR / Long Tournament
+                                </Button>
+                            </div>
+                            {formData.tournament_type === 'br' && (
+                                <div className="mt-3 space-y-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                                    <div>
+                                        {hostRequestStatus === 'approved'
+                                            ? 'Your host-partner request is approved, so you can create BR events.'
+                                            : hostRequestStatus === 'pending'
+                                                ? 'Your host-partner request is pending admin approval.'
+                                                : 'Only approved host-partner accounts can create BR / long tournaments. Submit a request first.'}
+                                    </div>
+
+                                    {hostRequestStatus !== 'approved' && (
+                                        <div className="rounded-xl border border-amber-200 bg-white p-3">
+                                            <p className="mb-2 font-semibold text-amber-900">Request Host Partner Access</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-xs font-semibold uppercase tracking-wide text-amber-700">Game</label>
+                                                    <select
+                                                        value={requestForm.game}
+                                                        onChange={(e) => setRequestForm(prev => ({ ...prev, game: e.target.value }))}
+                                                        className="mt-1 block w-full border border-amber-300 rounded-lg px-3 py-2"
+                                                    >
+                                                        <option value="bgmi">BGMI</option>
+                                                        <option value="freefire">Free Fire</option>
+                                                        <option value="fifa">FIFA</option>
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-xs font-semibold uppercase tracking-wide text-amber-700">Player Count</label>
+                                                    <input
+                                                        type="number"
+                                                        min="2"
+                                                        value={requestForm.player_count}
+                                                        onChange={(e) => setRequestForm(prev => ({ ...prev, player_count: Number(e.target.value || 0) }))}
+                                                        className="mt-1 block w-full border border-amber-300 rounded-lg px-3 py-2"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3">
+                                                <label className="block text-xs font-semibold uppercase tracking-wide text-amber-700">Tournament Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={requestForm.requested_tournament_name}
+                                                    onChange={(e) => setRequestForm(prev => ({ ...prev, requested_tournament_name: e.target.value }))}
+                                                    placeholder="Weekend BR Cup"
+                                                    className="mt-1 block w-full border border-amber-300 rounded-lg px-3 py-2"
+                                                />
+                                            </div>
+
+                                            <div className="mt-3">
+                                                <label className="block text-xs font-semibold uppercase tracking-wide text-amber-700">Note</label>
+                                                <textarea
+                                                    rows="3"
+                                                    value={requestForm.note}
+                                                    onChange={(e) => setRequestForm(prev => ({ ...prev, note: e.target.value }))}
+                                                    placeholder="Describe the event details"
+                                                    className="mt-1 block w-full border border-amber-300 rounded-lg px-3 py-2"
+                                                />
+                                            </div>
+
+                                            <div className="mt-3 flex justify-end">
+                                                <Button
+                                                    type="button"
+                                                    onClick={handleHostRequest}
+                                                    disabled={requestingAccess || hostRequestStatus === 'pending'}
+                                                    variant="default"
+                                                    size="sm"
+                                                >
+                                                    {requestingAccess ? 'Submitting...' : hostRequestStatus === 'pending' ? 'Request Pending' : 'Submit Request'}
+                                                </Button>
+                                            </div>
+
+                                            {hostRequestMessage && (
+                                                <p className="mt-3 text-xs text-amber-900">{hostRequestMessage}</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Tournament Name</label>
                             <input
@@ -143,9 +296,10 @@ export default function CreateTournament() {
                                 onChange={(e) => {
                                     const mode = e.target.value;
                                     const maxPlayers = mode === 'solo' ? 2 : mode === 'duo' ? 4 : 8;
-                                    setFormData(prev => ({ ...prev, team_mode: mode, max_participants: maxPlayers }));
+                                    setFormData(prev => ({ ...prev, team_mode: mode, max_participants: formData.tournament_type === 'br' ? Math.max(maxPlayers, prev.custom_player_count || maxPlayers) : maxPlayers }));
                                 }}
                                 className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500"
+                                disabled={formData.tournament_type === 'br'}
                             >
                                 <option value="solo">Solo (1 vs 1)</option>
                                 <option value="duo">Duo (2 vs 2)</option>
@@ -155,9 +309,22 @@ export default function CreateTournament() {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Players Count</label>
-                            <div className="mt-1 block w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-600 font-bold">
-                                {formData.team_mode === 'solo' ? '2 players' : formData.team_mode === 'duo' ? '4 players' : '8 players'}
-                            </div>
+                            {formData.tournament_type === 'br' ? (
+                                <input
+                                    type="number"
+                                    min="2"
+                                    value={formData.custom_player_count}
+                                    onChange={(e) => {
+                                        const value = Number(e.target.value || 0);
+                                        setFormData(prev => ({ ...prev, custom_player_count: value, max_participants: value > 0 ? value : 0 }));
+                                    }}
+                                    className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500"
+                                />
+                            ) : (
+                                <div className="mt-1 block w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-600 font-bold">
+                                    {formData.team_mode === 'solo' ? '2 players' : formData.team_mode === 'duo' ? '4 players' : '8 players'}
+                                </div>
+                            )}
                         </div>
 
                         <div>

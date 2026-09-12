@@ -144,6 +144,30 @@ export const walletService = {
 };
 
 // ============= TOURNAMENT SERVICES =============
+export const hostPartnerService = {
+  requestAccess: async (payload) => {
+    return apiRequest('/hostpartner/request/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getStatus: async () => {
+    return apiRequest('/hostpartner/me/');
+  },
+
+  getRequests: async () => {
+    return apiRequest('/hostpartner/requests/');
+  },
+
+  approveRequest: async (requestId, status = 'approved') => {
+    return apiRequest(`/hostpartner/request/${requestId}/approve/`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    });
+  },
+};
+
 export const tournamentService = {
   getAll: async () => {
     return apiRequest('/tournaments/tournaments/', { auth: false });

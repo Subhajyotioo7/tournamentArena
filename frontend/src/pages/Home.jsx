@@ -38,13 +38,14 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Active Tournaments</h2>
-              <Button
-                onClick={() => navigate('/create-tournament')}
-                className="mt-2"
-                size="sm"
-              >
-                Create tournament (₹10)
-              </Button>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button onClick={() => navigate('/create-tournament?tournamentType=one_vs_one')} size="sm">
+                  One vs One
+                </Button>
+                <Button onClick={() => navigate('/create-tournament?tournamentType=br')} variant="outline" size="sm">
+                  BR / Long Tournament
+                </Button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               {['all', 'fifa', 'bgmi', 'freefire'].map((game) => (

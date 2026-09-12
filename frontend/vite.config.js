@@ -26,6 +26,7 @@ export default defineConfig({
           return req.headers.accept?.includes('text/html') ? req.url : undefined;
         },
       },
+      '/hostpartner': { target: 'http://localhost:8000', changeOrigin: true },
       '/payments': { target: 'http://localhost:8000', changeOrigin: true },
       '/chat': { target: 'http://localhost:8000', changeOrigin: true },
       '/admin': {

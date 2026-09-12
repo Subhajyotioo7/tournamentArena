@@ -6,21 +6,30 @@ import uuid
 class Tournament(models.Model):
     GAME_TYPES = (("fifa","FIFA"),("bgmi","BGMI"),("freefire","FreeFire"))
     TEAM_MODES = (("solo","Solo (1 player)"),("duo","Duo (2 players)"),("squad","Squad (4 players)"))
+    TOURNAMENT_TYPES = (
+        ("one_vs_one", "One vs One"),
+        ("br", "BR / Long Tournament"),
+    )
     
     name = models.CharField(max_length=200)
     game = models.CharField(max_length=50, choices=GAME_TYPES)
+    tournament_type = models.CharField(max_length=20, choices=TOURNAMENT_TYPES, default="one_vs_one")
     entry_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     team_mode = models.CharField(max_length=10, choices=TEAM_MODES, default="solo")
     max_players_per_room = models.IntegerField(default=1)  # Deprecated, use team_mode
     max_participants = models.IntegerField(default=100, help_text="Maximum total participants allowed")
+    custom_player_count = models.IntegerField(default=0, help_text="Used for BR / custom long tournaments")
     registration_deadline = models.DateTimeField(null=True, blank=True, help_text="Last date/time to register")
     start_time = models.DateTimeField(null=True, blank=True, help_text="Tournament start date/time")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="created_tournaments")
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    host_partner_request = models.ForeignKey('hostpartner.HostPartnerRequest', on_delete=models.SET_NULL, null=True, blank=True, related_name='tournaments')
     
     def get_team_size(self):
         """Get number of players based on team mode"""
+        if self.tournament_type == "br":
+            return max(1, self.custom_player_count or 1)
         return {"solo": 1, "duo": 2, "squad": 4}.get(self.team_mode, 1)
 
     def __str__(self):

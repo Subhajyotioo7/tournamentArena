@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'payments',
     "channels",
     "chat",
+    "hostpartner",
 ]
 
 

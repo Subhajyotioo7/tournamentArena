@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginUser } from '../services/auth';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
@@ -21,7 +22,8 @@ export default function Login() {
     try {
       await loginUser(formData.username, formData.password);
       login();
-      navigate('/');
+      const nextPath = new URLSearchParams(location.search).get('next');
+      navigate(nextPath || '/');
     } catch (submitError) {
       setError(submitError.message || 'Login failed');
       setNeedsVerification((submitError.message || '').toLowerCase().includes('verify your email'));

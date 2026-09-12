@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { tournamentService, roomService } from '../services/api';
 import RulesModal from '../components/RulesModal';
 import TeamFormationModal from '../components/TeamFormationModal';
 import { Button } from '../components/ui/button';
-import { ArrowLeft, Ban, ClipboardList, CircleX, Info, Medal, Rocket, Trophy, Users } from 'lucide-react';
+import { ArrowLeft, Ban, ClipboardList, CircleX, Info, Medal, Rocket, Share2, Trophy, Users } from 'lucide-react';
 
 export default function Tournament() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [tournament, setTournament] = useState(null);
   const [prizes, setPrizes] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -49,8 +50,8 @@ export default function Tournament() {
     // Check if logged in
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Please login first to join tournaments!\n\nClick "Login" in the top menu to continue.');
-      navigate('/login');
+      alert('Please login first to join this tournament.');
+      navigate(`/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`);
       return;
     }
 
@@ -74,6 +75,29 @@ export default function Tournament() {
       }
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/tournaments/${id}`;
+    const shareData = {
+      title: tournament?.name || 'Tournament Arena tournament',
+      text: `Join ${tournament?.name || 'this tournament'} on Tournament Arena`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Tournament link copied. Share it with your players.');
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        alert(`Copy this tournament link: ${shareUrl}`);
+      }
     }
   };
 
@@ -301,6 +325,15 @@ export default function Tournament() {
               </div>
 
               <div className="space-y-4">
+                <Button
+                  onClick={handleShare}
+                  variant="outline"
+                  className="w-full py-3 text-base sm:py-4 sm:text-lg inline-flex items-center justify-center gap-2"
+                >
+                  <Share2 className="h-5 w-5" aria-hidden="true" />
+                  Invite Players
+                </Button>
+
                 <Button
                   onClick={handleCreateRoom}
                   disabled={creating || (tournament.total_participants >= tournament.max_participants)}

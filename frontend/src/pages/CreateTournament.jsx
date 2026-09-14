@@ -25,9 +25,8 @@ export default function CreateTournament() {
         max_participants: 2,
         custom_player_count: 0,
         start_time: '',
-        teammate_ids: ['', '', ''],
         prize_distributions: [
-            { rank: 1, prize: 100 }
+            { rank_from: 1, rank_to: 1, prize: 0 }
         ]
     });
 
@@ -51,25 +50,6 @@ export default function CreateTournament() {
         loadHostStatus();
     }, [location.search]);
 
-    const savedTeammates = JSON.parse(localStorage.getItem('savedTeammates') || '[]');
-    const presetTeams = JSON.parse(localStorage.getItem('presetTeams') || '[]').filter(t => t.mode === formData.team_mode);
-
-    const handleTeammateIdChange = (index, value) => {
-        const newIds = [...formData.teammate_ids];
-        newIds[index] = value;
-        setFormData(prev => ({ ...prev, teammate_ids: newIds }));
-    };
-
-    const selectSavedTeammate = (id) => {
-        const newIds = [...formData.teammate_ids];
-        const emptyIndex = newIds.findIndex(val => val === '');
-        const invites = formData.team_mode === 'duo' ? 1 : formData.team_mode === 'squad' ? 3 : 0;
-        if (emptyIndex !== -1 && emptyIndex < invites) {
-            newIds[emptyIndex] = id;
-            setFormData(prev => ({ ...prev, teammate_ids: newIds }));
-        }
-    };
-
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -79,6 +59,23 @@ export default function CreateTournament() {
         const newPrizes = [...formData.prize_distributions];
         newPrizes[index][field] = value;
         setFormData(prev => ({ ...prev, prize_distributions: newPrizes }));
+    };
+
+    const addPrizeRange = () => {
+        setFormData(prev => ({
+            ...prev,
+            prize_distributions: [
+                ...prev.prize_distributions,
+                { rank_from: prev.prize_distributions.length + 1, rank_to: prev.prize_distributions.length + 1, prize: 0 }
+            ]
+        }));
+    };
+
+    const removePrizeRange = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            prize_distributions: prev.prize_distributions.filter((_, prizeIndex) => prizeIndex !== index)
+        }));
     };
 
     const handleHostRequest = async () => {
@@ -107,28 +104,24 @@ export default function CreateTournament() {
 
         setLoading(true);
         try {
-            // Filter filled teammate IDs
-            const invitesCount = formData.team_mode === 'duo' ? 1 : formData.team_mode === 'squad' ? 3 : 0;
-            const filledTeammateIds = formData.teammate_ids.slice(0, invitesCount).filter(id => id.trim() !== '');
-
-            // Save for future
-            const currentSaved = JSON.parse(localStorage.getItem('savedTeammates') || '[]');
-            let updatedSaved = [...currentSaved];
-            filledTeammateIds.forEach(id => {
-                if (!updatedSaved.includes(id)) updatedSaved = [id, ...updatedSaved];
+            const distributions = formData.prize_distributions.flatMap((range) => {
+                const from = Math.max(1, Number(range.rank_from) || 1);
+                const to = Math.max(from, Number(range.rank_to) || from);
+                return Array.from({ length: to - from + 1 }, (_, index) => ({
+                    rank: from + index,
+                    prize: Number(range.prize) || 0
+                }));
             });
-            localStorage.setItem('savedTeammates', JSON.stringify(updatedSaved.slice(0, 10)));
-
             const payload = {
                 ...formData,
                 tournament_type: formData.tournament_type,
                 custom_player_count: formData.tournament_type === 'br' ? Number(formData.custom_player_count || 0) : 0,
-                teammate_ids: filledTeammateIds
+                prize_distributions: distributions,
             };
 
             const response = await tournamentService.createUserTournament(payload);
             const breakdown = response.breakdown || {};
-            alert(`✅ ${response.message}\n\n💰 Total Deducted: ₹${response.fee_deducted}\n- Creation Fee: ₹${breakdown.creation_fee || '10'}\n- Prize Pool: ₹${breakdown.prize_pool || '0'}`);
+            alert(`✅ ${response.message}\n\n💰 Total Deducted: ₹${response.fee_deducted}\n- Creation Fee: ₹${breakdown.creation_fee || (formData.tournament_type === 'br' ? '50' : '10')}\n- Prize Pool: ₹${breakdown.prize_pool || '0'}`);
             navigate('/');
         } catch (error) {
             console.error('Failed to create tournament:', error);
@@ -144,7 +137,7 @@ export default function CreateTournament() {
                 <div className="bg-purple-600 px-8 py-6">
                     <h2 className="text-3xl font-extrabold text-white">Create Your Tournament</h2>
                     <p className="mt-2 text-purple-100 italic">
-                        ₹10 creation fee + Winner's prize amount will be deducted from your wallet.
+                        {formData.tournament_type === 'br' ? '₹50 long tournament creation fee' : '₹10 tournament creation fee'} + your prize distribution will be deducted from your wallet.
                     </p>
                 </div>
 
@@ -289,7 +282,7 @@ export default function CreateTournament() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Team Mode</label>
+                            <label className="block text-sm font-medium text-gray-700">Tournament Format</label>
                             <select
                                 name="team_mode"
                                 value={formData.team_mode}
@@ -346,117 +339,51 @@ export default function CreateTournament() {
                         </div>
                     </div>
 
-                    {(formData.team_mode === 'duo' || formData.team_mode === 'squad') && (
-                        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 space-y-4">
-                            <h3 className="text-lg font-bold text-blue-900 flex items-center gap-2">
-                                👥 Team Setup ({formData.team_mode.toUpperCase()})
-                            </h3>
-                            <p className="text-sm text-blue-700">Invite your teammates immediately. Enter their Game IDs below.</p>
-
-                            {/* Team Presets Selection */}
-                            {presetTeams.length > 0 && (
-                                <div className="mb-4">
-                                    <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2">Saved Team Presets</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                        {presetTeams.map(team => (
-                                            <Button
-                                                key={team.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    const newIds = ['', '', ''];
-                                                    const invites = formData.team_mode === 'duo' ? 1 : 3;
-                                                    team.members.forEach((m, i) => { if (i < invites) newIds[i] = m; });
-                                                    setFormData(prev => ({ ...prev, teammate_ids: newIds }));
-                                                }}
-                                                variant="outline"
-                                                className="flex items-center justify-between p-3 text-left group"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-xl">{team.mode === 'duo' ? '👥' : '👨‍👩‍👧‍👦'}</span>
-                                                    <div>
-                                                        <p className="text-sm font-bold text-gray-900 group-hover:text-blue-700">{team.name}</p>
-                                                        <p className="text-[10px] text-gray-500">{team.members.join(', ')}</p>
-                                                    </div>
-                                                </div>
-                                                <span className="text-blue-500 text-[10px] font-bold bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">Use</span>
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {Array.from({ length: formData.team_mode === 'duo' ? 1 : 3 }).map((_, i) => (
-                                    <div key={i}>
-                                        <label className="text-xs font-semibold text-blue-600 uppercase">Teammate {i + 1} Game ID</label>
-                                        <input
-                                            type="text"
-                                            value={formData.teammate_ids[i]}
-                                            onChange={(e) => handleTeammateIdChange(i, e.target.value)}
-                                            placeholder="Enter Game ID"
-                                            className="mt-1 block w-full border border-blue-200 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500"
-                                        />
+                    <div className="border-t border-gray-200 pt-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">🏆 Set Prize Distribution</h3>
+                        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl p-5 shadow-sm">
+                            <div className="space-y-3">
+                                {formData.prize_distributions.map((range, index) => (
+                                    <div key={index} className="grid grid-cols-[1fr_1fr_1.5fr_auto] items-end gap-2">
+                                        <label className="text-xs font-semibold text-gray-700">
+                                            From rank
+                                            <input type="number" min="1" value={range.rank_from} onChange={(e) => handlePrizeChange(index, 'rank_from', e.target.value)} className="mt-1 w-full rounded-lg border border-yellow-300 px-3 py-2" />
+                                        </label>
+                                        <label className="text-xs font-semibold text-gray-700">
+                                            To rank
+                                            <input type="number" min="1" value={range.rank_to} onChange={(e) => handlePrizeChange(index, 'rank_to', e.target.value)} className="mt-1 w-full rounded-lg border border-yellow-300 px-3 py-2" />
+                                        </label>
+                                        <label className="text-xs font-semibold text-gray-700">
+                                            Prize per rank (₹)
+                                            <input type="number" min="0" value={range.prize} onChange={(e) => handlePrizeChange(index, 'prize', e.target.value)} className="mt-1 w-full rounded-lg border border-yellow-300 px-3 py-2 font-bold" />
+                                        </label>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => removePrizeRange(index)} disabled={formData.prize_distributions.length === 1}>Remove</Button>
                                     </div>
                                 ))}
+                                <Button type="button" variant="outline" size="sm" onClick={addPrizeRange}>+ Add rank range</Button>
                             </div>
 
-                            {savedTeammates.length > 0 && (
-                                <div className="pt-2">
-                                    <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2">Recent Teammates</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {savedTeammates.filter(id => !formData.teammate_ids.includes(id)).map(id => (
-                                            <Button
-                                                key={id}
-                                                type="button"
-                                                onClick={() => selectSavedTeammate(id)}
-                                                variant="outline"
-                                                size="sm"
-                                                className="text-xs"
-                                            >
-                                                + {id}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    <div className="border-t border-gray-200 pt-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">🏆 Winner Prize Distribution</h3>
-                        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl p-5 shadow-sm">
-                            <label className="text-sm font-semibold text-gray-700 mb-2 block">Base Winner Prize (₹)</label>
-                            <input
-                                type="number"
-                                value={formData.prize_distributions[0].prize}
-                                onChange={(e) => handlePrizeChange(0, 'prize', e.target.value)}
-                                min="0"
-                                className="w-full border border-yellow-300 rounded-lg px-4 py-3 text-lg font-bold text-gray-900 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                                placeholder="Enter winner prize amount"
-                            />
-
-                            {/* Prize Calculation Display */}
                             <div className="mt-4 bg-white border-2 border-yellow-400 rounded-lg p-4">
-                                <p className="text-sm font-semibold text-gray-700 mb-2">💰 Total Winner Payout:</p>
+                                <p className="text-sm font-semibold text-gray-700 mb-2">💰 Total amount needed in your account:</p>
                                 <div className="space-y-1 text-sm text-gray-600">
                                     <div className="flex justify-between">
-                                        <span>Winner Prize:</span>
-                                        <span className="font-semibold">₹{formData.prize_distributions[0].prize || 0}</span>
+                                        <span>Tournament creation fee:</span>
+                                        <span className="font-semibold">₹{formData.tournament_type === 'br' ? 50 : 10}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Opponent's Entry Fee:</span>
-                                        <span className="font-semibold">₹{formData.entry_fee}</span>
+                                        <span>Prize distribution:</span>
+                                        <span className="font-semibold">₹{formData.prize_distributions.reduce((total, range) => total + ((Math.max(1, Number(range.rank_to) || 1) - Math.max(1, Number(range.rank_from) || 1) + 1) * (parseFloat(range.prize) || 0)), 0)}</span>
                                     </div>
                                     <div className="border-t border-yellow-300 pt-2 mt-2 flex justify-between text-lg font-bold text-green-600">
-                                        <span>Total Payout:</span>
-                                        <span>₹{(parseInt(formData.prize_distributions[0].prize) || 0) + (parseInt(formData.entry_fee) || 0)}</span>
+                                        <span>Total required:</span>
+                                        <span>₹{(formData.tournament_type === 'br' ? 50 : 10) + formData.prize_distributions.reduce((total, range) => total + ((Math.max(1, Number(range.rank_to) || 1) - Math.max(1, Number(range.rank_from) || 1) + 1) * (parseFloat(range.prize) || 0)), 0)}</span>
                                     </div>
                                 </div>
                             </div>
 
                             <p className="text-xs text-gray-600 mt-3 flex items-start gap-1">
                                 <span>💡</span>
-                                <span>The winner receives the winner prize + opponent's entry fee!</span>
+                                <span>This amount is deducted from your wallet when the tournament is created.</span>
                             </p>
                         </div>
                     </div>

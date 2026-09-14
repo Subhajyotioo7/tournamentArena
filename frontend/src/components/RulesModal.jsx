@@ -19,11 +19,11 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 rounded-t-2xl">
+                <div className="sticky top-0 bg-gradient-to-r from-[#f59e0b] to-[#d97706] text-white p-6 rounded-t-2xl">
                     <div className="flex justify-between items-start">
                         <div>
                             <h2 className="text-2xl font-bold mb-1">{tournament.name}</h2>
-                            <p className="text-purple-100">Rules & Regulations</p>
+                            <p className="text-amber-100">Rules & Regulations</p>
                         </div>
                         <Button
                             onClick={onClose}
@@ -40,7 +40,7 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
                 {/* Content */}
                 <div className="p-6 space-y-6">
                     {/* Tournament Info */}
-                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-4 border-2 border-purple-200">
+                    <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-4 border-2 border-amber-200">
                         <h3 className="font-bold text-lg mb-3 text-gray-900">Tournament Details</h3>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                             <div>

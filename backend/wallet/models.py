@@ -18,6 +18,12 @@ class Profile(models.Model):
     bgmi_id = models.CharField(max_length=50, null=True, blank=True)
     freefire_id = models.CharField(max_length=50, null=True, blank=True)
     fifa_id = models.CharField(max_length=50, null=True, blank=True)
+    selected_game = models.CharField(
+        max_length=20,
+        choices=(("bgmi", "BGMI"), ("freefire", "Free Fire"), ("fifa", "FIFA")),
+        null=True,
+        blank=True,
+    )
     
     # Keep legacy field for compatibility
     game_id = models.CharField(max_length=50, null=True, blank=True)

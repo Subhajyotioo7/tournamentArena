@@ -82,10 +82,20 @@ In a second terminal:
 ```bash
 cd frontend
 npm install
-npm run dev -- --host 0.0.0.0
+npm run dev
 ```
 
 Open `http://localhost:5173`.
+
+Use `npm run dev` while developing. Vite keeps the server running and automatically
+updates the browser when you save React, CSS, or other source files (HMR). `npm run
+build` is only for creating a one-time production bundle and does not watch files or
+refresh the browser.
+
+If the project is running from WSL or a Windows/OneDrive path, the Vite configuration
+uses polling so file changes are detected reliably. Start the dev server once, keep
+that terminal open, and open `http://localhost:5173`; do not open `frontend/dist`
+or run a production build after every edit.
 
 The Vite development server proxies `/api`, `/wallet`, `/tournaments`, `/payments`, `/chat`, `/admin`, and `/ws` to the backend. Restart Vite after changing `vite.config.js`.
 

@@ -10,7 +10,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         model = Profile
         fields = [
             "username", "is_staff", "is_superuser", "balance", "player_uuid",
-            "bgmi_id", "freefire_id", "fifa_id", "game_id", "game_id_verified", "game_id_status", "game_id_rejection_reason",
+            "bgmi_id", "freefire_id", "fifa_id", "selected_game", "game_id", "game_id_verified", "game_id_status", "game_id_rejection_reason",
             "kyc_status", "kyc_full_name", "kyc_id_type", "kyc_id_number", "kyc_document", "kyc_rejection_reason", "mobile_number",
             "bank_name", "account_number", "ifsc_code", "upi_id", "payment_details_status", "payment_details_rejection_reason"
         ]
@@ -19,7 +19,7 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = [
-            "bgmi_id", "freefire_id", "fifa_id", 
+            "bgmi_id", "freefire_id", "fifa_id", "selected_game",
             "kyc_full_name", "kyc_id_type", "kyc_id_number", "kyc_document", "mobile_number",
             "bank_name", "account_number", "ifsc_code", "upi_id"
         ]

@@ -189,6 +189,10 @@ export default function AdminDashboard() {
     };
 
     const handleVerifySection = async (profileId, section, action) => {
+        if (!profileId) {
+            alert('❌ This profile has no verification ID. Refresh the page and try again.');
+            return;
+        }
         let reason = '';
         if (action === 'reject') {
             reason = prompt(`Enter rejection reason for ${section.toUpperCase()}:`);

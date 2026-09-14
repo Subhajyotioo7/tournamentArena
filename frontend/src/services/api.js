@@ -227,10 +227,19 @@ export const roomService = {
     });
   },
 
-  createTeam: async (roomId, gameIds) => {
+  createTeam: async (roomId, gameIds, paymentType) => {
     return apiRequest(`/tournaments/room/${roomId}/create-team/`, {
       method: 'POST',
-      body: JSON.stringify({ game_ids: gameIds }),
+      body: JSON.stringify({ game_ids: gameIds, payment_type: paymentType }),
+    });
+  },
+
+  getDetail: async (roomId) => apiRequest(`/tournaments/room/${roomId}/`),
+
+  removeTeam: async (roomId, participantId, invitationId) => {
+    return apiRequest(`/tournaments/room/${roomId}/remove-team/`, {
+      method: 'POST',
+      body: JSON.stringify({ participant_id: participantId, invitation_id: invitationId }),
     });
   },
 
@@ -331,4 +340,3 @@ export const apiPost = (url, body = {}, auth = true) =>
     body: JSON.stringify(body),
     auth,
   });
-

@@ -26,12 +26,19 @@ import CreateTournament from "./pages/CreateTournament";
 import VerifyEmail from "./pages/VerifyEmail";
 import ErrorPage from "./pages/ErrorPage";
 import ErrorBoundary from "./components/ErrorBoundary";
+import TeamWaiting from "./pages/TeamWaiting";
+import { PebbleToaster } from "./components/ui/pebble-toast";
+import { notify } from "./lib/toast";
+
+// Keep existing notification calls consistent while screens migrate to toasts.
+window.alert = notify;
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Router>
       <ErrorBoundary>
         <AuthProvider>
+        <PebbleToaster />
         <Routes>
           <Route path="/" element={<App />}>
             <Route index element={<Home />} />
@@ -42,6 +49,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
             <Route path="my-rooms" element={<MyRooms />} />
             <Route path="my-invitations" element={<MyInvitations />} />
+            <Route path="team-waiting/:roomId" element={<TeamWaiting />} />
 
 
             <Route path="wallet/transactions" element={<WalletTransactions />} />
@@ -71,5 +79,3 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     </Router>
   </React.StrictMode>
 );
-
-

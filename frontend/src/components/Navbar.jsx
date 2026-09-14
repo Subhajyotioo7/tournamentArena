@@ -5,8 +5,8 @@ import { Button } from './ui/button';
 import { buttonVariants } from './ui/button-variants';
 import { Trophy } from 'lucide-react';
 
-const navLinkClass = 'text-sm font-medium text-gray-700 transition-colors hover:text-[#FF5500]';
-const mobileLinkClass = 'rounded-md px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-[#FF5500]';
+const navLinkClass = 'text-sm font-medium text-gray-700 transition-colors hover:text-[#d97706]';
+const mobileLinkClass = 'rounded-md px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-[#d97706]';
 
 export default function Navbar() {
   const { isLoggedIn, logout, user } = useAuth();

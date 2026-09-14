@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 export default function TeamFormationModal({ tournament, onClose, onJoinSolo, onCreateTeam }) {
     const [gameIds, setGameIds] = useState(['', '', '']);
     const [loading, setLoading] = useState(false);
+    const [paymentType, setPaymentType] = useState('split_equally');
 
     // Get saved teammates and presets from localStorage
     const savedTeammates = JSON.parse(localStorage.getItem('savedTeammates') || '[]');
@@ -28,6 +29,8 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
     const info = teamInfo[tournament.team_mode];
     const paymentShare = (tournament.entry_fee / info.players).toFixed(2);
     const TeamIcon = info.icon;
+    const gameLabels = { bgmi: 'BGMI', freefire: 'Free Fire', fifa: 'FIFA' };
+    const gameLabel = gameLabels[tournament.game] || tournament.game.toUpperCase();
 
     const handleJoinSolo = async () => {
         setLoading(true);
@@ -41,16 +44,16 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
     const handleCreateTeam = async () => {
         const filledIds = gameIds.filter(id => id.trim());
 
-        if (filledIds.length === 0 && info.invites > 0) {
-            const confirmSolo = window.confirm(`You haven't entered any teammate Game IDs. Do you want to join this ${tournament.team_mode} tournament alone and wait for random teammates?`);
-            if (!confirmSolo) return;
+        if (filledIds.length < info.invites) {
+            window.alert(`Enter all ${info.invites} teammate Game IDs before creating this team.`);
+            return;
         }
 
         setLoading(true);
         try {
             // Save teammates for next time
             filledIds.forEach(id => saveTeammate(id));
-            await onCreateTeam(filledIds);
+            await onCreateTeam(filledIds, paymentType);
         } finally {
             setLoading(false);
         }
@@ -67,13 +70,13 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full">
+            <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 rounded-t-2xl">
+                <div className="bg-gradient-to-r from-[#f59e0b] to-[#d97706] text-white p-6 rounded-t-2xl">
                     <div className="flex justify-between items-start">
                         <div>
                             <h2 className="text-2xl font-bold mb-1">Join Tournament</h2>
-                            <p className="text-purple-100">{tournament.name}</p>
+                            <p className="text-amber-100">{tournament.name}</p>
                         </div>
                         <Button
                             onClick={onClose}
@@ -90,9 +93,9 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                 {/* Content */}
                 <div className="p-6 space-y-6">
                     {/* Team Mode Info */}
-                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-4 border-2 border-purple-200">
+                    <div className="bg-gradient-to-br from-amber-50 to-white rounded-xl p-4 border-2 border-amber-200">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="bg-purple-600 p-3 rounded-lg text-2xl">
+                            <div className="bg-amber-500 p-3 rounded-lg text-2xl">
                                 <TeamIcon className="h-6 w-6" aria-hidden="true" />
                             </div>
                             <div>
@@ -143,7 +146,7 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                             </div>
 
                             <p className="text-sm text-gray-600 mb-6 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                <Crosshair className="mr-1 inline h-4 w-4" aria-hidden="true" />Enter the <strong>Game IDs</strong> of your teammates below. We will send them invitations to join your team.
+                                <Crosshair className="mr-1 inline h-4 w-4" aria-hidden="true" />Enter your teammates&apos; <strong>{gameLabel} IDs</strong> below. We will send invitations using their {gameLabel} ID.
                             </p>
 
                             {/* Team Presets Selection */}
@@ -166,11 +169,11 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                                                 <div className="flex items-center gap-3">
                                                     {team.mode === 'duo' ? <Users className="h-5 w-5" aria-hidden="true" /> : <UsersRound className="h-5 w-5" aria-hidden="true" />}
                                                     <div>
-                                                        <p className="text-sm font-bold text-gray-900 group-hover:text-purple-700">{team.name}</p>
+                                                        <p className="text-sm font-bold text-gray-900 group-hover:text-amber-700">{team.name}</p>
                                                         <p className="text-[10px] text-gray-500">{team.members.join(', ')}</p>
                                                     </div>
                                                 </div>
-                                                <span className="text-purple-400 text-xs font-bold bg-white px-2 py-1 rounded-lg">Select</span>
+                                                <span className="text-amber-600 text-xs font-bold bg-white px-2 py-1 rounded-lg">Select</span>
                                             </Button>
                                         ))}
                                     </div>
@@ -192,7 +195,7 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                                                 setGameIds(newIds);
                                             }}
                                             placeholder="Enter Game ID"
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                                         />
                                     </div>
                                 ))}
@@ -221,8 +224,21 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
 
                             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                                 <p className="text-sm text-yellow-800">
-                                    <strong>Note:</strong> You'll pay ₹{paymentShare} only after all teammates accept the invitation.
+                                    <strong>Payment:</strong> Choose who pays the team entry fee. Split payment charges each player after accepting.
                                 </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 mb-4">
+                                <label className={`cursor-pointer rounded-xl border-2 p-3 ${paymentType === 'leader_pays_all' ? 'border-amber-500 bg-amber-50' : 'border-gray-200'}`}>
+                                    <input type="radio" className="sr-only" checked={paymentType === 'leader_pays_all'} onChange={() => setPaymentType('leader_pays_all')} />
+                                    <span className="font-bold text-gray-900">Captain pays all</span>
+                                    <span className="block text-xs text-gray-500 mt-1">Pay ₹{tournament.entry_fee} now. Teammates join free after accepting.</span>
+                                </label>
+                                <label className={`cursor-pointer rounded-xl border-2 p-3 ${paymentType === 'split_equally' ? 'border-amber-500 bg-amber-50' : 'border-gray-200'}`}>
+                                    <input type="radio" className="sr-only" checked={paymentType === 'split_equally'} onChange={() => setPaymentType('split_equally')} />
+                                    <span className="font-bold text-gray-900">Split payment</span>
+                                    <span className="block text-xs text-gray-500 mt-1">You pay ₹{paymentShare}; each invited player pays after accepting.</span>
+                                </label>
                             </div>
 
                             <Button

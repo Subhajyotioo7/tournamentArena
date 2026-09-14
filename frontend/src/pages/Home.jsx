@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { tournamentService } from '../services/api';
 import TournamentCard from '../components/TournamentCard';
 import { Button } from '../components/ui/button';
+import { getGameTheme } from '../config/gameThemes';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -52,10 +53,11 @@ export default function Home() {
                 <Button
                   key={game}
                   onClick={() => setFilter(game)}
-                  variant={filter === game ? 'default' : 'outline'}
+                  variant={filter === game && game === 'all' ? 'default' : 'outline'}
+                  className={filter === game && game !== 'all' ? getGameTheme(game).filterActive : undefined}
                   size="sm"
                 >
-                  {game === 'all' ? 'All' : game.toUpperCase()}
+                  {game === 'all' ? 'All' : getGameTheme(game).label}
                 </Button>
               ))}
             </div>

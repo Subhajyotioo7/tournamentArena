@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { walletService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { AlertTriangle, Banknote, Camera, CheckCircle, Gamepad2, IdCard, LockKeyhole, LogOut, Plus, Rocket, RotateCw, Smartphone, User, Wallet, X } from 'lucide-react';
+import { notify } from '../lib/toast';
+import { AlertTriangle, Banknote, Camera, CheckCircle, Gamepad2, LockKeyhole, LogOut, Plus, Rocket, RotateCw, Smartphone, User, Wallet, X } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -11,15 +12,13 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('games'); // games, kyc, payment
+  const [activeTab, setActiveTab] = useState('games');
 
   const [formData, setFormData] = useState({
+    selected_game: '',
     bgmi_id: '',
     freefire_id: '',
     fifa_id: '',
-    kyc_full_name: '',
-    kyc_id_type: 'Aadhar Card',
-    kyc_id_number: '',
     mobile_number: '',
     bank_name: '',
     account_number: '',
@@ -41,12 +40,10 @@ export default function Profile() {
       setBalance(balanceData.balance || 0);
 
       setFormData({
+        selected_game: profileData.selected_game || '',
         bgmi_id: profileData.bgmi_id || '',
         freefire_id: profileData.freefire_id || '',
         fifa_id: profileData.fifa_id || '',
-        kyc_full_name: profileData.kyc_full_name || '',
-        kyc_id_type: profileData.kyc_id_type || 'Aadhar Card',
-        kyc_id_number: profileData.kyc_id_number || '',
         mobile_number: profileData.mobile_number || '',
         bank_name: profileData.bank_name || '',
         account_number: profileData.account_number || '',
@@ -76,10 +73,10 @@ export default function Profile() {
     setSaving(true);
     try {
       await walletService.updateProfile(formData);
-      alert('Profile updated and submitted for verification!');
+      notify('Profile updated successfully!');
       fetchProfile();
     } catch (error) {
-      alert('Update failed: ' + error.message);
+      notify('Update failed: ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -141,9 +138,9 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       {/* Premium Header */}
-      <div className="bg-gradient-to-r from-purple-700 via-indigo-700 to-blue-700 text-white shadow-lg overflow-hidden relative">
+      <div className="bg-gradient-to-r from-[#292524] via-[#44403c] to-[#78350f] text-white shadow-lg overflow-hidden relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/20 rounded-full -ml-24 -mb-24 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/20 rounded-full -ml-24 -mb-24 blur-3xl"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16 relative z-10 flex flex-col md:flex-row items-center md:items-start gap-8">
           <div className="relative group">
@@ -154,7 +151,7 @@ export default function Profile() {
 
           <div className="text-center md:text-left">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-2">{profile.username}</h1>
-            <p className="text-indigo-100 text-lg sm:text-xl opacity-90 font-medium mb-4">{profile.email}</p>
+            <p className="text-amber-100 text-lg sm:text-xl opacity-90 font-medium mb-4">{profile.email}</p>
             <div className="flex flex-wrap justify-center md:justify-start gap-3">
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-xl flex items-center gap-2">
                 <span className="text-sm font-bold opacity-70 uppercase tracking-widest">Player UUID:</span>
@@ -185,16 +182,15 @@ export default function Profile() {
               {/* Profile Tabs */}
               <div className="flex border-b border-gray-100 bg-gray-50/50">
                 {[
-                  { id: 'games', label: 'Game IDs', icon: Gamepad2, color: 'purple' },
-                  { id: 'kyc', label: 'KYC Verify', icon: IdCard, color: 'blue' },
-                  { id: 'payment', label: 'Bank & UPI', icon: Banknote, color: 'indigo' }
+                  { id: 'games', label: '1. Game Identity', icon: Gamepad2 },
+                  { id: 'account', label: '2. Account Details', icon: Banknote }
                 ].map(tab => (
                   <Button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     variant="ghost"
                     className={`flex-1 py-5 text-sm font-bold uppercase tracking-wider border-b-2 ${activeTab === tab.id
-                      ? 'border-orange-600 !text-orange-600 bg-white'
+                      ? 'border-amber-600 !text-amber-700 bg-white'
                       : 'border-transparent !text-gray-500'
                       }`}
                   >
@@ -213,6 +209,21 @@ export default function Profile() {
                       {getStatusBadge(profile.game_id_status, profile.game_id_rejection_reason)}
                     </div>
 
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Primary Tournament Game</label>
+                      <select
+                        className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-amber-500 rounded-2xl outline-none transition-all font-bold text-gray-800"
+                        value={formData.selected_game}
+                        onChange={(e) => setFormData({ ...formData, selected_game: e.target.value })}
+                      >
+                        <option value="">Choose the game you play</option>
+                        <option value="bgmi">BGMI</option>
+                        <option value="freefire">Free Fire</option>
+                        <option value="fifa">FIFA</option>
+                      </select>
+                      <p className="text-sm text-gray-500">Choose a game and enter its ID below. Team invitations will use the ID for the tournament game.</p>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                       <div className="space-y-2">
                         <label className="text-xs font-black text-gray-400 uppercase tracking-widest">BGMI IGN</label>
@@ -220,6 +231,7 @@ export default function Profile() {
                           type="text"
                           className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-purple-500 rounded-2xl outline-none transition-all font-bold text-gray-800"
                           placeholder="Your BGMI ID"
+                          required={formData.selected_game === 'bgmi'}
                           value={formData.bgmi_id}
                           onChange={(e) => setFormData({ ...formData, bgmi_id: e.target.value })}
                         />
@@ -230,6 +242,7 @@ export default function Profile() {
                           type="text"
                           className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-orange-500 rounded-2xl outline-none transition-all font-bold text-gray-800"
                           placeholder="Your FF ID"
+                          required={formData.selected_game === 'freefire'}
                           value={formData.freefire_id}
                           onChange={(e) => setFormData({ ...formData, freefire_id: e.target.value })}
                         />
@@ -240,81 +253,44 @@ export default function Profile() {
                           type="text"
                           className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-800"
                           placeholder="Your EA ID"
+                          required={formData.selected_game === 'fifa'}
                           value={formData.fifa_id}
                           onChange={(e) => setFormData({ ...formData, fifa_id: e.target.value })}
                         />
                       </div>
                     </div>
-                    <p className="text-sm text-gray-500 italic">Enter the in-game names (IGN) for the games you participate in. Admin will verify these before tournament entry.</p>
+                    <p className="text-sm text-gray-500 italic">Your selected game ID is used when joining a tournament or inviting teammates. Admin will verify game IDs before tournament entry.</p>
+                    <Button type="button" onClick={() => setActiveTab('account')} className="w-full sm:w-auto">
+                      Continue to Account Details
+                    </Button>
                   </div>
                 )}
 
-                {/* KYC Section */}
-                {activeTab === 'kyc' && (
+                {/* Account Section */}
+                {activeTab === 'account' && (
                   <div className="space-y-8 animate-fadeIn">
                     <div className="flex items-center justify-between mb-2">
-                      <h2 className="text-2xl font-black text-gray-900">KYC Verification</h2>
-                      {getStatusBadge(profile.kyc_status, profile.kyc_rejection_reason)}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Full Name (As per ID)</label>
-                        <input
-                          type="text"
-                          disabled={profile.kyc_status === 'approved'}
-                          className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-800 disabled:opacity-50"
-                          value={formData.kyc_full_name}
-                          onChange={(e) => setFormData({ ...formData, kyc_full_name: e.target.value })}
-                        />
+                      <div>
+                        <h2 className="text-2xl font-black text-gray-900">Account Details</h2>
+                        <p className="text-sm text-gray-500 mt-1">Add your contact and payout details.</p>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest">ID Card Type</label>
-                        <select
-                          disabled={profile.kyc_status === 'approved'}
-                          className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-800 disabled:opacity-50 appearance-none"
-                          value={formData.kyc_id_type}
-                          onChange={(e) => setFormData({ ...formData, kyc_id_type: e.target.value })}
-                        >
-                          <option>Aadhar Card</option>
-                          <option>PAN Card</option>
-                          <option>Driving License</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest">ID Number</label>
-                        <input
-                          type="text"
-                          disabled={profile.kyc_status === 'approved'}
-                          className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-800 disabled:opacity-50"
-                          value={formData.kyc_id_number}
-                          onChange={(e) => setFormData({ ...formData, kyc_id_number: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Mobile Number</label>
-                        <input
-                          type="tel"
-                          disabled={profile.kyc_status === 'approved'}
-                          className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-800 disabled:opacity-50"
-                          value={formData.mobile_number}
-                          onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
-                          placeholder="Enter 10-digit mobile number"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Payment Section */}
-                {activeTab === 'payment' && (
-                  <div className="space-y-8 animate-fadeIn">
-                    <div className="flex items-center justify-between mb-2">
-                      <h2 className="text-2xl font-black text-gray-900">Withdrawal Details</h2>
                       {getStatusBadge(profile.payment_details_status, profile.payment_details_rejection_reason)}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest">
+                          <Smartphone className="h-4 w-4 text-amber-600" aria-hidden="true" /> Mobile Number
+                        </label>
+                        <input
+                          type="tel"
+                          className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-amber-500 rounded-2xl outline-none transition-all font-bold text-gray-800"
+                          value={formData.mobile_number}
+                          onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
+                          placeholder="Enter your 10-digit mobile number"
+                          required
+                        />
+                      </div>
                       <div className="space-y-2 md:col-span-2">
                         <label className="text-xs font-black text-gray-400 uppercase tracking-widest">UPI ID (Fastest Payout)</label>
                         <input
@@ -449,7 +425,7 @@ export default function Profile() {
                 )}
                 <div className="bg-white py-3 px-4 rounded-xl inline-flex items-center gap-3 border border-emerald-200">
                   <span className="font-black text-emerald-700">{siteConfig?.upi_id || 'Loading...'}</span>
-                  <Button onClick={() => { navigator.clipboard.writeText(siteConfig?.upi_id); alert('UPI ID Copied!'); }} variant="link" className="h-auto p-0 text-[10px] font-black uppercase">Copy</Button>
+                  <Button onClick={() => { navigator.clipboard.writeText(siteConfig?.upi_id); notify('UPI ID copied!'); }} variant="link" className="h-auto p-0 text-[10px] font-black uppercase">Copy</Button>
                 </div>
               </div>
 
@@ -480,14 +456,14 @@ export default function Profile() {
 
                 <Button
                   onClick={async () => {
-                    if (!depositForm.amount || !depositForm.utr_number) return alert('Please fill all details');
+                    if (!depositForm.amount || !depositForm.utr_number) return notify('Please fill all details', { variant: 'destructive' });
                     try {
                       await walletService.submitDepositRequest(depositForm);
-                      alert('Request submitted! Now send screenshot on WhatsApp.');
+                      notify('Request submitted! Now send screenshot on WhatsApp.');
                       const wpMsg = encodeURIComponent(`Hi Admin, I just added ₹${depositForm.amount} to my wallet. UTR: ${depositForm.utr_number}. Please verify. Username: ${profile.username}`);
                       window.open(`https://wa.me/${siteConfig?.whatsapp_number?.replace(/\+/g, '')}?text=${wpMsg}`, '_blank');
                       setShowAddMoney(false);
-                    } catch (e) { alert(e.message); }
+                    } catch (e) { notify(e.message, { variant: 'destructive' }); }
                   }}
                   className="w-full py-5 text-[10px] uppercase tracking-[0.2em]"
                 >

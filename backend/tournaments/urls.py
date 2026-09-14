@@ -22,6 +22,7 @@ urlpatterns = [
     # My rooms
     path("my-rooms/", views.my_rooms),
     path("room/<uuid:room_id>/", views.get_room_detail),
+    path("room/<uuid:room_id>/remove-team/", views.remove_team),
     
     # Prize distribution endpoints
     path("tournament/<int:tournament_id>/set-prizes/", views.set_prize_distribution),
@@ -37,4 +38,3 @@ urlpatterns = [
     path("room/<uuid:room_id>/approve-payouts/", views.approve_payouts),
     path("pending-payouts/", views.pending_payouts),
 ]
-

@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 export default function TournamentParticipants() {
     const { id } = useParams();
     const [participants, setParticipants] = useState([]);
+    const [canManage, setCanManage] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -14,7 +15,8 @@ export default function TournamentParticipants() {
     const fetchParticipants = useCallback(async () => {
         try {
             const data = await tournamentService.getParticipants(id);
-            setParticipants(data);
+            setParticipants(data.participants || []);
+            setCanManage(Boolean(data.can_manage));
         } catch (err) {
             setError(err.message);
         } finally {
@@ -45,6 +47,20 @@ export default function TournamentParticipants() {
             alert("❌ Failed: " + err.message);
         } finally {
             setProcessing({ ...processing, [participantId]: false });
+        }
+    };
+
+    const handleRemoveTeam = async (participant) => {
+        if (!window.confirm(`Remove the team led by ${participant.team_leader_username || participant.username}? Paid entry amounts will not be refunded.`)) return;
+        setProcessing({ ...processing, [`team-${participant.team_id}`]: true });
+        try {
+            const response = await roomService.removeTeam(participant.room_id, participant.id);
+            alert(response.message + ' Paid entry amounts were not refunded.');
+            fetchParticipants();
+        } catch (err) {
+            alert('Failed: ' + err.message);
+        } finally {
+            setProcessing({ ...processing, [`team-${participant.team_id}`]: false });
         }
     };
 
@@ -86,6 +102,47 @@ export default function TournamentParticipants() {
                     Error: {error}
                 </div>
             )}
+
+            {canManage && (
+                <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                    You can manage teams because you are the tournament creator or an admin.
+                </p>
+            )}
+
+            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                {Array.from(new Map(filteredParticipants.map((participant) => [participant.team_id, participant])).values()).map((team) => {
+                    const members = filteredParticipants.filter((participant) => participant.team_id === team.team_id);
+                    return (
+                        <div key={team.team_id} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+                            <div className="mb-3 flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-black uppercase tracking-widest text-stone-400">👥 Pair / Team</p>
+                                    <p className="font-black text-stone-900">{team.team_leader_username || team.username}</p>
+                                </div>
+                                {canManage && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-red-200 text-red-600 hover:bg-red-50"
+                                        disabled={processing[`team-${team.team_id}`]}
+                                        onClick={() => handleRemoveTeam(team)}
+                                    >
+                                        {processing[`team-${team.team_id}`] ? 'Removing…' : 'Remove team'}
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                {members.map((member) => (
+                                    <div key={member.id} className="rounded-xl bg-stone-50 p-3">
+                                        <p className="truncate font-bold text-stone-800">{member.username}</p>
+                                        <p className="truncate font-mono text-xs text-stone-500">{member.game_id || 'No game ID'}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
 
             <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
                 <div className="overflow-x-auto">
@@ -136,13 +193,15 @@ export default function TournamentParticipants() {
                                             )}
                                         </td>
                                         <td className="p-4 text-right">
-                                            <Button
-                                                onClick={() => handleSetWinner(participant.id, participant.room_id)}
-                                                disabled={processing[participant.id]}
-                                                size="sm"
-                                            >
-                                                {processing[participant.id] ? '...' : '🏆 Set Winner'}
-                                            </Button>
+                                            {canManage && (
+                                                <Button
+                                                    onClick={() => handleSetWinner(participant.id, participant.room_id)}
+                                                    disabled={processing[participant.id]}
+                                                    size="sm"
+                                                >
+                                                    {processing[participant.id] ? '...' : '🏆 Set Winner'}
+                                                </Button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))

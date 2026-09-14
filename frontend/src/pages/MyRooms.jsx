@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getApiBaseUrl } from '../services/api';
+import { getApiBaseUrl, roomService } from '../services/api';
 import { Button } from '../components/ui/button';
-import { Check, Gamepad2, Hourglass, Mail, MessageCircle, Send, Trophy, Users, X } from 'lucide-react';
+import { getGameTheme } from '../config/gameThemes';
+import { Check, Gamepad2, Hourglass, Mail, MessageCircle, Send, Trash2, Trophy, Users, X } from 'lucide-react';
 
 
 export default function MyRooms() {
@@ -21,6 +22,7 @@ export default function MyRooms() {
     const wsRef = useRef(null);
 
     const isAdmin = user && (user.is_staff || user.is_superuser);
+    const canManageRoom = Boolean(isAdmin || roomDetails?.can_manage);
     const apiBaseUrl = getApiBaseUrl();
 
     const fetchMyRooms = useCallback(async () => {
@@ -133,7 +135,7 @@ export default function MyRooms() {
 
     // WebSocket connection lifecycle
     useEffect(() => {
-        const shouldConnect = selectedRoom && (isAdmin || activeTab === 'messages');
+        const shouldConnect = selectedRoom && (canManageRoom || activeTab === 'messages');
 
         if (shouldConnect) {
             connectWebSocket(selectedRoom);
@@ -146,7 +148,7 @@ export default function MyRooms() {
                 wsRef.current = null;
             }
         };
-    }, [connectWebSocket, fetchMessageHistory, selectedRoom, activeTab, isAdmin]);
+    }, [connectWebSocket, fetchMessageHistory, selectedRoom, activeTab, canManageRoom]);
 
     const handleViewRoom = async (roomId) => {
         try {
@@ -172,6 +174,20 @@ export default function MyRooms() {
         }
     };
 
+    const handleRemoveTeam = async (team) => {
+        const member = team.members.find((item) => !item.is_invitation);
+        const invitation = team.members.find((item) => item.is_invitation);
+        if (!window.confirm(`Remove the team led by ${team.leader_username}? Paid entry amounts will not be refunded.`)) return;
+        try {
+            await roomService.removeTeam(selectedRoom, member?.id || null, invitation?.id || null);
+            alert('Team removed. Paid entry amounts were not refunded.');
+            await handleViewRoom(selectedRoom);
+            await fetchMyRooms();
+        } catch (error) {
+            alert(error.message || 'Unable to remove team');
+        }
+    };
+
     const getStatusColor = (status) => {
         const colors = {
             open: 'bg-green-100 text-green-700 border border-green-200',
@@ -181,15 +197,6 @@ export default function MyRooms() {
             cancelled: 'bg-red-100 text-red-700 border border-red-200',
         };
         return colors[status] || 'bg-gray-100 text-gray-700';
-    };
-
-    const getGameGradient = (game) => {
-        const gradients = {
-            fifa: 'from-green-500 to-emerald-600',
-            bgmi: 'from-orange-500 to-red-600',
-            freefire: 'from-yellow-500 to-orange-600',
-        };
-        return gradients[game] || 'from-purple-600 to-blue-600';
     };
 
     const handleAddWinner = async () => {
@@ -259,7 +266,7 @@ export default function MyRooms() {
                         {rooms.map((room) => (
                             <div key={room.id} className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all overflow-hidden">
                                 {/* Game Header */}
-                                <div className={`bg-gradient-to-r ${getGameGradient(room.tournament_game)} p-4`}>
+                                <div className={`bg-gradient-to-r ${getGameTheme(room.tournament_game).gradient} p-4`}>
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-white/80 text-xs font-medium uppercase">{room.tournament_game}</p>
@@ -316,6 +323,18 @@ export default function MyRooms() {
 
                                     {/* Action Buttons */}
                                     <div className="space-y-2">
+                                        {room.team_mode !== 'solo' && (
+                                            <Button
+                                                onClick={() => navigate(`/team-waiting/${room.id}`)}
+                                                variant="outline"
+                                                className="w-full border-amber-300 text-amber-700 hover:bg-amber-50"
+                                            >
+                                                <Hourglass className="mr-2 h-4 w-4" />
+                                                {room.payment_type === 'split_equally' && room.has_pending_invites
+                                                    ? 'Waiting for Split Payments'
+                                                    : 'View Team Waiting Status'}
+                                            </Button>
+                                        )}
                                         {room.status === 'started' ? (
                                             <Button
                                                 onClick={() => handleViewRoom(room.id)}
@@ -370,7 +389,7 @@ export default function MyRooms() {
             {/* Room Details Modal */}
             {selectedRoom && roomDetails && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-                    <div className={`bg-white rounded-2xl sm:rounded-[2rem] ${isAdmin ? 'max-w-7xl' : 'max-w-2xl'} w-full max-h-[94vh] flex flex-col overflow-hidden shadow-2xl border border-white/20`}>
+                    <div className={`bg-white rounded-2xl sm:rounded-[2rem] ${canManageRoom ? 'max-w-7xl' : 'max-w-2xl'} w-full max-h-[94vh] flex flex-col overflow-hidden shadow-2xl border border-white/20`}>
 
                         {/* Modal Header */}
                         <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 p-4 sm:p-6 flex flex-shrink-0 justify-between items-center shadow-lg">
@@ -396,7 +415,50 @@ export default function MyRooms() {
 
                         {/* Modal Body */}
                         <div className="flex-1 overflow-y-auto bg-gray-50/50">
-                            {isAdmin ? (
+                            {roomDetails.teams?.length > 0 && (
+                                <div className="border-b border-stone-200 bg-white p-4 sm:p-6">
+                                    <div className="mb-4 flex items-center justify-between">
+                                        <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-stone-700">
+                                            <Users className="h-4 w-4 text-amber-600" /> Participants • {roomDetails.team_mode}
+                                        </h3>
+                                        <span className="text-xs font-bold text-stone-400">Teams stay together</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        {roomDetails.teams.map((team) => (
+                                            <div key={team.id} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                                                <div className="mb-3 flex items-start justify-between gap-3">
+                                                    <p className="text-xs font-black uppercase tracking-widest text-stone-400">
+                                                        {roomDetails.team_mode === 'duo' ? '👥 Pair' : '👥 Team'} • {team.leader_username}
+                                                    </p>
+                                                    {roomDetails.can_manage && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="shrink-0 border-red-200 px-2 text-red-600 hover:bg-red-50"
+                                                            onClick={() => handleRemoveTeam(team)}
+                                                        >
+                                                            <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {team.members.map((member) => (
+                                                        <div key={member.id} className="rounded-xl bg-white p-3 shadow-sm">
+                                                            <p className="truncate text-sm font-bold text-stone-800">{member.username}</p>
+                                                            <p className="truncate font-mono text-[11px] text-stone-500">{member.game_id || 'Pending ID'}</p>
+                                                            {member.status && member.status !== 'accepted' && (
+                                                                <p className="mt-1 text-[10px] font-black uppercase text-amber-600">{member.status}</p>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {canManageRoom ? (
                                 /* --- 🛠️ ADMIN MASTER DASHBOARD (3-Pane) --- */
                                 <div className="p-4 sm:p-8 flex flex-col lg:flex-row gap-4 sm:gap-8 min-h-[600px]">
 

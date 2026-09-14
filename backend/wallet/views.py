@@ -65,6 +65,13 @@ def update_profile(request):
         'freefire_id': 'Free Fire ID',
         'fifa_id': 'FIFA ID'
     }
+
+    selected_game = data.get("selected_game", profile.selected_game)
+    selected_game_field = {"bgmi": "bgmi_id", "freefire": "freefire_id", "fifa": "fifa_id"}.get(selected_game)
+    if selected_game_field and not data.get(selected_game_field, getattr(profile, selected_game_field, None)):
+        return Response({
+            "error": f"Enter your {game_id_fields[selected_game_field]} before selecting this game."
+        }, status=status.HTTP_400_BAD_REQUEST)
     
     for field_name, display_name in game_id_fields.items():
         if field_name in data and data[field_name]:
@@ -103,11 +110,18 @@ def update_profile(request):
 @permission_classes([IsAdminUser])
 def list_pending_verifications(request):
     from django.db.models import Q
+    import uuid
     qs = Profile.objects.filter(
         Q(kyc_status="pending") | 
         Q(game_id_status="pending") | 
         Q(payment_details_status="pending")
     )
+    # Older profiles may predate player_uuid. Populate it before sending
+    # verification actions to the admin UI.
+    for profile in qs:
+        if not profile.player_uuid:
+            profile.player_uuid = uuid.uuid4()
+            profile.save(update_fields=["player_uuid"])
     data = ProfileSerializer(qs, many=True).data
     return Response(data)
 
@@ -118,6 +132,9 @@ def verify_profile_section(request, player_uuid):
     action = request.data.get("action") # approve, reject
     reason = request.data.get("reason", "")
     
+    if not player_uuid:
+        return Response({"error": "A valid profile verification ID is required"}, status=400)
+
     try:
         prof = Profile.objects.get(player_uuid=player_uuid)
     except Profile.DoesNotExist:

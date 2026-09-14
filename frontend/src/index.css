@@ -1,5 +1,29 @@
 @import "tailwindcss";
 
+html,
+body,
+#root {
+  min-height: 100%;
+  overflow-y: auto;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* Keep number fields clean; users can type values without wheel/spinner changes. */
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
 /* Mobile Menu Animation */
 @keyframes fadeIn {
   from {

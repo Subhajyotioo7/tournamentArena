@@ -1,32 +1,25 @@
-import { Link } from 'react-router-dom';
-import { Button } from './ui/button';
-import { Flame, Gamepad2, Trophy, Volleyball } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { getGameTheme } from '../config/gameThemes';
+import { DragButton } from './ui/drag-button';
 
 export default function TournamentCard({ tournament }) {
-  const gameIcons = {
-    fifa: Volleyball,
-    bgmi: Gamepad2,
-    freefire: Flame,
-  };
-
-  const gameColors = {
-    fifa: 'from-green-500 to-emerald-600',
-    bgmi: 'from-orange-500 to-red-600',
-    freefire: 'from-yellow-500 to-orange-600',
-  };
+  const navigate = useNavigate();
+  const theme = getGameTheme(tournament.game);
+  const GameIcon = theme.icon;
 
   return (
     <Link to={`/tournaments/${tournament.id}`}>
       <div className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden group">
         {/* Header with gradient */}
-        <div className={`bg-gradient-to-r ${gameColors[tournament.game] || 'from-purple-500 to-blue-600'} p-4 sm:p-6 relative overflow-hidden`}>
+        <div className={`bg-gradient-to-r ${theme.gradient} p-4 sm:p-6 relative overflow-hidden`}>
           <div className="absolute top-0 right-0 text-6xl sm:text-8xl opacity-10 transform translate-x-4 -translate-y-4">
-            {(() => { const GameIcon = gameIcons[tournament.game] || Trophy; return <GameIcon className="h-16 w-16 sm:h-24 sm:w-24" aria-hidden="true" />; })()}
+            <GameIcon className="h-16 w-16 sm:h-24 sm:w-24" aria-hidden="true" />
           </div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-white/80 text-xs sm:text-sm font-medium uppercase tracking-wide">
-                {tournament.game}
+              <span className="flex items-center gap-1.5 text-white/90 text-xs sm:text-sm font-bold uppercase tracking-wide">
+                <GameIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                {theme.label}
               </span>
               {tournament.is_active && (
                 <span className="bg-white/20 backdrop-blur-sm text-white text-xs px-2 sm:px-3 py-1 rounded-full font-semibold">
@@ -49,9 +42,9 @@ export default function TournamentCard({ tournament }) {
             return (
               <>
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
-                  <div className="bg-gradient-to-br from-yellow-50 to-orange-100 rounded-lg p-2 sm:p-3 border border-yellow-200">
+                  <div className={`bg-gradient-to-br from-white to-gray-50 rounded-lg p-2 sm:p-3 border ${theme.border}`}>
                     <p className="text-gray-600 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">Total Payout</p>
-                    <p className="text-xl sm:text-2xl font-black text-orange-600 leading-none">₹{totalPayout.toFixed(0)}</p>
+                    <p className={`text-xl sm:text-2xl font-black ${theme.accent} leading-none`}>₹{totalPayout.toFixed(0)}</p>
                     <p className="text-[10px] text-gray-400 mt-1">Entry: ₹{entryFee}</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border border-gray-100">
@@ -86,9 +79,9 @@ export default function TournamentCard({ tournament }) {
                         const displayAmount = isWinner ? pAmount + entryFee : pAmount;
 
                         return (
-                          <div key={prize.rank} className={`flex-1 rounded-lg p-2 text-center border ${isWinner ? 'bg-orange-50 border-orange-200' : 'bg-gray-50 border-gray-100'}`}>
+                          <div key={prize.rank} className={`flex-1 rounded-lg p-2 text-center border ${isWinner ? `${theme.soft} ${theme.border}` : 'bg-gray-50 border-gray-100'}`}>
                             <p className="text-[10px] text-gray-500">#{prize.rank}</p>
-                            <p className={`text-sm font-bold ${isWinner ? 'text-orange-600' : 'text-gray-700'}`}>₹{displayAmount.toFixed(0)}</p>
+                            <p className={`text-sm font-bold ${isWinner ? theme.accent : 'text-gray-700'}`}>₹{displayAmount.toFixed(0)}</p>
                             {isWinner && (
                               <p className="text-[8px] text-gray-400 mt-0.5">₹{pAmount}+₹{entryFee}</p>
                             )}
@@ -104,9 +97,15 @@ export default function TournamentCard({ tournament }) {
 
 
           {/* Action Button */}
-          <Button className="w-full" size="lg">
+          <DragButton
+            className="w-full bg-[#facc15] text-stone-950 hover:bg-[#eab308]"
+            colorLight="#fde047"
+            colorDark="#ca8a04"
+            onPointerDown={(event) => event.stopPropagation()}
+            onDragComplete={() => navigate(`/tournaments/${tournament.id}`)}
+          >
             View Tournament
-          </Button>
+          </DragButton>
         </div>
       </div>
     </Link>

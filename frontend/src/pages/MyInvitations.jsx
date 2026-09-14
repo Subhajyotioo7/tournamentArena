@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
+import { getGameTheme } from '../config/gameThemes';
+import { getApiBaseUrl } from '../services/api';
 
 export default function MyInvitations() {
     const navigate = useNavigate();
+    const apiBaseUrl = getApiBaseUrl();
     const [invitations, setInvitations] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -15,7 +18,7 @@ export default function MyInvitations() {
                 return;
             }
 
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tournaments/my-invitations/`, {
+            const response = await fetch(`${apiBaseUrl}/tournaments/my-invitations/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -40,7 +43,7 @@ export default function MyInvitations() {
     const handleAccept = async (invitationId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tournaments/invitation/${invitationId}/accept/`, {
+            const response = await fetch(`${apiBaseUrl}/tournaments/invitation/${invitationId}/accept/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -91,7 +94,7 @@ export default function MyInvitations() {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tournaments/invitation/${invitationId}/reject/`, {
+            const response = await fetch(`${apiBaseUrl}/tournaments/invitation/${invitationId}/reject/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -106,15 +109,6 @@ export default function MyInvitations() {
         } catch {
             alert('Error rejecting invitation');
         }
-    };
-
-    const getGameGradient = (game) => {
-        const gradients = {
-            fifa: 'from-green-500 to-emerald-600',
-            bgmi: 'from-orange-500 to-red-600',
-            freefire: 'from-yellow-500 to-orange-600',
-        };
-        return gradients[game] || 'from-purple-600 to-blue-600';
     };
 
     const [savedTeams, setSavedTeams] = useState(JSON.parse(localStorage.getItem('presetTeams') || '[]'));
@@ -267,15 +261,15 @@ export default function MyInvitations() {
                         {invitations.map((inv) => (
                             <div key={inv.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all border border-gray-100">
                                 {/* Game Header */}
-                                <div className={`bg-gradient-to-r ${getGameGradient(inv.tournament_game)} p-4`}>
+                                <div className={`bg-gradient-to-r ${getGameTheme(inv.tournament_game).gradient} p-4`}>
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-white/80 text-xs font-medium uppercase">{inv.tournament_game}</p>
-                                            <h3 className="text-white font-bold text-lg">{inv.tournament_name}</h3>
+                                            <p className={`${getGameTheme(inv.tournament_game).headerMuted} text-xs font-medium uppercase`}>{inv.tournament_game}</p>
+                                            <h3 className={`${getGameTheme(inv.tournament_game).headerText} font-bold text-lg`}>{inv.tournament_name}</h3>
                                         </div>
-                                        <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
-                                            <span className="text-white text-sm">⏰</span>
-                                            <span className="text-white text-sm font-semibold">Pending</span>
+                                        <div className="bg-black/10 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
+                                            <span className={`${getGameTheme(inv.tournament_game).headerText} text-sm`}>⏰</span>
+                                            <span className={`${getGameTheme(inv.tournament_game).headerText} text-sm font-semibold`}>Pending</span>
                                         </div>
                                     </div>
                                 </div>
@@ -293,15 +287,19 @@ export default function MyInvitations() {
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-600">Entry Fee</p>
-                                            <p className="font-semibold text-green-600 text-lg">FREE ✨</p>
-                                            <p className="text-xs text-gray-500">Leader Paid</p>
+                                            <p className="font-semibold text-amber-700 text-lg">
+                                                {inv.payment_type === 'leader_pays_all' ? 'FREE ✨' : `₹${inv.payment_share}`}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                {inv.payment_type === 'leader_pays_all' ? 'Captain paid' : 'Your share · charged on accept'}
+                                            </p>
                                         </div>
                                     </div>
 
-                                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-4 mb-4 shadow-sm">
-                                        <p className="text-sm text-green-800 flex items-center gap-2">
+                                    <div className={`${inv.payment_type === 'leader_pays_all' ? 'bg-green-50 border-green-300 text-green-800' : 'bg-amber-50 border-amber-300 text-amber-900'} border-2 rounded-lg p-4 mb-4 shadow-sm`}>
+                                        <p className="text-sm flex items-center gap-2">
                                             <span className="text-xl">🎉</span>
-                                            <strong>Great News!</strong> Your team leader already paid the full entry fee. Join for FREE!
+                                            <strong>{inv.payment_type === 'leader_pays_all' ? 'Captain paid the full entry fee. You join free.' : `Pay ₹${inv.payment_share} after accepting to join this team.`}</strong>
                                         </p>
                                     </div>
 
@@ -311,7 +309,7 @@ export default function MyInvitations() {
                                             onClick={() => handleAccept(inv.id)}
                                             className="flex-1"
                                         >
-                                            ✓ Accept & Pay ₹{inv.payment_share}
+                                            {inv.payment_type === 'leader_pays_all' ? '✓ Accept & Join Free' : `✓ Accept & Pay ₹${inv.payment_share}`}
                                         </Button>
                                         <Button
                                             onClick={() => handleReject(inv.id)}

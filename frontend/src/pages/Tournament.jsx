@@ -5,6 +5,7 @@ import RulesModal from '../components/RulesModal';
 import TeamFormationModal from '../components/TeamFormationModal';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Ban, ClipboardList, CircleX, Info, Medal, Rocket, Share2, Trophy, Users } from 'lucide-react';
+import { getGameTheme } from '../config/gameThemes';
 
 export default function Tournament() {
   const { id } = useParams();
@@ -121,13 +122,13 @@ export default function Tournament() {
     }
   };
 
-  const handleCreateTeam = async (gameIds) => {
+  const handleCreateTeam = async (gameIds, paymentType) => {
     try {
-      const data = await roomService.createTeam(selectedRoom, gameIds);
+      const data = await roomService.createTeam(selectedRoom, gameIds, paymentType);
       if (data) {
         alert(`${data.message}\nInvitations sent to ${data.invitations.length} players`);
         setShowTeamModal(false);
-        navigate('/my-rooms');
+        navigate(`/team-waiting/${selectedRoom}`);
       }
     } catch (error) {
       alert(error.message || 'Error creating team');
@@ -159,16 +160,13 @@ export default function Tournament() {
     );
   }
 
-  const gameGradients = {
-    fifa: 'from-green-500 to-emerald-600',
-    bgmi: 'from-orange-500 to-red-600',
-    freefire: 'from-yellow-500 to-orange-600',
-  };
+  const gameTheme = getGameTheme(tournament.game);
+  const GameIcon = gameTheme.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Tournament Header */}
-      <div className={`bg-gradient-to-r ${gameGradients[tournament.game] || 'from-purple-600 to-blue-600'} text-white shadow-lg`}>
+      <div className={`bg-gradient-to-r ${gameTheme.gradient} text-white shadow-lg`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <Button onClick={() => navigate('/')} variant="ghost" className="mb-4 flex items-center gap-2 p-0 text-white/80 sm:mb-6">
             <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
@@ -185,7 +183,10 @@ export default function Tournament() {
                   </span>
                 )}
               </div>
-              <p className="text-white/90 text-base sm:text-lg md:text-xl font-medium uppercase tracking-wide opacity-90">{tournament.game}</p>
+              <p className="flex items-center gap-2 text-white/90 text-base sm:text-lg md:text-xl font-medium uppercase tracking-wide opacity-90">
+                <GameIcon className="h-5 w-5" aria-hidden="true" />
+                {gameTheme.label}
+              </p>
             </div>
           </div>
         </div>
@@ -299,10 +300,10 @@ export default function Tournament() {
 
           {/* Sidebar Action Column */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-xl border-t-4 border-purple-600 p-6 sm:p-8 lg:sticky lg:top-8">
+            <div className={`bg-white rounded-2xl shadow-xl border-t-4 ${gameTheme.border} p-6 sm:p-8 lg:sticky lg:top-8`}>
               <div className="text-center mb-6 sm:mb-8">
                 <p className="text-gray-500 font-medium mb-1 uppercase tracking-wider text-xs sm:text-sm">Entry Fee</p>
-                <div className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+                <div className={`text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r ${gameTheme.gradient}`}>
                   ₹{tournament.entry_fee}
                 </div>
               </div>
@@ -315,7 +316,7 @@ export default function Tournament() {
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 h-full rounded-full transition-all duration-1000 ease-out"
+                    className={`bg-gradient-to-r ${gameTheme.gradient} h-full rounded-full transition-all duration-1000 ease-out`}
                     style={{ width: `${Math.min(((tournament.total_participants || 0) / (tournament.max_participants || 100)) * 100, 100)}%` }}
                   ></div>
                 </div>

@@ -13,6 +13,7 @@ from hostpartner.models import HostPartnerRequest
 from .models import Tournament, Room, RoomParticipant, PrizeDistribution, RoomResult, TeamInvitation
 from .serializers import RoomSerializer, TournamentSerializer, PrizeDistributionSerializer, RoomResultSerializer, TournamentParticipantSerializer
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 
@@ -20,12 +21,22 @@ def is_game_id_verified(profile):
     return profile.game_id_verified or profile.game_id_status == "approved"
 
 
+def game_id_field(game):
+    return {"bgmi": "bgmi_id", "freefire": "freefire_id", "fifa": "fifa_id"}.get(game)
+
+
+def profile_game_id(profile, game):
+    field = game_id_field(game)
+    value = getattr(profile, field, None) if field else None
+    return value.strip() if isinstance(value, str) else value
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_room(request, tournament_id):
-    if not is_game_id_verified(request.user.profile):
-        return Response({"error": "Game ID not verified"}, status=400)
     t = get_object_or_404(Tournament, pk=tournament_id)
+    if not is_game_id_verified(request.user.profile) or not profile_game_id(request.user.profile, t.game):
+        return Response({"error": f"Please add and verify your {t.game.upper()} ID in your profile first."}, status=400)
     
     # 🎯 Check if room already exists (One Room per Tournament)
     if hasattr(t, "room"):
@@ -42,14 +53,15 @@ def create_room(request, tournament_id):
 @permission_classes([IsAuthenticated])
 def join_room_solo(request, room_id):
     """Join room as solo player (pays full entry fee)"""
-    if not is_game_id_verified(request.user.profile):
-        return Response({"error": "Game ID not verified"}, status=400)
-    
     room = get_object_or_404(Room, pk=room_id)
+    if not is_game_id_verified(request.user.profile) or not profile_game_id(request.user.profile, room.tournament.game):
+        return Response({"error": f"Please add and verify your {room.tournament.game.upper()} ID in your profile first."}, status=400)
     
     # Check if already joined
     if RoomParticipant.objects.filter(room=room, user=request.user).exists():
         return Response({"error": "Already joined"}, status=400)
+    if TeamInvitation.objects.filter(room=room, inviter=request.user, status='pending').exists():
+        return Response({"error": "Your team is waiting for teammates to accept."}, status=400)
     
     # Check tournament capacity
     tournament = room.tournament
@@ -112,6 +124,9 @@ def create_team_and_invite(request, room_id):
     
     room = get_object_or_404(Room, pk=room_id)
     tournament = room.tournament
+    tournament_game_id = profile_game_id(request.user.profile, tournament.game)
+    if not tournament_game_id:
+        return Response({"error": f"Please add your {tournament.game.upper()} ID in your profile first."}, status=400)
     team_size = tournament.get_team_size()
     
     if team_size == 1:
@@ -120,6 +135,8 @@ def create_team_and_invite(request, room_id):
     # Check if already joined
     if RoomParticipant.objects.filter(room=room, user=request.user).exists():
         return Response({"error": "Already joined"}, status=400)
+    if TeamInvitation.objects.filter(room=room, inviter=request.user, status='pending').exists():
+        return Response({"error": "Your team is already waiting for teammates to accept."}, status=400)
     
     # Check tournament capacity
     total_participants = RoomParticipant.objects.filter(room__tournament=tournament).count()
@@ -127,56 +144,66 @@ def create_team_and_invite(request, room_id):
         return Response({"error": "Tournament is full (Not enough slots for team)"}, status=400)
     
     # Get invited game IDs
-    game_ids = request.data.get('game_ids', [])
+    game_ids = [
+        game_id.strip() for game_id in request.data.get('game_ids', [])
+        if isinstance(game_id, str) and game_id.strip()
+    ]
+    payment_type = request.data.get('payment_type', 'split_equally')
+    if payment_type not in ('leader_pays_all', 'split_equally'):
+        return Response({"error": "Invalid team payment option"}, status=400)
     required_invites = team_size - 1  # Max allowed
     
-    if len(game_ids) > required_invites:
+    if len(game_ids) != required_invites:
         return Response({
-            "error": f"You can invite a maximum of {required_invites} teammates for {tournament.team_mode}"
+            "error": f"Invite exactly {required_invites} teammate(s) for {tournament.team_mode}"
         }, status=400)
     
-    # Calculate FULL team entry fee (leader pays for entire team upfront)
-    full_team_fee = tournament.entry_fee
+    team_fee = tournament.entry_fee
+    leader_fee = team_fee if payment_type == 'leader_pays_all' else team_fee / team_size
     profile = request.user.profile
     
     # Check if leader has enough balance for full team
-    if profile.balance < full_team_fee:
+    if profile.balance < leader_fee:
         return Response({
             "error": "Insufficient balance to create team",
-            "required": str(full_team_fee),
+            "required": str(leader_fee),
             "your_balance": str(profile.balance)
         }, status=400)
     
     # Deduct full team fee from leader's wallet
     with transaction.atomic():
-        profile.balance -= full_team_fee
+        profile.balance -= leader_fee
         profile.save()
         
         # Record transaction
         Transaction.objects.create(
             profile=profile,
             tx_type="debit",
-            amount=full_team_fee,
-            note=f"Full team entry fee for {tournament.name} ({tournament.team_mode})"
+            amount=leader_fee,
+            note=f"Team entry fee ({payment_type}) for {tournament.name} ({tournament.team_mode})"
         )
         
-        # Create team leader participant (already paid)
-        leader_participant = RoomParticipant.objects.create(
-            room=room,
-            user=request.user,
-            paid=True,
-            is_team_leader=True,
-            payment_share=full_team_fee  # Leader paid for everyone
-        )
+        # Captain-pay teams reserve the captain immediately. Split-pay teams
+        # keep the captain pending until every teammate has paid.
+        if payment_type == 'leader_pays_all':
+            RoomParticipant.objects.create(
+                room=room,
+                user=request.user,
+                paid=True,
+                is_team_leader=True,
+                payment_share=leader_fee
+            )
+        room.payment_type = payment_type
+        room.save(update_fields=['payment_type'])
     
         # Create invitations
         invitations = []
         for game_id in game_ids:
             # Try to find user by game_id
             try:
-                invitee_profile = Profile.objects.get(game_id=game_id)
+                invitee_profile = Profile.objects.get(**{game_id_field(tournament.game): game_id})
                 invitee_user = invitee_profile.user
-            except Profile.DoesNotExist:
+            except (Profile.DoesNotExist, Profile.MultipleObjectsReturned):
                 invitee_user = None
             
             invitation = TeamInvitation.objects.create(
@@ -192,9 +219,10 @@ def create_team_and_invite(request, room_id):
             })
     
     return Response({
-        "message": f"Team created! You paid ₹{full_team_fee} for the entire team",
+        "message": f"Team created! You paid ₹{leader_fee} now. Waiting for teammates to accept.",
         "invitations": invitations,
-        "total_paid": str(full_team_fee)
+        "total_paid": str(leader_fee),
+        "payment_type": payment_type,
     })
 
 
@@ -202,16 +230,20 @@ def create_team_and_invite(request, room_id):
 @permission_classes([IsAuthenticated])
 def my_invitations(request):
     """Get all pending invitations for current user"""
-    user_game_id = request.user.profile.game_id
-    
+    profile = request.user.profile
+    game_id_values = [value for value in (
+        profile.bgmi_id, profile.freefire_id, profile.fifa_id, profile.game_id
+    ) if value]
     invitations = TeamInvitation.objects.filter(
-        invitee_game_id=user_game_id,
-        status='pending'
+        status='pending',
+        invitee_game_id__in=[value.strip() for value in game_id_values],
     ).select_related('room', 'room__tournament', 'inviter')
     
     data = []
     for inv in invitations:
         tournament = inv.room.tournament
+        if profile_game_id(profile, tournament.game) != inv.invitee_game_id.strip():
+            continue
         payment_share = tournament.entry_fee / tournament.get_team_size()
         
         data.append({
@@ -221,6 +253,7 @@ def my_invitations(request):
             'team_mode': tournament.team_mode,
             'inviter_username': inv.inviter.username,
             'payment_share': str(payment_share),
+            'payment_type': inv.room.payment_type,
             'created_at': inv.created_at,
             'room_id': str(inv.room.id)
         })
@@ -240,7 +273,7 @@ def accept_invitation(request, invitation_id):
         
         # Check if invitation is for the current user by matching game IDs
         profile = request.user.profile
-        user_game_ids = [profile.bgmi_id, profile.freefire_id, profile.fifa_id, profile.game_id]
+        user_game_ids = [profile_game_id(profile, invitation.room.tournament.game)]
         
         if invitation.invitee_game_id not in user_game_ids:
             return Response({
@@ -253,8 +286,16 @@ def accept_invitation(request, invitation_id):
         tournament = room.tournament
         team_size = tournament.get_team_size()
         
-        # Team leader already paid for the entire team, so teammates join for FREE
-        # No balance check or payment needed
+        payment_share = tournament.entry_fee / team_size
+        if room.payment_type == 'leader_pays_all':
+            payment_share = 0
+        else:
+            # Preserve legacy teams created before split payment was introduced.
+            leader_participant = RoomParticipant.objects.filter(
+                room=room, user=invitation.inviter, is_team_leader=True
+            ).first()
+            if leader_participant and leader_participant.payment_share >= tournament.entry_fee:
+                payment_share = 0
         
         # Use transaction to ensure atomicity
         with transaction.atomic():
@@ -276,15 +317,30 @@ def accept_invitation(request, invitation_id):
                     "team_complete": room.current_count() == team_size
                 })
             
-            # Create participant (FREE - no payment needed)
+            if payment_share:
+                if profile.balance < payment_share:
+                    return Response({
+                        "error": "Insufficient balance to accept this invitation",
+                        "required": str(payment_share),
+                        "balance": str(profile.balance),
+                    }, status=400)
+                profile.balance -= payment_share
+                profile.save()
+                Transaction.objects.create(
+                    profile=profile,
+                    tx_type="debit",
+                    amount=payment_share,
+                    note=f"Team entry fee for {tournament.name} ({tournament.team_mode})"
+                )
+
             team_leader = invitation.inviter
             RoomParticipant.objects.create(
                 room=room,
                 user=request.user,
-                paid=True,  # Marked as paid (leader covered it)
+                paid=True,
                 is_team_leader=False,
                 team_leader=team_leader,
-                payment_share=0  # Teammate didn't pay
+                payment_share=payment_share
             )
             
             # Update invitation
@@ -294,7 +350,21 @@ def accept_invitation(request, invitation_id):
             
             # Check if team is complete
             current_count = room.current_count()
-            team_complete = current_count == team_size
+            accepted_invites = room.invitations.filter(status='accepted').count()
+            team_complete = accepted_invites == team_size - 1
+
+            # In split mode the captain's place remains pending until every
+            # teammate has accepted and paid their share.
+            if team_complete and room.payment_type == 'split_equally':
+                RoomParticipant.objects.get_or_create(
+                    room=room,
+                    user=team_leader,
+                    defaults={
+                        'paid': True,
+                        'is_team_leader': True,
+                        'payment_share': tournament.entry_fee / team_size,
+                    },
+                )
             
             # If team is full, mark room as full
             if room.current_count() >= tournament.max_participants:
@@ -304,12 +374,12 @@ def accept_invitation(request, invitation_id):
         
         # Get leader's game ID for display
         leader_profile = team_leader.profile
-        leader_game_id = leader_profile.bgmi_id or leader_profile.freefire_id or leader_profile.fifa_id or leader_profile.game_id
+        leader_game_id = profile_game_id(leader_profile, tournament.game)
         
         return Response({
-            "message": "Invitation accepted! You joined for FREE",
-            "payment_status": "FREE",
-            "leader_paid": True,
+            "message": "Invitation accepted! You joined the team." if not payment_share else f"Invitation accepted! ₹{payment_share} was charged.",
+            "payment_status": "FREE" if not payment_share else str(payment_share),
+            "leader_paid": room.payment_type == 'leader_pays_all',
             "leader_game_id": leader_game_id,
             "leader_username": team_leader.username,
             "team_complete": team_complete
@@ -333,7 +403,7 @@ def reject_invitation(request, invitation_id):
     if invitation.status != 'pending':
         return Response({"error": "Invitation already processed"}, status=400)
     
-    if invitation.invitee_game_id != request.user.profile.game_id:
+    if invitation.invitee_game_id != profile_game_id(request.user.profile, invitation.room.tournament.game):
         return Response({"error": "This invitation is not for you"}, status=403)
     
     invitation.status = 'rejected'
@@ -376,12 +446,14 @@ def verify_payment(request, room_id):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_rooms(request):
-    """Get all rooms the current user has joined"""
+    """Get rooms the current user joined or owns as a tournament creator."""
     participations = RoomParticipant.objects.filter(user=request.user).select_related('room', 'room__tournament')
     rooms_data = []
+    seen_rooms = set()
     
     for participation in participations:
         room = participation.room
+        seen_rooms.add(room.id)
         rooms_data.append({
             'id': str(room.id),
             'tournament_name': room.tournament.name,
@@ -393,6 +465,30 @@ def my_rooms(request):
             'joined_at': participation.joined_at,
             'paid': participation.paid,
             'entry_fee': str(room.tournament.entry_fee),
+            'is_owner': room.owner_id == request.user.id,
+            'team_mode': room.tournament.team_mode,
+            'payment_type': room.payment_type,
+            'has_pending_invites': room.invitations.filter(status='pending').exists(),
+        })
+
+    for room in Room.objects.filter(owner=request.user).select_related('tournament'):
+        if room.id in seen_rooms:
+            continue
+        rooms_data.append({
+            'id': str(room.id),
+            'tournament_name': room.tournament.name,
+            'tournament_game': room.tournament.game,
+            'status': room.status,
+            'current_players': room.current_count(),
+            'max_players': room.tournament.get_team_size(),
+            'prize_pool': str(room.total_prize_pool()),
+            'joined_at': room.created_at,
+            'paid': False,
+            'entry_fee': str(room.tournament.entry_fee),
+            'is_owner': True,
+            'team_mode': room.tournament.team_mode,
+            'payment_type': room.payment_type,
+            'has_pending_invites': room.invitations.filter(status='pending').exists(),
         })
     
     return Response({'rooms': rooms_data})
@@ -452,13 +548,18 @@ def get_prize_distribution(request, tournament_id):
 
 
 @api_view(["GET"])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated])
 def get_tournament_participants(request, tournament_id):
-    """Get all participants for a tournament (Admin only)"""
+    """Get tournament participants for the owner, staff, or tournament viewers."""
     tournament = get_object_or_404(Tournament, pk=tournament_id)
+    can_manage = request.user.is_staff or request.user.is_superuser or tournament.created_by_id == request.user.id
     participants = RoomParticipant.objects.filter(room__tournament=tournament).select_related('user', 'user__profile', 'room')
     serializer = TournamentParticipantSerializer(participants, many=True)
-    return Response(serializer.data)
+    return Response({
+        "participants": serializer.data,
+        "can_manage": can_manage,
+        "team_mode": tournament.team_mode,
+    })
 
 
 # ============= RESULT DECLARATION ENDPOINTS =============
@@ -570,15 +671,49 @@ def get_room_detail(request, room_id):
     
     # Get all participants
     participants_data = []
+    teams = {}
     for participant in room.participants.all():
+        team_id = str(participant.team_leader_id or participant.user_id)
         participants_data.append({
             'id': str(participant.id),
             'username': participant.user.username,
-            'game_id': participant.user.profile.game_id,
-            'team_name': None,  # Original system doesn't have team_name field
+            'game_id': profile_game_id(participant.user.profile, tournament.game),
+            'team_id': team_id,
+            'team_leader_username': (participant.team_leader or participant.user).username,
             'is_team_leader': participant.is_team_leader,
+            'paid': participant.paid,
+            'payment_share': str(participant.payment_share),
             'joined_at': participant.joined_at
         })
+        team = teams.setdefault(team_id, {
+            'id': team_id,
+            'leader_username': (participant.team_leader or participant.user).username,
+            'members': [],
+        })
+        team['members'].append(participants_data[-1])
+    invitations_data = [{
+        'id': str(inv.id),
+        'game_id': inv.invitee_game_id,
+        'status': inv.status,
+        'invitee_username': inv.invitee.username if inv.invitee else None,
+        'inviter_username': inv.inviter.username,
+    } for inv in room.invitations.all()]
+
+    for invitation in room.invitations.all():
+        team_id = str(invitation.inviter_id)
+        team = teams.setdefault(team_id, {
+            'id': team_id,
+            'leader_username': invitation.inviter.username,
+            'members': [],
+        })
+        if not any(member.get('game_id') == invitation.invitee_game_id for member in team['members']):
+            team['members'].append({
+                'id': str(invitation.id),
+                'username': invitation.invitee.username if invitation.invitee else invitation.invitee_game_id,
+                'game_id': invitation.invitee_game_id,
+                'status': invitation.status,
+                'is_invitation': True,
+            })
     
     # Get results if they exist
     results_data = []
@@ -602,10 +737,55 @@ def get_room_detail(request, room_id):
         'prize_pool': str(room.total_prize_pool()),
         'participants': participants_data,
         'results': results_data,
+        'payment_type': room.payment_type,
+        'tournament_game': tournament.game,
+        'team_mode': tournament.team_mode,
+        'invitations': invitations_data,
+        'teams': list(teams.values()),
+        'can_manage': request.user.is_staff or request.user.is_superuser or tournament.created_by_id == request.user.id,
         'is_participant': is_participant
     }
     
     return Response(room_data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def remove_team(request, room_id):
+    """Remove a complete pair/team. Only the tournament owner or staff may do this."""
+    room = get_object_or_404(Room, pk=room_id)
+    tournament = room.tournament
+    if not (request.user.is_staff or request.user.is_superuser or tournament.created_by_id == request.user.id):
+        return Response({"error": "Only the tournament creator or an admin can remove teams."}, status=403)
+
+    participant_id = request.data.get("participant_id")
+    invitation_id = request.data.get("invitation_id")
+    if participant_id:
+        participant = get_object_or_404(RoomParticipant, pk=participant_id, room=room)
+        leader_id = participant.team_leader_id or participant.user_id
+    elif invitation_id:
+        invitation = get_object_or_404(TeamInvitation, pk=invitation_id, room=room)
+        leader_id = invitation.inviter_id
+    else:
+        return Response({"error": "A team participant or invitation is required."}, status=400)
+    participants = list(RoomParticipant.objects.filter(room=room).filter(
+        Q(user_id=leader_id) | Q(team_leader_id=leader_id)
+    ).select_related("user", "user__profile"))
+
+    with transaction.atomic():
+        for member in participants:
+            member.delete()
+
+        room.invitations.filter(inviter_id=leader_id, status="pending").update(status="rejected")
+        if room.status == "full":
+            room.status = "open"
+            room.save(update_fields=["status"])
+
+    return Response({
+        "message": "Team removed from the tournament.",
+        "refunded": "0.00",
+        "removed_members": len(participants),
+    })
 
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
@@ -674,6 +854,8 @@ def create_user_tournament(request):
 
     if not name or not game:
         return Response({"error": "Name and Game are required"}, status=400)
+    if not profile_game_id(profile, game):
+        return Response({"error": f"Please add your {game.upper()} ID in your profile first."}, status=400)
 
     approved_request = None
     if tournament_type == 'br':
@@ -697,7 +879,7 @@ def create_user_tournament(request):
         max_participants = custom_player_count
 
     # Calculate total costs
-    creation_fee = Decimal("10.00")
+    creation_fee = Decimal("50.00") if tournament_type == "br" else Decimal("10.00")
     
     # Calculate total prize money
     total_prize_money = Decimal("0.00")
@@ -760,33 +942,6 @@ def create_user_tournament(request):
 
         # 5. Create associated Room
         room = Room.objects.create(tournament=tournament, owner=request.user)
-
-        # 6. Auto-join creator to the room (No extra fee)
-        RoomParticipant.objects.create(
-            room=room,
-            user=request.user,
-            paid=True,
-            is_team_leader=True,
-            payment_share=0 # Fee was already paid as creation fee
-        )
-
-        # 7. Create Invitations if teammate_ids provided
-        teammate_ids = data.get('teammate_ids', [])
-        for tid in teammate_ids:
-            if tid:
-                # Find invitee if they exist
-                try:
-                    invitee_profile = Profile.objects.get(game_id=tid)
-                    invitee_user = invitee_profile.user
-                except Profile.DoesNotExist:
-                    invitee_user = None
-                
-                TeamInvitation.objects.create(
-                    room=room,
-                    inviter=request.user,
-                    invitee_game_id=tid,
-                    invitee=invitee_user
-                )
 
     return Response({
         "message": "Tournament created successfully!",

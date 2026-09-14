@@ -71,13 +71,27 @@ class RoomResultSerializer(serializers.ModelSerializer):
 class TournamentParticipantSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
     email = serializers.CharField(source="user.email", read_only=True)
-    game_id = serializers.CharField(source="user.profile.game_id", read_only=True)
+    game_id = serializers.SerializerMethodField()
     room_id = serializers.CharField(source="room.id", read_only=True)
     payment_share = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    team_id = serializers.SerializerMethodField()
+    team_leader_username = serializers.SerializerMethodField()
+
+    def get_game_id(self, obj):
+        game_fields = {"bgmi": "bgmi_id", "freefire": "freefire_id", "fifa": "fifa_id"}
+        field = game_fields.get(obj.room.tournament.game)
+        return getattr(obj.user.profile, field, None) if field else None
+
+    def get_team_id(self, obj):
+        return str(obj.team_leader_id or obj.user_id)
+
+    def get_team_leader_username(self, obj):
+        leader = obj.team_leader or (obj.user if obj.is_team_leader else None)
+        return leader.username if leader else None
 
     class Meta:
         model = RoomParticipant
-        fields = ["id", "user", "username", "email", "game_id", "room_id", "joined_at", "paid", "payment_share", "is_team_leader"]
+        fields = ["id", "user", "username", "email", "game_id", "room_id", "joined_at", "paid", "payment_share", "is_team_leader", "team_id", "team_leader_username"]
 
 
 class RoomSerializer(serializers.ModelSerializer):

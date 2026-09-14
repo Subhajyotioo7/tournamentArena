@@ -16,6 +16,12 @@ export default defineConfig({
     },
   },
   server: {
+    // OneDrive/WSL can drop native filesystem events. Polling keeps HMR
+    // reliable when files are edited from Windows and the server runs in WSL.
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
     proxy: {
       '/api': { target: 'http://localhost:8000', changeOrigin: true },
       '/wallet': { target: 'http://localhost:8000', changeOrigin: true },

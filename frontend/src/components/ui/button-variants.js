@@ -1,16 +1,16 @@
 import { cva } from 'class-variance-authority';
 
 export const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-orange-500/60 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-amber-500/60 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: 'bg-[#FF5500] text-white hover:bg-[#E64D00]',
+        default: 'bg-[#facc15] text-stone-950 hover:bg-[#eab308]',
         secondary: 'bg-[#1A1D24] text-white hover:bg-[#252A33]',
-        outline: 'border border-[#8E9AA8]/40 bg-transparent text-current hover:border-[#FF5500] hover:text-[#FF5500]',
+        outline: 'border border-[#8E9AA8]/40 bg-transparent text-current hover:border-[#f59e0b] hover:text-[#d97706]',
         ghost: 'text-current hover:bg-[#1A1D24] hover:text-white',
         destructive: 'bg-red-600 text-white hover:bg-red-700',
-        link: 'text-[#FF5500] underline-offset-4 hover:underline',
+        link: 'text-[#d97706] underline-offset-4 hover:underline',
       },
       size: {
         default: 'h-10 px-4 py-2',

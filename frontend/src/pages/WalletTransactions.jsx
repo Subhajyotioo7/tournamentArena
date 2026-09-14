@@ -85,6 +85,12 @@ export default function WalletTransactions() {
           >
             💸 New Withdrawal Request
           </Button>
+          <Button
+            onClick={() => navigate("/wallet/tournament-earnings")}
+            className="flex-1 bg-white border border-purple-200 text-purple-700 p-4 rounded-2xl font-bold hover:bg-purple-50"
+          >
+            🏆 Tournament Earnings
+          </Button>
         </div>
 
         {/* Tabs */}

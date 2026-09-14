@@ -8,7 +8,25 @@ from .serializers import (
     ProfileSerializer, ProfileUpdateSerializer, WithdrawalSerializer, 
     DepositSerializer, SiteConfigurationSerializer
 )
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+import requests
+from django.db import transaction
+from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
+from django.conf import settings
+from django.http import HttpResponseRedirect
+from django.utils import timezone
+from .payouts import calculate_payout_breakdown, send_phonepe_payout
+
+
+def add_money_redirect(request):
+    """Forward PhonePe callbacks from the backend to the React wallet page."""
+    target = f"{settings.FRONTEND_URL.rstrip('/')}/wallet/add-money"
+    parts = urlsplit(target)
+    query = dict(parse_qsl(parts.query))
+    query.update(request.GET.dict())
+    return HttpResponseRedirect(
+        urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+    )
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -162,25 +180,111 @@ def verify_profile_section(request, player_uuid):
 @permission_classes([IsAuthenticated])
 def request_withdrawal(request):
     profile = request.user.profile
-    amount = Decimal(request.data.get("amount","0"))
-    upi_id = request.data.get("upi_id", "")
-    bank_details = request.data.get("bank_details", "")
+    funds_reserved = False
+    try:
+        amount = Decimal(str(request.data.get("amount", "0"))).quantize(Decimal("0.01"))
+    except (InvalidOperation, TypeError, ValueError):
+        return Response({"error": "Invalid amount"}, status=400)
+    upi_id = str(request.data.get("upi_id", "")).strip()
+    payout_method = request.data.get("payout_method", "manual")
     
     if amount <= 0:
         return Response({"error":"Invalid amount"}, status=400)
-    # check if user has enough balance (optional but good)
-    if amount > profile.balance:
-        return Response({"error":"Insufficient balance"}, status=400)
-
-    # create withdrawal request
+    if payout_method not in ("instant", "manual"):
+        return Response({"error": "Invalid payout method"}, status=400)
+    if not upi_id:
+        return Response({"error": "UPI ID is required"}, status=400)
     w = Withdrawal.objects.create(
-        profile=profile, 
-        amount=amount,
-        upi_id=upi_id,
-        bank_details=bank_details
+        profile=profile, amount=amount, upi_id=upi_id, payout_method=payout_method
     )
-    
-    return Response({"message":"Withdrawal requested. Funds will be deducted once approved.", "withdrawal_id":str(w.id)})
+    if payout_method == "manual":
+        return Response({"message": "Withdrawal sent to admin for manual payout.", "withdrawal_id": str(w.id)})
+
+    try:
+        payout_amount, gateway_fee, gst_amount = calculate_payout_breakdown(amount)
+        total_debit = (payout_amount + gateway_fee + gst_amount).quantize(Decimal("0.01"))
+        with transaction.atomic():
+            profile = Profile.objects.select_for_update().get(pk=profile.pk)
+            if profile.balance < total_debit:
+                w.status = "failed"
+                w.admin_note = "Insufficient balance."
+                w.save(update_fields=["status", "admin_note"])
+                return Response({
+                    "error": (
+                        f"Insufficient balance. You need ₹{total_debit:.2f}, "
+                        f"but your wallet has ₹{profile.balance:.2f}."
+                    ),
+                    "required_amount": str(total_debit),
+                    "wallet_balance": str(profile.balance),
+                }, status=400)
+            profile.balance -= total_debit
+            profile.save(update_fields=["balance"])
+            funds_reserved = True
+            debit_transaction = Transaction.objects.create(
+                profile=profile, tx_type="debit", amount=total_debit,
+                note=f"Instant UPI withdrawal {w.id} (payout ₹{payout_amount}, fee ₹{gateway_fee}, GST ₹{gst_amount})",
+            )
+        w.payout_amount = payout_amount
+        w.gateway_fee = gateway_fee
+        w.gst_amount = gst_amount
+        w.status = "processing"
+        w.save(update_fields=["payout_amount", "gateway_fee", "gst_amount", "status"])
+        payout_id = send_phonepe_payout(
+            amount=payout_amount,
+            upi_id=upi_id,
+            merchant_user_id=str(request.user.id),
+            merchant_order_id=f"WDR{w.id.hex.upper()}",
+        )
+        w.status = "paid"
+        w.payout_id = payout_id
+        w.payout_transaction_id = str(debit_transaction.id)
+        w.paid_at = timezone.now()
+        w.save(update_fields=["status", "payout_id", "payout_transaction_id", "paid_at"])
+        return Response({
+            "message": "Instant UPI payout completed.",
+            "withdrawal_id": str(w.id),
+            "payout_amount": str(payout_amount),
+            "gateway_fee": str(gateway_fee),
+            "gst_amount": str(gst_amount),
+            "total_debit": str(total_debit),
+            "payout_id": payout_id,
+        })
+    except (RuntimeError, ValueError, requests.RequestException) as exc:
+        if funds_reserved:
+            with transaction.atomic():
+                profile = Profile.objects.select_for_update().get(pk=profile.pk)
+                profile.balance += total_debit
+                profile.save(update_fields=["balance"])
+                Transaction.objects.create(
+                    profile=profile, tx_type="credit", amount=total_debit,
+                    note=f"Refund for failed instant withdrawal {w.id}",
+                )
+        w.status = "failed"
+        w.admin_note = str(exc)[:500]
+        w.save(update_fields=["status", "admin_note"])
+        error_text = str(exc)
+        response_status = 400 if error_text.startswith("PhonePe Payouts is not configured") else 502
+        return Response({"error": f"Instant payout failed: {error_text}"}, status=response_status)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def withdrawal_pricing(request):
+    try:
+        amount = Decimal(str(request.query_params.get("amount", "0"))).quantize(Decimal("0.01"))
+    except (InvalidOperation, TypeError, ValueError):
+        return Response({"error": "Invalid amount"}, status=400)
+    if amount <= 0:
+        return Response({"error": "Enter an amount to calculate fees"}, status=400)
+    payout_amount, fee, gst = calculate_payout_breakdown(amount)
+    total_debit = (payout_amount + fee + gst).quantize(Decimal("0.01"))
+    return Response({
+        "gateway_fee": fee,
+        "gst_amount": gst,
+        "gst_rate": settings.PHONEPE_PAYOUT_GST_RATE,
+        "payout_amount": payout_amount,
+        "total_debit": total_debit,
+    })
 
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
@@ -204,7 +308,7 @@ def approve_withdrawal(request, withdrawal_id):
         profile.save()
 
         # Create transaction record
-        Transaction.objects.create(
+        tx = Transaction.objects.create(
             profile=profile,
             tx_type="debit",
             amount=wd.amount,
@@ -212,7 +316,9 @@ def approve_withdrawal(request, withdrawal_id):
         )
 
         wd.status = "approved"
-        wd.save()
+        wd.payout_amount = wd.amount
+        wd.payout_transaction_id = str(tx.id)
+        wd.save(update_fields=["status", "payout_amount", "payout_transaction_id"])
 
     return Response({"message": f"Withdrawal approved and ₹{wd.amount} deducted from {profile.user.username}'s wallet."})
 
@@ -252,7 +358,8 @@ def mark_withdrawal_paid(request, withdrawal_id):
 
     wd.status = "paid"
     wd.payout_id = request.data.get("payout_id", "manual-payment")
-    wd.save()
+    wd.paid_at = timezone.now()
+    wd.save(update_fields=["status", "payout_id", "paid_at"])
 
     return Response({"message": "Withdrawal marked as paid"})
 

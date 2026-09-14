@@ -12,7 +12,6 @@ urlpatterns = [
     path("room/<uuid:room_id>/join/", views.join_room),  # Legacy
     path("room/<uuid:room_id>/join-solo/", views.join_room_solo),
     path("room/<uuid:room_id>/create-team/", views.create_team_and_invite),
-    path("room/<uuid:room_id>/verify-payment/", views.verify_payment),
     
     # Team invitations
     path("my-invitations/", views.my_invitations),
@@ -21,6 +20,7 @@ urlpatterns = [
     
     # My rooms
     path("my-rooms/", views.my_rooms),
+    path("my-created/earnings/", views.my_created_tournament_earnings),
     path("room/<uuid:room_id>/", views.get_room_detail),
     path("room/<uuid:room_id>/remove-team/", views.remove_team),
     

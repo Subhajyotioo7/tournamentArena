@@ -24,7 +24,14 @@ export default defineConfig({
     },
     proxy: {
       '/api': { target: 'http://localhost:8000', changeOrigin: true },
-      '/wallet': { target: 'http://localhost:8000', changeOrigin: true },
+      '/wallet': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        // Let React Router serve wallet pages; proxy only wallet API calls.
+        bypass(req) {
+          return req.headers.accept?.includes('text/html') ? req.url : undefined;
+        },
+      },
       '/tournaments': {
         target: 'http://localhost:8000',
         changeOrigin: true,

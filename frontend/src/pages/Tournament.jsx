@@ -113,7 +113,9 @@ export default function Tournament() {
     try {
       const data = await roomService.joinSolo(selectedRoom);
       if (data) {
-        alert(`${data.message}\nPaid: ₹${data.payment}`);
+        alert(data.already_joined
+          ? data.message
+          : `${data.message}\nPaid: ₹${data.payment}`);
         setShowTeamModal(false);
         navigate('/my-rooms');
       }
@@ -258,10 +260,15 @@ export default function Tournament() {
 
             {/* Prize Distribution (Merged logic) */}
             {prizes.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
-                  <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" aria-hidden="true" /> Prize Distribution
-                </h2>
+              <div className="relative overflow-hidden rounded-2xl border border-amber-100 bg-gradient-to-br from-white via-amber-50/40 to-orange-50/50 p-6 shadow-sm sm:p-8">
+                <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-yellow-200/30 blur-2xl" />
+                <div className="relative mb-5 flex items-center justify-between">
+                  <h2 className="flex items-center gap-2 text-xl font-black text-gray-900 sm:text-2xl">
+                    <span className="rounded-xl bg-yellow-100 p-2 text-yellow-600"><Trophy className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" /></span>
+                    Prize Distribution
+                  </h2>
+                  <span className="hidden rounded-full bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-700 shadow-sm sm:block">Win big</span>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {prizes.map((prize) => {
                     const isWinner = prize.rank === 1;
@@ -270,25 +277,24 @@ export default function Tournament() {
                     const totalPayout = isWinner ? winnerPrize + entryFee : winnerPrize;
 
                     return (
-                      <div key={prize.rank} className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-100 text-center relative overflow-hidden group hover:scale-105 transition-transform duration-300">
-                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <div key={prize.rank} className={`relative overflow-hidden rounded-2xl border p-5 text-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${isWinner ? 'border-yellow-300 bg-gradient-to-br from-yellow-100 via-amber-50 to-orange-100 ring-2 ring-yellow-200/60' : 'border-white bg-white/80'}`}>
+                        <div className="absolute -right-3 -top-3 text-5xl opacity-10 transition-opacity group-hover:opacity-20">
                           <svg className="w-16 h-16 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.699-3.177a1 1 0 111.827.86l-1.699 3.178 1.699 3.177a1 1 0 11-1.827.86L14.954 9.323V11a1 1 0 01-1 1h-8a1 1 0 01-1-1v-1.677l-3.954 2.872a1 1 0 11-1.827-.86l1.699-3.177-1.699-3.178a1 1 0 011.827-.86L5.046 4.323V3a1 1 0 011-1h4z" /></svg>
                         </div>
-                        <div className="mb-3 flex justify-center text-yellow-600 filter drop-shadow-sm">
+                        <div className="relative mb-3 flex justify-center text-yellow-600 drop-shadow-sm">
                           <Medal className="h-10 w-10" aria-hidden="true" />
                         </div>
-                        <p className="text-gray-500 text-sm font-bold uppercase tracking-wider mb-1">Rank #{prize.rank}</p>
+                        <p className="relative text-xs font-black uppercase tracking-[0.18em] text-gray-500">Rank #{prize.rank}</p>
 
                         {isWinner ? (
                           <>
-                            <p className="text-2xl font-extrabold text-gray-900">₹{totalPayout.toFixed(0)}</p>
-                            <div className="mt-2 pt-2 border-t border-yellow-200">
-                              <p className="text-xs text-gray-600">Winner Prize: ₹{winnerPrize.toFixed(0)}</p>
-                              <p className="text-xs text-gray-600">+ Entry Fee: ₹{entryFee.toFixed(0)}</p>
+                            <p className="relative mt-1 text-3xl font-black text-gray-900">₹{totalPayout.toFixed(0)}</p>
+                            <div className="relative mt-3 border-t border-yellow-200 pt-2">
+                              <p className="text-xs font-semibold text-gray-600">Prize ₹{winnerPrize.toFixed(0)} + entry refund ₹{entryFee.toFixed(0)}</p>
                             </div>
                           </>
                         ) : (
-                          <p className="text-3xl font-extrabold text-gray-900">₹{totalPayout.toFixed(0)}</p>
+                          <p className="relative mt-1 text-3xl font-black text-gray-900">₹{totalPayout.toFixed(0)}</p>
                         )}
                       </div>
                     );

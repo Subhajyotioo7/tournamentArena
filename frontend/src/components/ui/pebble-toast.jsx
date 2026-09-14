@@ -14,10 +14,10 @@ const POSITIONS = [
 
 const POSITION_CLASSES = {
   'top-left': 'top-6 left-6',
-  'top-center': 'top-6 left-1/2 -translate-x-1/2',
+  'top-center': 'top-3 left-2 right-2 md:top-6 md:left-1/2 md:right-auto md:-translate-x-1/2',
   'top-right': 'top-6 right-6',
   'bottom-left': 'bottom-6 left-6',
-  'bottom-center': 'bottom-6 left-1/2 -translate-x-1/2',
+  'bottom-center': 'bottom-3 left-2 right-2 md:bottom-6 md:left-1/2 md:right-auto md:-translate-x-1/2',
   'bottom-right': 'bottom-6 right-6',
 };
 
@@ -58,7 +58,7 @@ const ToastStack = memo(({ position, items, duration }) => {
 
   return (
     <div className={`pointer-events-none fixed z-[9999] ${POSITION_CLASSES[position]}`}>
-      <div className="flex items-center justify-center">
+      <div className="flex max-w-full items-center justify-center">
         <AnimatePresence initial={false}>
           {displayedItems.map((item, index) => {
             const expanded = hoveredId !== null
@@ -76,7 +76,7 @@ const ToastStack = memo(({ position, items, duration }) => {
                 exit={{ width: 0, opacity: 0, scale: 0.8, marginLeft: 0 }}
                 transition={{ type: 'spring', stiffness: 180, damping: 25 }}
                 style={{ zIndex: hoveredId === item.id ? 50 : index + 1 }}
-                className="pointer-events-auto relative flex h-10 shrink-0 cursor-pointer items-center overflow-hidden rounded-full border border-stone-200 bg-white p-1 pr-3 shadow-sm transition-shadow hover:shadow-lg"
+                className="pointer-events-auto relative flex h-10 max-w-full shrink-0 cursor-pointer items-center overflow-hidden rounded-full border border-stone-200 bg-white p-1 pr-3 shadow-sm transition-shadow hover:shadow-lg"
               >
                 <div className="group/avatar relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/10 shadow-inner">
                   <motion.div
@@ -99,11 +99,11 @@ const ToastStack = memo(({ position, items, duration }) => {
                 </div>
                 <motion.div
                   animate={{ opacity: expanded ? 1 : 0, x: expanded ? 0 : -10 }}
-                  className="ml-2 flex shrink-0 flex-col items-start text-left"
+                  className="ml-2 flex min-w-0 max-w-[calc(100vw-5rem)] shrink items-start text-left md:max-w-56"
                 >
-                  <p className="text-[13px] font-medium leading-none text-stone-700">{getTitle(item)}</p>
+                  <p className="max-w-full truncate text-[13px] font-medium leading-none text-stone-700">{getTitle(item)}</p>
                   {getDescription(item) && (
-                    <p className="mt-0.5 max-w-56 truncate text-[10px] leading-tight text-stone-500">{getDescription(item)}</p>
+                    <p className="mt-0.5 max-w-full truncate text-[10px] leading-tight text-stone-500">{getDescription(item)}</p>
                   )}
                 </motion.div>
               </motion.div>

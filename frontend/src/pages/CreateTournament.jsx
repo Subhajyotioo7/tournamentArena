@@ -14,6 +14,9 @@ export default function CreateTournament() {
         game: 'bgmi',
         requested_tournament_name: '',
         player_count: 16,
+        youtube_link: '',
+        instagram_link: '',
+        phone_number: '',
         note: ''
     });
     const [formData, setFormData] = useState({
@@ -79,8 +82,8 @@ export default function CreateTournament() {
     };
 
     const handleHostRequest = async () => {
-        if (!requestForm.requested_tournament_name || !requestForm.game) {
-            alert('Please enter tournament name and select a game');
+        if (!requestForm.requested_tournament_name || !requestForm.game || !requestForm.youtube_link || !requestForm.instagram_link) {
+            alert('Please enter tournament name, YouTube link, and Instagram link');
             return;
         }
 
@@ -206,6 +209,44 @@ export default function CreateTournament() {
                                                     value={requestForm.requested_tournament_name}
                                                     onChange={(e) => setRequestForm(prev => ({ ...prev, requested_tournament_name: e.target.value }))}
                                                     placeholder="Weekend BR Cup"
+                                                    className="mt-1 block w-full border border-amber-300 rounded-lg px-3 py-2"
+                                                />
+                                            </div>
+
+                                            <div className="mt-3">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="block text-xs font-semibold uppercase tracking-wide text-amber-700">YouTube Link <span className="text-red-600">*</span></label>
+                                                        <input
+                                                            type="url"
+                                                            required
+                                                            value={requestForm.youtube_link}
+                                                            onChange={(e) => setRequestForm(prev => ({ ...prev, youtube_link: e.target.value }))}
+                                                            placeholder="https://youtube.com/@yourchannel"
+                                                            className="mt-1 block w-full border border-amber-300 rounded-lg px-3 py-2"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-semibold uppercase tracking-wide text-amber-700">Instagram Link <span className="text-red-600">*</span></label>
+                                                        <input
+                                                            type="url"
+                                                            required
+                                                            value={requestForm.instagram_link}
+                                                            onChange={(e) => setRequestForm(prev => ({ ...prev, instagram_link: e.target.value }))}
+                                                            placeholder="https://instagram.com/yourprofile"
+                                                            className="mt-1 block w-full border border-amber-300 rounded-lg px-3 py-2"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3">
+                                                <label className="block text-xs font-semibold uppercase tracking-wide text-amber-700">Phone Number <span className="font-normal normal-case">(optional)</span></label>
+                                                <input
+                                                    type="tel"
+                                                    value={requestForm.phone_number}
+                                                    onChange={(e) => setRequestForm(prev => ({ ...prev, phone_number: e.target.value }))}
+                                                    placeholder="Optional contact number"
                                                     className="mt-1 block w-full border border-amber-300 rounded-lg px-3 py-2"
                                                 />
                                             </div>

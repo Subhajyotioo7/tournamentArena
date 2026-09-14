@@ -45,11 +45,10 @@ export default function TournamentCard({ tournament }) {
                   <div className={`bg-gradient-to-br from-white to-gray-50 rounded-lg p-2 sm:p-3 border ${theme.border}`}>
                     <p className="text-gray-600 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">Total Payout</p>
                     <p className={`text-xl sm:text-2xl font-black ${theme.accent} leading-none`}>₹{totalPayout.toFixed(0)}</p>
-                    <p className="text-[10px] text-gray-400 mt-1">Entry: ₹{entryFee}</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border border-gray-100">
-                    <p className="text-gray-500 text-[10px] sm:text-xs font-medium uppercase tracking-wider mb-1">Team Size</p>
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{tournament.max_players_per_room}</p>
+                    <p className="text-gray-500 text-[10px] sm:text-xs font-medium uppercase tracking-wider mb-1">Entry Fee</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">₹{entryFee.toFixed(0)}</p>
                   </div>
                 </div>
 
@@ -70,20 +69,25 @@ export default function TournamentCard({ tournament }) {
 
                 {/* Prize Distribution Preview */}
                 {tournament.prize_distributions && tournament.prize_distributions.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-2">Prizes</p>
-                    <div className="flex gap-2">
+                  <div className="mb-5 rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50/80 to-orange-50/50 p-3">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Prize pool</p>
+                      <span className="text-[10px] font-bold text-gray-400">Top {Math.min(3, tournament.prize_distributions.length)} ranks</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
                       {tournament.prize_distributions.slice(0, 3).map((prize) => {
                         const isWinner = prize.rank === 1;
                         const pAmount = parseFloat(prize.prize_amount);
                         const displayAmount = isWinner ? pAmount + entryFee : pAmount;
+                        const medal = prize.rank === 1 ? '🥇' : prize.rank === 2 ? '🥈' : '🥉';
 
                         return (
-                          <div key={prize.rank} className={`flex-1 rounded-lg p-2 text-center border ${isWinner ? `${theme.soft} ${theme.border}` : 'bg-gray-50 border-gray-100'}`}>
-                            <p className="text-[10px] text-gray-500">#{prize.rank}</p>
-                            <p className={`text-sm font-bold ${isWinner ? theme.accent : 'text-gray-700'}`}>₹{displayAmount.toFixed(0)}</p>
+                          <div key={prize.rank} className={`rounded-lg border p-2 text-center shadow-sm ${isWinner ? `${theme.soft} ${theme.border}` : 'border-white bg-white/80'}`}>
+                            <div className="text-base leading-none">{medal}</div>
+                            <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-gray-400">Rank {prize.rank}</p>
+                            <p className={`mt-1 text-sm font-black ${isWinner ? theme.accent : 'text-gray-700'}`}>₹{displayAmount.toFixed(0)}</p>
                             {isWinner && (
-                              <p className="text-[8px] text-gray-400 mt-0.5">₹{pAmount}+₹{entryFee}</p>
+                              <p className="mt-0.5 text-[8px] text-gray-400">includes entry</p>
                             )}
                           </div>
                         );

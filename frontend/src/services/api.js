@@ -114,6 +114,9 @@ export const walletService = {
       body: JSON.stringify(withdrawalData),
     });
   },
+  getWithdrawalPricing: async (amount) => {
+    return apiRequest(`/wallet/withdraw/pricing/?amount=${encodeURIComponent(amount)}`);
+  },
   getMyWithdrawals: async () => {
     return apiRequest('/wallet/withdraw/my/');
   },
@@ -141,6 +144,24 @@ export const walletService = {
       body: JSON.stringify(depositData),
     });
   }
+};
+
+export const paymentService = {
+  getPhonePePricing: async () => apiRequest('/payments/phonepe/pricing/'),
+  createPhonePePayment: async (amount) => {
+    return apiRequest('/payments/phonepe/create/', {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  },
+
+  getPhonePePaymentStatus: async (merchantOrderId) => {
+    return apiRequest(`/payments/phonepe/status/${merchantOrderId}/`);
+  },
+};
+
+export const tournamentEarningsService = {
+  getMine: async () => apiRequest('/tournaments/my-created/earnings/'),
 };
 
 // ============= TOURNAMENT SERVICES =============

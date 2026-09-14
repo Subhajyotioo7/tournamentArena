@@ -190,9 +190,37 @@ REST_FRAMEWORK = {
     ),
 }
 
-import os
-RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "")
-RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "")
+# PhonePe Standard Checkout (UPI only)
+PHONEPE_CLIENT_ID = (
+    os.environ.get("PHONEPE_CLIENT_ID") or os.environ.get("Client Id", "")
+).strip()
+PHONEPE_CLIENT_SECRET = (
+    os.environ.get("PHONEPE_CLIENT_SECRET") or os.environ.get("Client Secret", "")
+).strip()
+PHONEPE_CLIENT_VERSION = (
+    os.environ.get("PHONEPE_CLIENT_VERSION")
+    or os.environ.get("Client Version")
+    or "1"
+).strip()
+PHONEPE_ENV = os.environ.get("PHONEPE_ENV", "SANDBOX").upper()
+PHONEPE_REDIRECT_URL = os.environ.get(
+    "PHONEPE_REDIRECT_URL",
+    f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/wallet/add-money",
+)
+
+# PhonePe Payouts requires payout product access. Keep its credentials and
+# endpoint separate from Standard Checkout credentials.
+PHONEPE_PAYOUT_CLIENT_ID = os.environ.get("PHONEPE_PAYOUT_CLIENT_ID", PHONEPE_CLIENT_ID).strip()
+PHONEPE_PAYOUT_CLIENT_SECRET = os.environ.get("PHONEPE_PAYOUT_CLIENT_SECRET", PHONEPE_CLIENT_SECRET).strip()
+PHONEPE_PAYOUT_CLIENT_VERSION = os.environ.get("PHONEPE_PAYOUT_CLIENT_VERSION", PHONEPE_CLIENT_VERSION).strip()
+PHONEPE_PAYOUT_URL = os.environ.get("PHONEPE_PAYOUT_URL", "").strip()
+PHONEPE_PAYOUT_FEE = os.environ.get("PHONEPE_PAYOUT_FEE", "5.00")
+PHONEPE_PAYOUT_GST_RATE = os.environ.get("PHONEPE_PAYOUT_GST_RATE", "18.00")
+PHONEPE_PAYOUT_TEST_MODE = (
+    DEBUG and os.environ.get("PHONEPE_PAYOUT_TEST_MODE", "False").lower() == "true"
+)
+PHONEPE_PAYMENT_FEE = os.environ.get("PHONEPE_PAYMENT_FEE", "5.00")
+PHONEPE_PAYMENT_GST_RATE = os.environ.get("PHONEPE_PAYMENT_GST_RATE", "18.00")
 
 # JWT Settings
 # The existing SIMPLE_JWT definition is replaced with this more comprehensive one.

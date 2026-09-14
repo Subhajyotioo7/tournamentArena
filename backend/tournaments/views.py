@@ -7,10 +7,9 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status as http_status
 
-from payments.utils import create_razorpay_order, verify_signature
 from wallet.models import Transaction, Profile
 from hostpartner.models import HostPartnerRequest
-from .models import Tournament, Room, RoomParticipant, PrizeDistribution, RoomResult, TeamInvitation
+from .models import Tournament, Room, RoomParticipant, PrizeDistribution, RoomResult, TeamInvitation, TournamentEarning
 from .serializers import RoomSerializer, TournamentSerializer, PrizeDistributionSerializer, RoomResultSerializer, TournamentParticipantSerializer
 from django.db import transaction
 from django.db.models import Q
@@ -31,13 +30,30 @@ def profile_game_id(profile, game):
     return value.strip() if isinstance(value, str) else value
 
 
+def credit_tournament_creator(tournament, participant, amount):
+    if not tournament.created_by_id or amount <= 0:
+        return
+    creator_profile, _ = Profile.objects.get_or_create(user_id=tournament.created_by_id)
+    creator_profile.balance += amount
+    creator_profile.save(update_fields=["balance"])
+    TournamentEarning.objects.create(
+        tournament=tournament,
+        participant=participant,
+        organizer=tournament.created_by,
+        amount=amount,
+    )
+    Transaction.objects.create(
+        profile=creator_profile,
+        tx_type="credit",
+        amount=amount,
+        note=f"Entry fee from {participant.user.username}: {tournament.name}",
+    )
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_room(request, tournament_id):
     t = get_object_or_404(Tournament, pk=tournament_id)
-    if not is_game_id_verified(request.user.profile) or not profile_game_id(request.user.profile, t.game):
-        return Response({"error": f"Please add and verify your {t.game.upper()} ID in your profile first."}, status=400)
-    
     # 🎯 Check if room already exists (One Room per Tournament)
     if hasattr(t, "room"):
         serializer = RoomSerializer(t.room)
@@ -58,8 +74,13 @@ def join_room_solo(request, room_id):
         return Response({"error": f"Please add and verify your {room.tournament.game.upper()} ID in your profile first."}, status=400)
     
     # Check if already joined
-    if RoomParticipant.objects.filter(room=room, user=request.user).exists():
-        return Response({"error": "Already joined"}, status=400)
+    existing_participant = RoomParticipant.objects.filter(room=room, user=request.user).first()
+    if existing_participant:
+        return Response({
+            "message": "You have already joined this tournament.",
+            "already_joined": True,
+            "payment": str(existing_participant.payment_share),
+        })
     if TeamInvitation.objects.filter(room=room, inviter=request.user, status='pending').exists():
         return Response({"error": "Your team is waiting for teammates to accept."}, status=400)
     
@@ -89,23 +110,18 @@ def join_room_solo(request, room_id):
         }, status=400)
     
     # Deduct and create participant
-    profile.balance -= payment_share
-    profile.save()
-    
-    Transaction.objects.create(
-        profile=profile,
-        tx_type="debit",
-        amount=payment_share,
-        note=f"Entry fee for {tournament.name} ({tournament.team_mode})"
-    )
-    
-    RoomParticipant.objects.create(
-        room=room,
-        user=request.user,
-        paid=True,
-        is_team_leader=True,
-        payment_share=payment_share
-    )
+    with transaction.atomic():
+        profile.balance -= payment_share
+        profile.save(update_fields=["balance"])
+        Transaction.objects.create(
+            profile=profile, tx_type="debit", amount=payment_share,
+            note=f"Entry fee for {tournament.name} ({tournament.team_mode})"
+        )
+        participant = RoomParticipant.objects.create(
+            room=room, user=request.user, paid=True,
+            is_team_leader=True, payment_share=payment_share
+        )
+        credit_tournament_creator(tournament, participant, payment_share)
     
     # Check if tournament is completely full
     if room.current_count() >= tournament.max_participants:
@@ -183,16 +199,16 @@ def create_team_and_invite(request, room_id):
             note=f"Team entry fee ({payment_type}) for {tournament.name} ({tournament.team_mode})"
         )
         
-        # Captain-pay teams reserve the captain immediately. Split-pay teams
-        # keep the captain pending until every teammate has paid.
-        if payment_type == 'leader_pays_all':
-            RoomParticipant.objects.create(
-                room=room,
-                user=request.user,
-                paid=True,
-                is_team_leader=True,
-                payment_share=leader_fee
-            )
+        # The leader has paid their share, so record it immediately for the
+        # organizer. Teammate payments are recorded when invitations are accepted.
+        participant = RoomParticipant.objects.create(
+            room=room,
+            user=request.user,
+            paid=True,
+            is_team_leader=True,
+            payment_share=leader_fee
+        )
+        credit_tournament_creator(tournament, participant, leader_fee)
         room.payment_type = payment_type
         room.save(update_fields=['payment_type'])
     
@@ -334,7 +350,7 @@ def accept_invitation(request, invitation_id):
                 )
 
             team_leader = invitation.inviter
-            RoomParticipant.objects.create(
+            participant = RoomParticipant.objects.create(
                 room=room,
                 user=request.user,
                 paid=True,
@@ -342,6 +358,7 @@ def accept_invitation(request, invitation_id):
                 team_leader=team_leader,
                 payment_share=payment_share
             )
+            credit_tournament_creator(tournament, participant, payment_share)
             
             # Update invitation
             invitation.status = 'accepted'
@@ -420,29 +437,6 @@ def join_room(request, room_id):
     return join_room_solo(request, room_id)
 
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def verify_payment(request, room_id):
-    """Verify Razorpay payment"""
-    razorpay_order_id = request.data.get("razorpay_order_id")
-    razorpay_payment_id = request.data.get("razorpay_payment_id")
-    razorpay_signature = request.data.get("razorpay_signature")
-    
-    if not verify_signature(razorpay_order_id, razorpay_payment_id, razorpay_signature):
-        return Response({"error": "Invalid signature"}, status=400)
-    
-    rp = get_object_or_404(RoomParticipant, razorpay_order_id=razorpay_order_id)
-    rp.razorpay_payment_id = razorpay_payment_id
-    rp.paid = True
-    rp.save()
-    
-    if rp.room.current_count() >= rp.room.tournament.get_team_size():
-        rp.room.status = "full"
-        rp.room.save()
-    
-    return Response({"message": "Payment verified & accepted"})
-
-
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_rooms(request):
@@ -492,6 +486,47 @@ def my_rooms(request):
         })
     
     return Response({'rooms': rooms_data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def my_created_tournament_earnings(request):
+    """Show the authenticated organizer's players, totals, and earning history."""
+    tournaments = Tournament.objects.filter(created_by=request.user).order_by("-created_at")
+    earnings = TournamentEarning.objects.filter(
+        organizer=request.user
+    ).select_related("tournament", "participant__user")
+    tournament_data = []
+    for tournament in tournaments:
+        tournament_earnings = earnings.filter(tournament=tournament)
+        tournament_data.append({
+            "id": tournament.id,
+            "name": tournament.name,
+            "game": tournament.game,
+            "entry_fee": str(tournament.entry_fee),
+            "created_at": tournament.created_at,
+            "total_players": tournament_earnings.count(),
+            "total_earned": str(sum(
+                (item.amount for item in tournament_earnings), Decimal("0.00")
+            )),
+        })
+    history = [{
+        "id": earning.id,
+        "tournament_id": earning.tournament_id,
+        "tournament_name": earning.tournament.name,
+        "player": earning.participant.user.username,
+        "amount": str(earning.amount),
+        "created_at": earning.created_at,
+    } for earning in earnings]
+    return Response({
+        "total_tournaments": len(tournament_data),
+        "total_players": len(history),
+        "total_earned": str(sum(
+            (earning.amount for earning in earnings), Decimal("0.00")
+        )),
+        "tournaments": tournament_data,
+        "history": history,
+    })
 
 
 class TournamentViewSet(viewsets.ModelViewSet):

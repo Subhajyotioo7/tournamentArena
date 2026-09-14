@@ -76,18 +76,23 @@ class Transaction(models.Model):
         return f"{self.tx_type} {self.amount} ({self.profile.user.username})"
 
 class Withdrawal(models.Model):
-    STATUS = (("pending","Pending"),("approved","Approved"),("rejected","Rejected"),("paid","Paid"))
+    STATUS = (("pending","Pending"),("processing","Processing"),("approved","Approved"),("rejected","Rejected"),("paid","Paid"),("failed","Failed"))
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="withdrawals")
     amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payout_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    gateway_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    gst_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     requested_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS, default="pending")
     # Payment destination
     upi_id = models.CharField(max_length=100, blank=True, null=True)
-    bank_details = models.TextField(blank=True, null=True)
 
-    # Razorpay payout fields (if using payout API), or admin will mark paid and provide tx id:
+    # External payout fields, or admin can mark a manual payout as paid.
     payout_id = models.CharField(max_length=255, blank=True, null=True)
+    payout_method = models.CharField(max_length=20, choices=(("instant", "Instant UPI"), ("manual", "Manual")), default="manual")
+    payout_transaction_id = models.CharField(max_length=255, blank=True, null=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
     admin_note = models.TextField(blank=True, null=True)
 
     def __str__(self):

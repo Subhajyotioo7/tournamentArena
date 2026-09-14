@@ -2,6 +2,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # PhonePe may call the backend host directly; forward it to the SPA.
+    path("add-money", views.add_money_redirect),
+    path("add-money/", views.add_money_redirect),
     # Profile and balance
     path("profile/", views.profile_view),
     path("balance/", views.get_balance),
@@ -17,6 +20,7 @@ urlpatterns = [
     # Withdrawals
     path("withdraw/my/", views.get_my_withdrawals),
     path("withdraw/request/", views.request_withdrawal),
+    path("withdraw/pricing/", views.withdrawal_pricing),
     path("withdraw/all/", views.list_withdrawals),
     path("withdraw/approve/<uuid:withdrawal_id>/", views.approve_withdrawal),
     path("withdraw/reject/<uuid:withdrawal_id>/", views.reject_withdrawal),

@@ -16,8 +16,25 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from django.conf import settings
+from django.http import HttpResponseRedirect
+from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
+
+
+def wallet_add_money_redirect(request):
+    """Forward payment-provider callbacks to the React add-money page."""
+    target = settings.PHONEPE_REDIRECT_URL
+    parts = urlsplit(target)
+    query = dict(parse_qsl(parts.query))
+    query.update(request.GET.dict())
+    destination = urlunsplit(
+        (parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment)
+    )
+    return HttpResponseRedirect(destination)
 
 urlpatterns = [
+    path("wallet/add-money", wallet_add_money_redirect),
+    path("wallet/add-money/", wallet_add_money_redirect),
     path('admin/', admin.site.urls),
     path("api/", include("api.urls")),
     path("hostpartner/", include("hostpartner.urls")),

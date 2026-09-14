@@ -162,7 +162,7 @@ export default function Profile() {
                 <span className="font-black">₹{balance.toFixed(2)}</span>
               </div>
               <Button
-                onClick={() => setShowAddMoney(true)}
+                onClick={() => navigate('/wallet/add-money')}
                 className="bg-white !text-gray-900 hover:bg-gray-100"
               >
                 <span className="inline-flex items-center gap-2"><Plus className="h-4 w-4" aria-hidden="true" />Add Money</span>
@@ -370,6 +370,9 @@ export default function Profile() {
                   <p className="text-3xl font-black text-gray-900">₹{balance.toFixed(2)}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-4">
+                  <Button onClick={() => navigate('/wallet/add-money')} variant="outline" className="p-4 !text-gray-700 text-xs uppercase tracking-widest">
+                    Add Money
+                  </Button>
                   <Button onClick={() => navigate('/wallet/transactions')} variant="outline" className="p-4 !text-gray-700 text-xs uppercase tracking-widest">
                     History
                   </Button>

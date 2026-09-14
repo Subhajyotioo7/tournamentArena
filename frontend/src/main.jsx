@@ -15,6 +15,8 @@ import Profile from "./pages/Profile";
 import MyRooms from "./pages/MyRooms";
 import MyInvitations from "./pages/MyInvitations";
 import WalletTransactions from "./pages/WalletTransactions";
+import AddMoney from "./pages/AddMoney";
+import TournamentEarnings from "./pages/TournamentEarnings";
 import AdminDashboard from "./pages/AdminDashboard";
 import KYC from "./pages/KYC";
 import Withdraw from "./pages/Withdraw";
@@ -53,6 +55,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
 
             <Route path="wallet/transactions" element={<WalletTransactions />} />
+            <Route path="wallet/add-money" element={<AddMoney />} />
+            <Route path="wallet/tournament-earnings" element={<TournamentEarnings />} />
             <Route path="withdraw" element={<Withdraw />} />
 
             <Route path="admin" element={<AdminDashboard />} />

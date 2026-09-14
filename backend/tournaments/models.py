@@ -116,6 +116,25 @@ class RoomParticipant(models.Model):
         return f"{self.user.username} in {self.room.id}"
 
 
+class TournamentEarning(models.Model):
+    """Entry-fee income credited to the user who created a tournament."""
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name="earnings")
+    participant = models.OneToOneField(
+        RoomParticipant, on_delete=models.CASCADE, related_name="organizer_earning"
+    )
+    organizer = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="tournament_earnings"
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.organizer.username}: ₹{self.amount} from {self.tournament.name}"
+
+
 class RoomResult(models.Model):
     """Stores results and prize payout information for room participants"""
     PAYOUT_STATUS = (("pending","Pending"),("approved","Approved"),("paid","Paid"),("rejected","Rejected"))

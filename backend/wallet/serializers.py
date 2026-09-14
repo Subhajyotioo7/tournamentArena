@@ -34,8 +34,12 @@ class WithdrawalSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Withdrawal
-        fields = "__all__"
-        read_only_fields = ["status","profile","requested_at","payout_id"]
+        fields = [
+            "id", "profile", "username", "amount", "payout_amount", "gateway_fee",
+            "gst_amount", "requested_at", "status", "upi_id", "payout_id",
+            "payout_method", "payout_transaction_id", "paid_at", "admin_note",
+        ]
+        read_only_fields = ["status","profile","requested_at","payout_id","payout_amount","gateway_fee","gst_amount","payout_method","payout_transaction_id","paid_at"]
 
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:

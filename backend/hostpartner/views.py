@@ -3,6 +3,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from django.core.validators import URLValidator
+from django.core.exceptions import ValidationError
 
 from .models import HostPartnerRequest
 
@@ -14,9 +16,18 @@ def request_host_partner_access(request):
     requested_tournament_name = request.data.get("requested_tournament_name")
     player_count = request.data.get("player_count")
     note = request.data.get("note", "")
+    youtube_link = str(request.data.get("youtube_link", "")).strip()
+    instagram_link = str(request.data.get("instagram_link", "")).strip()
+    phone_number = str(request.data.get("phone_number", "")).strip()
 
-    if not game or not requested_tournament_name:
-        return Response({"error": "game and requested_tournament_name are required"}, status=400)
+    if not game or not requested_tournament_name or not youtube_link or not instagram_link:
+        return Response({"error": "game, tournament name, YouTube link, and Instagram link are required"}, status=400)
+    validator = URLValidator(schemes=["http", "https"])
+    for label, value in (("YouTube", youtube_link), ("Instagram", instagram_link)):
+        try:
+            validator(value)
+        except ValidationError:
+            return Response({"error": f"Enter a valid {label} URL starting with http:// or https://"}, status=400)
 
     existing = HostPartnerRequest.objects.filter(requested_by=request.user).order_by("-created_at").first()
     if existing and existing.status == "pending":
@@ -28,6 +39,9 @@ def request_host_partner_access(request):
         requested_tournament_name=requested_tournament_name,
         player_count=int(player_count or 0),
         note=note,
+        youtube_link=youtube_link,
+        instagram_link=instagram_link,
+        phone_number=phone_number or None,
         status="pending",
     )
 
@@ -51,6 +65,9 @@ def my_host_partner_status(request):
         "request_id": str(host_request.id),
         "game": host_request.game,
         "requested_tournament_name": host_request.requested_tournament_name,
+        "youtube_link": host_request.youtube_link,
+        "instagram_link": host_request.instagram_link,
+        "phone_number": host_request.phone_number,
     })
 
 
@@ -68,6 +85,9 @@ def all_host_partner_requests(request):
             "player_count": item.player_count,
             "status": item.status,
             "note": item.note,
+            "youtube_link": item.youtube_link,
+            "instagram_link": item.instagram_link,
+            "phone_number": item.phone_number,
             "created_at": item.created_at.isoformat() if item.created_at else None,
         })
     return Response({"results": payload})

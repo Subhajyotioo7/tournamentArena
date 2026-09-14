@@ -68,7 +68,7 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
                     {tournament.prize_distributions && tournament.prize_distributions.length > 0 && (
                         <div>
                             <h3 className="flex items-center gap-2 font-bold text-lg mb-3 text-gray-900"><Banknote className="h-5 w-5 text-emerald-600" aria-hidden="true" />Prize Distribution</h3>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-3 gap-2">
                                 {tournament.prize_distributions.slice(0, 3).map((prize) => {
                                     const isWinner = prize.rank === 1;
                                     const pAmount = parseFloat(prize.prize_amount);
@@ -76,14 +76,14 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
                                     const totalPayout = isWinner ? pAmount + entryFee : pAmount;
 
                                     return (
-                                        <div key={prize.rank} className={`rounded-lg p-3 border text-center ${isWinner ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200 shadow-sm' : 'bg-gray-50 border-gray-100'}`}>
-                                            <div className="text-2xl mb-1">
+                                        <div key={prize.rank} className={`rounded-xl border p-3 text-center shadow-sm ${isWinner ? 'bg-gradient-to-br from-yellow-100 to-orange-50 border-yellow-300 ring-1 ring-yellow-200' : 'bg-gray-50 border-gray-100'}`}>
+                                            <div className="mb-1 text-2xl drop-shadow-sm">
                                                 {prize.rank === 1 ? '🥇' : prize.rank === 2 ? '🥈' : '🥉'}
                                             </div>
-                                            <p className="text-xs text-gray-600">Rank #{prize.rank}</p>
-                                            <p className={`text-lg font-bold ${isWinner ? 'text-orange-600' : 'text-gray-700'}`}>₹{totalPayout.toFixed(0)}</p>
+                                            <p className="text-[10px] font-black uppercase tracking-wide text-gray-500">Rank #{prize.rank}</p>
+                                            <p className={`mt-1 text-xl font-black ${isWinner ? 'text-orange-600' : 'text-gray-700'}`}>₹{totalPayout.toFixed(0)}</p>
                                             {isWinner && (
-                                                <p className="text-[10px] text-gray-400">({pAmount}+{entryFee})</p>
+                                                <p className="mt-1 text-[9px] font-medium text-gray-400">includes entry refund</p>
                                             )}
                                         </div>
                                     );

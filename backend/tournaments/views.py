@@ -80,6 +80,7 @@ def _prize_pool(prize_distributions):
 
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def create_room(request, tournament_id):
     t = get_object_or_404(Tournament, pk=tournament_id)
@@ -95,6 +96,7 @@ def create_room(request, tournament_id):
 
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def join_room_solo(request, room_id):
     """Join room as solo player (pays full entry fee)"""
@@ -161,6 +163,7 @@ def join_room_solo(request, room_id):
 
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def create_team_and_invite(request, room_id):
     """Create team and send invitations for duo/squad"""
@@ -272,6 +275,7 @@ def create_team_and_invite(request, room_id):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def my_invitations(request):
     """Get all pending invitations for current user"""
@@ -440,6 +444,7 @@ def accept_invitation(request, invitation_id):
 
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def reject_invitation(request, invitation_id):
     """Reject team invitation"""
@@ -459,6 +464,7 @@ def reject_invitation(request, invitation_id):
 
 # Keep existing join_room for backward compatibility
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def join_room(request, room_id):
     """Legacy join room endpoint"""
@@ -466,6 +472,7 @@ def join_room(request, room_id):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def my_rooms(request):
     """Get rooms the current user joined or owns as a tournament creator."""
@@ -562,9 +569,11 @@ class TournamentViewSet(viewsets.ModelViewSet):
     queryset = Tournament.objects.all()
     serializer_class = TournamentSerializer
     permission_classes = []  # Allow anyone to view tournaments
+    http_method_names = ["get", "post"]
 
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])  
 def create_tournament(request):
     serializer = TournamentSerializer(data=request.data)
@@ -581,6 +590,7 @@ def create_tournament(request):
 # ============= PRIZE DISTRIBUTION ENDPOINTS =============
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])
 def set_prize_distribution(request, tournament_id):
     """Set prize distribution for a tournament"""
@@ -602,6 +612,7 @@ def set_prize_distribution(request, tournament_id):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def get_prize_distribution(request, tournament_id):
     """Get prize distribution for a tournament"""
@@ -612,6 +623,7 @@ def get_prize_distribution(request, tournament_id):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def get_tournament_participants(request, tournament_id):
     """Get tournament participants for the owner, staff, or tournament viewers."""
@@ -629,6 +641,7 @@ def get_tournament_participants(request, tournament_id):
 # ============= RESULT DECLARATION ENDPOINTS =============
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])
 def declare_results(request, room_id):
     """Declare results for a room"""
@@ -666,6 +679,7 @@ def declare_results(request, room_id):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def get_results(request, room_id):
     """Get results for a room"""
@@ -678,6 +692,7 @@ def get_results(request, room_id):
 # ============= PAYOUT APPROVAL ENDPOINTS =============
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])
 def approve_payouts(request, room_id):
     """Approve all pending payouts for a room"""
@@ -712,6 +727,7 @@ def approve_payouts(request, room_id):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAdminUser])
 def pending_payouts(request):
     """Get all pending payouts"""
@@ -724,6 +740,7 @@ def pending_payouts(request):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def get_room_detail(request, room_id):
     """Get detailed room information including participants and results"""
@@ -814,6 +831,7 @@ def get_room_detail(request, room_id):
 
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def remove_team(request, room_id):
     """Remove a complete pair/team. Only the tournament owner or staff may do this."""
@@ -852,6 +870,7 @@ def remove_team(request, room_id):
     })
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])
 def add_single_winner(request, room_id):
     """Add a winner to a room and credit their wallet immediately"""
@@ -898,6 +917,7 @@ def add_single_winner(request, room_id):
     return Response({"message": f"Winner added! ₹{prize_amount} added to {participant.user.username}'s wallet."})
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def create_user_tournament(request):
     """Allow a user to create a tournament after paying a creation fee"""

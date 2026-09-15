@@ -6,11 +6,13 @@ from rest_framework.response import Response
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.views.decorators.http import require_GET, require_POST
 
 from .models import HostPartnerRequest
 
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def request_host_partner_access(request):
     game = request.data.get("game")
@@ -54,6 +56,7 @@ def request_host_partner_access(request):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def my_host_partner_status(request):
     host_request = HostPartnerRequest.objects.filter(requested_by=request.user).order_by("-created_at").first()
@@ -73,6 +76,7 @@ def my_host_partner_status(request):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAdminUser])
 def all_host_partner_requests(request):
     requests = HostPartnerRequest.objects.select_related("requested_by", "reviewed_by").all()
@@ -95,6 +99,7 @@ def all_host_partner_requests(request):
 
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])
 def approve_host_partner_request(request, request_id):
     host_request = get_object_or_404(HostPartnerRequest, pk=request_id)

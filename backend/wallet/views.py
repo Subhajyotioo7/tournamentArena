@@ -14,7 +14,7 @@ from django.db import transaction
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 from django.conf import settings
 from django.http import HttpResponseRedirect
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from django.utils import timezone
 from .payouts import calculate_payout_breakdown, send_phonepe_payout
 
@@ -67,6 +67,7 @@ def _refund_instant_withdrawal(profile, withdrawal, total_debit):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def profile_view(request):
     try:
@@ -82,6 +83,7 @@ def profile_view(request):
     return Response(ProfileSerializer(profile).data)
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def get_balance(request):
     try:
@@ -91,6 +93,7 @@ def get_balance(request):
     return Response({"balance": float(profile.balance or 0)})
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def get_transactions(request):
     profile = request.user.profile
@@ -99,6 +102,7 @@ def get_transactions(request):
     return Response({"transactions": TransactionSerializer(transactions, many=True).data})
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def update_profile(request):
     profile = request.user.profile
@@ -163,6 +167,7 @@ def update_profile(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAdminUser])
 def list_pending_verifications(request):
     from django.db.models import Q
@@ -182,6 +187,7 @@ def list_pending_verifications(request):
     return Response(data)
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])
 def verify_profile_section(request, player_uuid):
     section = request.data.get("section") # kyc, game_id, payment
@@ -215,6 +221,7 @@ def verify_profile_section(request, player_uuid):
     return Response({"message": f"{section.upper()} {status_val}"})
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def request_withdrawal(request):
     profile = request.user.profile
@@ -291,6 +298,7 @@ def request_withdrawal(request):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def withdrawal_pricing(request):
     try:
@@ -310,6 +318,7 @@ def withdrawal_pricing(request):
     })
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])
 def approve_withdrawal(request, withdrawal_id):
     from django.db import transaction
@@ -346,6 +355,7 @@ def approve_withdrawal(request, withdrawal_id):
     return Response({"message": f"Withdrawal approved and ₹{wd.amount} deducted from {profile.user.username}'s wallet."})
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])
 def reject_withdrawal(request, withdrawal_id):
     try:
@@ -363,6 +373,7 @@ def reject_withdrawal(request, withdrawal_id):
     return Response({"message": "Withdrawal rejected. No funds were deducted."})
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAdminUser])
 def list_withdrawals(request):
     withdrawals = Withdrawal.objects.all().order_by('-requested_at')
@@ -370,6 +381,7 @@ def list_withdrawals(request):
     return Response(WithdrawalSerializer(withdrawals, many=True).data)
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])
 def mark_withdrawal_paid(request, withdrawal_id):
     from .models import Withdrawal
@@ -387,6 +399,7 @@ def mark_withdrawal_paid(request, withdrawal_id):
     return Response({"message": "Withdrawal marked as paid"})
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])
 def verify_game_id(request, profile_id):
     try:
@@ -398,6 +411,7 @@ def verify_game_id(request, profile_id):
         return Response({"error": "Profile not found"}, status=404)
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def get_my_withdrawals(request):
     """List withdrawals for the current user"""
@@ -409,6 +423,7 @@ def get_my_withdrawals(request):
 # --- 💳 MANUAL DEPOSIT & SITE CONFIG VIEWS ---
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def get_site_config(request):
     """Get UPI ID and WhatsApp for manual payments"""
@@ -419,6 +434,7 @@ def get_site_config(request):
     return Response(SiteConfigurationSerializer(config).data)
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def request_deposit(request):
     """User submits a deposit request after manual transfer"""
@@ -448,6 +464,7 @@ def request_deposit(request):
     })
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAdminUser])
 def list_pending_deposits(request):
     """Admin lists all pending deposit claims"""
@@ -455,6 +472,7 @@ def list_pending_deposits(request):
     return Response(DepositSerializer(deposits, many=True).data)
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAdminUser])
 def verify_deposit(request, deposit_id):
     """Admin approves or rejects a deposit"""

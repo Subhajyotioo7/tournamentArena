@@ -7,6 +7,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
+from django.views.decorators.http import require_GET, require_POST
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def phonepe_payment_pricing(request):
     fee, gst, _ = calculate_payment_breakdown(Decimal("0.00"))
@@ -85,6 +87,7 @@ def _phonepe_error(exc):
 
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def create_phonepe_payment(request):
     try:
@@ -148,6 +151,7 @@ def create_phonepe_payment(request):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def phonepe_payment_status(request, merchant_order_id):
     try:

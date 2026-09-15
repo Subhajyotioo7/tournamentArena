@@ -26,6 +26,9 @@ pipeline {
                                 -Dsonar.projectName=TournamentArena \
                                 -Dsonar.sources=backend,frontend \
                                 -Dsonar.python.version=3.12 \
+                                -Dsonar.issue.ignore.multicriteria=tailwindCss \
+                                -Dsonar.issue.ignore.multicriteria.tailwindCss.ruleKey=css:S4662 \
+                                -Dsonar.issue.ignore.multicriteria.tailwindCss.resourceKey=frontend/src/App.css \
                                 -Dsonar.exclusions=backend/venv/**,backend/.venv/**,backend/media/**,backend/staticfiles/**,frontend/node_modules/**,frontend/dist/**,**/*.min.js
                         """
                     }

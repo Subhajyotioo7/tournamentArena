@@ -14,6 +14,7 @@ from django.db import transaction
 from django.db import IntegrityError
 from django.db.models import Q
 from django.utils import timezone
+from django.views.decorators.http import require_GET, require_POST
 import logging
 
 logger = logging.getLogger(__name__)
@@ -316,6 +317,7 @@ def _invitation_payment_share(invitation, tournament, room):
 
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([IsAuthenticated])
 def accept_invitation(request, invitation_id):
     """Accept team invitation and pay share"""
@@ -515,6 +517,7 @@ def my_rooms(request):
 
 
 @api_view(["GET"])
+@require_GET
 @permission_classes([IsAuthenticated])
 def my_created_tournament_earnings(request):
     """Show the authenticated organizer's players, totals, and earning history."""

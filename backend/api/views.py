@@ -57,6 +57,7 @@ def register_api(request):
 
 # ---------- LOGIN API ----------
 @api_view(["POST"])
+@require_POST
 @permission_classes([AllowAny])
 def login_api(request):
     username = request.data.get("username")

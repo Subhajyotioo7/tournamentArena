@@ -18,9 +18,11 @@ from django.contrib import admin
 from django.urls import path,include
 from django.conf import settings
 from django.http import HttpResponseRedirect
+from django.views.decorators.http import require_GET
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 
 
+@require_GET
 def wallet_add_money_redirect(request):
     """Forward payment-provider callbacks to the React add-money page."""
     target = settings.PHONEPE_REDIRECT_URL

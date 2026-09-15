@@ -106,7 +106,7 @@ class RoomChatConsumer(AsyncWebsocketConsumer):
                 room_id=self.room_id,
                 user=user
             ).exists()
-        except:
+        except Exception:
             return False
 
     @database_sync_to_async
@@ -128,5 +128,5 @@ class RoomChatConsumer(AsyncWebsocketConsumer):
             # Get last 50 messages ordered by creation time
             messages = RoomMessage.objects.filter(room_id=room_id).select_related('sender').order_by('created_at')[:50]
             return list(messages)
-        except:
+        except Exception:
             return []

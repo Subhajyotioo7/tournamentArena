@@ -17,6 +17,9 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from .payouts import calculate_payout_breakdown, send_phonepe_payout
 
+INVALID_AMOUNT_ERROR = "Invalid amount"
+WITHDRAWAL_NOT_FOUND_ERROR = "Withdrawal not found"
+
 
 def add_money_redirect(request):
     """Forward PhonePe callbacks from the backend to the React wallet page."""
@@ -27,6 +30,39 @@ def add_money_redirect(request):
     return HttpResponseRedirect(
         urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
     )
+
+def _reserve_instant_withdrawal(profile, withdrawal, total_debit, payout_amount, gateway_fee, gst_amount):
+    with transaction.atomic():
+        locked_profile = Profile.objects.select_for_update().get(pk=profile.pk)
+        if locked_profile.balance < total_debit:
+            withdrawal.status = "failed"
+            withdrawal.admin_note = "Insufficient balance."
+            withdrawal.save(update_fields=["status", "admin_note"])
+            return None, locked_profile.balance
+        locked_profile.balance -= total_debit
+        locked_profile.save(update_fields=["balance"])
+        debit_transaction = Transaction.objects.create(
+            profile=locked_profile,
+            tx_type="debit",
+            amount=total_debit,
+            note=f"Instant UPI withdrawal {withdrawal.id} "
+                 f"(payout ₹{payout_amount}, fee ₹{gateway_fee}, GST ₹{gst_amount})",
+        )
+    return debit_transaction, locked_profile.balance
+
+
+def _refund_instant_withdrawal(profile, withdrawal, total_debit):
+    with transaction.atomic():
+        locked_profile = Profile.objects.select_for_update().get(pk=profile.pk)
+        locked_profile.balance += total_debit
+        locked_profile.save(update_fields=["balance"])
+        Transaction.objects.create(
+            profile=locked_profile,
+            tx_type="credit",
+            amount=total_debit,
+            note=f"Refund for failed instant withdrawal {withdrawal.id}",
+        )
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -184,12 +220,12 @@ def request_withdrawal(request):
     try:
         amount = Decimal(str(request.data.get("amount", "0"))).quantize(Decimal("0.01"))
     except (InvalidOperation, TypeError, ValueError):
-        return Response({"error": "Invalid amount"}, status=400)
+        return Response({"error": INVALID_AMOUNT_ERROR}, status=400)
     upi_id = str(request.data.get("upi_id", "")).strip()
     payout_method = request.data.get("payout_method", "manual")
     
     if amount <= 0:
-        return Response({"error":"Invalid amount"}, status=400)
+        return Response({"error": INVALID_AMOUNT_ERROR}, status=400)
     if payout_method not in ("instant", "manual"):
         return Response({"error": "Invalid payout method"}, status=400)
     if not upi_id:
@@ -203,27 +239,19 @@ def request_withdrawal(request):
     try:
         payout_amount, gateway_fee, gst_amount = calculate_payout_breakdown(amount)
         total_debit = (payout_amount + gateway_fee + gst_amount).quantize(Decimal("0.01"))
-        with transaction.atomic():
-            profile = Profile.objects.select_for_update().get(pk=profile.pk)
-            if profile.balance < total_debit:
-                w.status = "failed"
-                w.admin_note = "Insufficient balance."
-                w.save(update_fields=["status", "admin_note"])
-                return Response({
-                    "error": (
-                        f"Insufficient balance. You need ₹{total_debit:.2f}, "
-                        f"but your wallet has ₹{profile.balance:.2f}."
-                    ),
-                    "required_amount": str(total_debit),
-                    "wallet_balance": str(profile.balance),
-                }, status=400)
-            profile.balance -= total_debit
-            profile.save(update_fields=["balance"])
-            funds_reserved = True
-            debit_transaction = Transaction.objects.create(
-                profile=profile, tx_type="debit", amount=total_debit,
-                note=f"Instant UPI withdrawal {w.id} (payout ₹{payout_amount}, fee ₹{gateway_fee}, GST ₹{gst_amount})",
-            )
+        debit_transaction, wallet_balance = _reserve_instant_withdrawal(
+            profile, w, total_debit, payout_amount, gateway_fee, gst_amount
+        )
+        if debit_transaction is None:
+            return Response({
+                "error": (
+                    f"Insufficient balance. You need ₹{total_debit:.2f}, "
+                    f"but your wallet has ₹{wallet_balance:.2f}."
+                ),
+                "required_amount": str(total_debit),
+                "wallet_balance": str(wallet_balance),
+            }, status=400)
+        funds_reserved = True
         w.payout_amount = payout_amount
         w.gateway_fee = gateway_fee
         w.gst_amount = gst_amount
@@ -251,14 +279,7 @@ def request_withdrawal(request):
         })
     except (RuntimeError, ValueError, requests.RequestException) as exc:
         if funds_reserved:
-            with transaction.atomic():
-                profile = Profile.objects.select_for_update().get(pk=profile.pk)
-                profile.balance += total_debit
-                profile.save(update_fields=["balance"])
-                Transaction.objects.create(
-                    profile=profile, tx_type="credit", amount=total_debit,
-                    note=f"Refund for failed instant withdrawal {w.id}",
-                )
+            _refund_instant_withdrawal(profile, w, total_debit)
         w.status = "failed"
         w.admin_note = str(exc)[:500]
         w.save(update_fields=["status", "admin_note"])
@@ -273,7 +294,7 @@ def withdrawal_pricing(request):
     try:
         amount = Decimal(str(request.query_params.get("amount", "0"))).quantize(Decimal("0.01"))
     except (InvalidOperation, TypeError, ValueError):
-        return Response({"error": "Invalid amount"}, status=400)
+        return Response({"error": INVALID_AMOUNT_ERROR}, status=400)
     if amount <= 0:
         return Response({"error": "Enter an amount to calculate fees"}, status=400)
     payout_amount, fee, gst = calculate_payout_breakdown(amount)
@@ -293,7 +314,7 @@ def approve_withdrawal(request, withdrawal_id):
     try:
         wd = Withdrawal.objects.get(id=withdrawal_id)
     except Withdrawal.DoesNotExist:
-        return Response({"error": "Withdrawal not found"}, status=404)
+        return Response({"error": WITHDRAWAL_NOT_FOUND_ERROR}, status=404)
 
     if wd.status != 'pending':
         return Response({"error": "Withdrawal is already " + wd.status}, status=400)
@@ -328,7 +349,7 @@ def reject_withdrawal(request, withdrawal_id):
     try:
         wd = Withdrawal.objects.get(id=withdrawal_id)
     except Withdrawal.DoesNotExist:
-        return Response({"error": "Withdrawal not found"}, status=404)
+        return Response({"error": WITHDRAWAL_NOT_FOUND_ERROR}, status=404)
 
     if wd.status != 'pending':
         return Response({"error": "Withdrawal is already " + wd.status}, status=400)
@@ -354,7 +375,7 @@ def mark_withdrawal_paid(request, withdrawal_id):
     try:
         wd = Withdrawal.objects.get(id=withdrawal_id)
     except Withdrawal.DoesNotExist:
-        return Response({"error": "Withdrawal not found"}, status=404)
+        return Response({"error": WITHDRAWAL_NOT_FOUND_ERROR}, status=404)
 
     wd.status = "paid"
     wd.payout_id = request.data.get("payout_id", "manual-payment")
@@ -404,7 +425,7 @@ def request_deposit(request):
     utr = request.data.get("utr_number", "").strip()
 
     if amount <= 0:
-        return Response({"error": "Invalid amount"}, status=400)
+        return Response({"error": INVALID_AMOUNT_ERROR}, status=400)
     if not utr:
         return Response({"error": "UTR number is required"}, status=400)
 

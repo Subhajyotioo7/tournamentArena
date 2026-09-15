@@ -3,6 +3,26 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { hostPartnerService, tournamentService } from '../services/api';
 import { Button } from '../components/ui/button';
 
+const getTeamSize = (mode) => {
+    if (mode === 'solo') return 1;
+    if (mode === 'duo') return 2;
+    return 4;
+};
+
+const getRoomPlayerCount = (mode) => {
+    if (mode === 'solo') return 2;
+    if (mode === 'duo') return 4;
+    return 8;
+};
+
+const getCreationFee = (type) => (type === 'br' ? 50 : 10);
+
+const getHostRequestText = (status, requesting) => {
+    if (requesting) return 'Submitting...';
+    if (status === 'pending') return 'Request Pending';
+    return 'Submit Request';
+};
+
 export default function CreateTournament() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -124,7 +144,8 @@ export default function CreateTournament() {
 
             const response = await tournamentService.createUserTournament(payload);
             const breakdown = response.breakdown || {};
-            alert(`✅ ${response.message}\n\n💰 Total Deducted: ₹${response.fee_deducted}\n- Creation Fee: ₹${breakdown.creation_fee || (formData.tournament_type === 'br' ? '50' : '10')}\n- Prize Pool: ₹${breakdown.prize_pool || '0'}`);
+            const creationFee = breakdown.creation_fee || String(getCreationFee(formData.tournament_type));
+            alert(`✅ ${response.message}\n\n💰 Total Deducted: ₹${response.fee_deducted}\n- Creation Fee: ₹${creationFee}\n- Prize Pool: ₹${breakdown.prize_pool || '0'}`);
             navigate('/');
         } catch (error) {
             console.error('Failed to create tournament:', error);
@@ -270,7 +291,7 @@ export default function CreateTournament() {
                                                     variant="default"
                                                     size="sm"
                                                 >
-                                                    {requestingAccess ? 'Submitting...' : hostRequestStatus === 'pending' ? 'Request Pending' : 'Submit Request'}
+                                                    {getHostRequestText(hostRequestStatus, requestingAccess)}
                                                 </Button>
                                             </div>
 
@@ -329,8 +350,8 @@ export default function CreateTournament() {
                                 value={formData.team_mode}
                                 onChange={(e) => {
                                     const mode = e.target.value;
-                                    const maxPlayers = mode === 'solo' ? 2 : mode === 'duo' ? 4 : 8;
-                                    const brPlayerCount = mode === 'solo' ? 16 : mode === 'duo' ? 16 : 16;
+                                    const maxPlayers = getRoomPlayerCount(mode);
+                                    const brPlayerCount = 16;
                                     setFormData(prev => ({
                                         ...prev,
                                         team_mode: mode,
@@ -355,7 +376,7 @@ export default function CreateTournament() {
                                     value={formData.custom_player_count}
                                     onChange={(e) => {
                                         const value = Number(e.target.value || 0);
-                                        const teamSize = formData.team_mode === 'solo' ? 1 : formData.team_mode === 'duo' ? 2 : 4;
+                                        const teamSize = getTeamSize(formData.team_mode);
                                         const roundedValue = value > 0 ? Math.max(teamSize, value - (value % teamSize)) : 0;
                                         setFormData(prev => ({ ...prev, custom_player_count: roundedValue, max_participants: roundedValue }));
                                     }}
@@ -363,7 +384,7 @@ export default function CreateTournament() {
                                 />
                             ) : (
                                 <div className="mt-1 block w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-600 font-bold">
-                                    {formData.team_mode === 'solo' ? '2 players' : formData.team_mode === 'duo' ? '4 players' : '8 players'}
+                                    {getRoomPlayerCount(formData.team_mode)} players
                                 </div>
                             )}
                         </div>
@@ -384,8 +405,8 @@ export default function CreateTournament() {
                         <h3 className="text-lg font-bold text-gray-900 mb-4">🏆 Set Prize Distribution</h3>
                         <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl p-5 shadow-sm">
                             <div className="space-y-3">
-                                {formData.prize_distributions.map((range, index) => (
-                                    <div key={index} className="grid grid-cols-[1fr_1fr_1.5fr_auto] items-end gap-2">
+                                {formData.prize_distributions.map((range) => (
+                                    <div key={`${range.rank_from}-${range.rank_to}`} className="grid grid-cols-[1fr_1fr_1.5fr_auto] items-end gap-2">
                                         <label className="text-xs font-semibold text-gray-700">
                                             From rank
                                             <input type="number" min="1" value={range.rank_from} onChange={(e) => handlePrizeChange(index, 'rank_from', e.target.value)} className="mt-1 w-full rounded-lg border border-yellow-300 px-3 py-2" />

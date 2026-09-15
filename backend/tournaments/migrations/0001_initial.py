@@ -5,6 +5,8 @@ import uuid
 from django.conf import settings
 from django.db import migrations, models
 
+ROOM_MODEL = 'tournaments.room'
+
 
 class Migration(migrations.Migration):
 
@@ -34,7 +36,7 @@ class Migration(migrations.Migration):
                 ('payment_share', models.DecimalField(decimal_places=2, default=0, max_digits=10)),
                 ('razorpay_order_id', models.CharField(blank=True, max_length=255, null=True)),
                 ('razorpay_payment_id', models.CharField(blank=True, max_length=255, null=True)),
-                ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='participants', to='tournaments.room')),
+                ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='participants', to=ROOM_MODEL)),
                 ('team_leader', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='team_members', to=settings.AUTH_USER_MODEL)),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='room_participations', to=settings.AUTH_USER_MODEL)),
             ],
@@ -51,7 +53,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('invitee', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='received_invitations', to=settings.AUTH_USER_MODEL)),
                 ('inviter', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sent_invitations', to=settings.AUTH_USER_MODEL)),
-                ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='invitations', to='tournaments.room')),
+                ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='invitations', to=ROOM_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -84,7 +86,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('approved_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='approved_payouts', to=settings.AUTH_USER_MODEL)),
                 ('participant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='results', to='tournaments.roomparticipant')),
-                ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='results', to='tournaments.room')),
+                ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='results', to=ROOM_MODEL)),
             ],
             options={
                 'ordering': ['rank'],

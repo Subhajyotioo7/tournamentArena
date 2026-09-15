@@ -164,30 +164,9 @@ def phonepe_payment_status(request, merchant_order_id):
             return Response({"error": f"Unable to verify payment: {exc}"}, status=502)
         phonepe_status = result.get("state") or result.get("status")
         if phonepe_status in {"SUCCESS", "COMPLETED"}:
-            with transaction.atomic():
-                payment = PhonePePayment.objects.select_for_update().get(pk=payment.pk)
-                if payment.status == "PENDING":
-                    payment_details = result.get("paymentDetails") or []
-                    latest_detail = payment_details[-1] if payment_details else {}
-                    payment.status = "SUCCESS"
-                    payment.phonepe_transaction_id = (
-                        result.get("transactionId")
-                        or latest_detail.get("transactionId")
-                        or result.get("data", {}).get("transactionId", "")
-                    )
-                    payment.save(update_fields=["status", "phonepe_transaction_id", "updated_at"])
-                    profile = Profile.objects.select_for_update().get(pk=payment.profile_id)
-                    profile.balance += payment.amount
-                    profile.save(update_fields=["balance"])
-                    Transaction.objects.create(profile=profile, tx_type="credit", amount=payment.amount,
-                                               note=(
-                                                   f"PhonePe UPI wallet credit: {payment.merchant_order_id} "
-                                                   f"(paid ₹{payment.total_paid}, fee ₹{payment.gateway_fee}, "
-                                                   f"GST ₹{payment.gst_amount})"
-                                               ))
+            payment = _complete_phonepe_payment(payment, result)
         elif phonepe_status in {"FAILED", "DECLINED", "CANCELLED", "EXPIRED"}:
-            payment.status = "FAILED"
-            payment.save(update_fields=["status", "updated_at"])
+            payment = _fail_phonepe_payment(payment)
     return Response({
         "merchant_order_id": payment.merchant_order_id,
         "status": payment.status,
@@ -196,3 +175,39 @@ def phonepe_payment_status(request, merchant_order_id):
         "gst_amount": payment.gst_amount,
         "total_paid": payment.total_paid,
     })
+
+
+def _complete_phonepe_payment(payment, result):
+    with transaction.atomic():
+        payment = PhonePePayment.objects.select_for_update().get(pk=payment.pk)
+        if payment.status != "PENDING":
+            return payment
+        payment_details = result.get("paymentDetails") or []
+        latest_detail = payment_details[-1] if payment_details else {}
+        payment.status = "SUCCESS"
+        payment.phonepe_transaction_id = (
+            result.get("transactionId")
+            or latest_detail.get("transactionId")
+            or result.get("data", {}).get("transactionId", "")
+        )
+        payment.save(update_fields=["status", "phonepe_transaction_id", "updated_at"])
+        profile = Profile.objects.select_for_update().get(pk=payment.profile_id)
+        profile.balance += payment.amount
+        profile.save(update_fields=["balance"])
+        Transaction.objects.create(
+            profile=profile,
+            tx_type="credit",
+            amount=payment.amount,
+            note=(
+                f"PhonePe UPI wallet credit: {payment.merchant_order_id} "
+                f"(paid ₹{payment.total_paid}, fee ₹{payment.gateway_fee}, "
+                f"GST ₹{payment.gst_amount})"
+            ),
+        )
+    return payment
+
+
+def _fail_phonepe_payment(payment):
+    payment.status = "FAILED"
+    payment.save(update_fields=["status", "updated_at"])
+    return payment

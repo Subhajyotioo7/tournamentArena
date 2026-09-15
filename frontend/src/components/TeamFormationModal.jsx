@@ -2,6 +2,8 @@ import { Crosshair, User, Users, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
 
+const TEAMMATE_KEYS = ['first', 'second', 'third', 'fourth'];
+
 export default function TeamFormationModal({ tournament, onClose, onJoinSolo, onCreateTeam }) {
     const [gameIds, setGameIds] = useState(['', '', '']);
     const [loading, setLoading] = useState(false);
@@ -181,8 +183,8 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                             )}
 
                             <div className="space-y-3 mb-4">
-                                {Array.from({ length: info.invites }).map((_, index) => (
-                                    <div key={index}>
+                                {TEAMMATE_KEYS.slice(0, info.invites).map((memberKey, index) => (
+                                    <div key={memberKey}>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Teammate {index + 1} Game ID
                                         </label>

@@ -65,6 +65,7 @@ const ToastStack = memo(({ position, items, duration }) => {
               ? hoveredId === item.id
               : index === displayedItems.length - 1;
             const gradient = GRADIENTS[item.type] || GRADIENTS.default;
+            const marginLeft = index === 0 ? 0 : (hoveredId === item.id ? 6 : -12);
 
             return (
               <motion.div
@@ -72,7 +73,7 @@ const ToastStack = memo(({ position, items, duration }) => {
                 onMouseEnter={() => setHoveredId(item.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 initial={{ width: 40, opacity: 0, scale: 0.9, marginLeft: index ? -24 : 0 }}
-                animate={{ width: expanded ? 'auto' : 40, opacity: 1, scale: expanded ? 1.05 : 1, marginLeft: index ? (hoveredId === item.id ? 6 : -12) : 0 }}
+                animate={{ width: expanded ? 'auto' : 40, opacity: 1, scale: expanded ? 1.05 : 1, marginLeft }}
                 exit={{ width: 0, opacity: 0, scale: 0.8, marginLeft: 0 }}
                 transition={{ type: 'spring', stiffness: 180, damping: 25 }}
                 style={{ zIndex: hoveredId === item.id ? 50 : index + 1 }}

@@ -3,6 +3,54 @@ import { walletService } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { Button } from '../components/ui/button';
 
+const getWithdrawalStatusClass = (status) => {
+  if (status === 'paid') return 'text-blue-600';
+  if (status === 'approved') return 'text-green-600';
+  return 'text-yellow-600';
+};
+
+function TransactionContent({ transactions }) {
+  if (transactions.length === 0) {
+    return <div className="bg-white p-12 rounded-3xl shadow-sm text-center border-2 border-dashed border-gray-100"><span className="text-4xl mb-4 block">📜</span><p className="text-gray-500 font-medium">No transactions found yet.</p></div>;
+  }
+  return (
+    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+      {transactions.map((tx) => (
+        <div key={tx.id} className="flex justify-between items-center p-5 hover:bg-gray-50/50 transition-colors">
+          <div className="flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${tx.tx_type === 'credit' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+              {tx.tx_type === 'credit' ? '↙' : '↗'}
+            </div>
+            <div><p className="font-bold text-gray-900">{tx.note || "System Payout"}</p><p className="text-xs text-gray-400 font-semibold">{new Date(tx.created_at).toLocaleString()}</p></div>
+          </div>
+          <div className={`font-black text-lg ${tx.tx_type === 'credit' ? "text-green-600" : "text-red-600"}`}>
+            {tx.tx_type === 'credit' ? "+" : "-"}₹{parseFloat(tx.amount).toFixed(2)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WithdrawalContent({ withdrawals, getStatusColor }) {
+  if (withdrawals.length === 0) {
+    return <div className="bg-white p-12 rounded-3xl shadow-sm text-center border-2 border-dashed border-gray-100"><span className="text-4xl mb-4 block">💰</span><p className="text-gray-500 font-medium">No withdrawal requests found.</p></div>;
+  }
+  return (
+    <div className="space-y-4">
+      {withdrawals.map((wdr) => (
+        <div key={wdr.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-4"><div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl">🏧</div><div>
+            <div className="flex items-center gap-2"><p className="font-extrabold text-gray-900">₹{parseFloat(wdr.amount).toFixed(2)}</p><span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-full ${getStatusColor(wdr.status)}`}>{wdr.status}</span></div>
+            <p className="text-[10px] text-gray-400 font-bold mt-0.5">{new Date(wdr.requested_at).toLocaleDateString()} • {wdr.upi_id || 'Bank Transfer'}</p>
+          </div></div>
+          <div className="text-right"><p className="text-[9px] text-gray-400 font-black uppercase tracking-widest leading-none mb-1">Status</p><p className={`text-xs font-black uppercase ${getWithdrawalStatusClass(wdr.status)}`}>{wdr.status}</p></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function WalletTransactions() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
@@ -112,65 +160,9 @@ export default function WalletTransactions() {
         </div>
 
         {/* Content */}
-        {activeTab === "transactions" ? (
-          transactions.length === 0 ? (
-            <div className="bg-white p-12 rounded-3xl shadow-sm text-center border-2 border-dashed border-gray-100">
-              <span className="text-4xl mb-4 block">📜</span>
-              <p className="text-gray-500 font-medium">No transactions found yet.</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
-              {transactions.map((tx) => (
-                <div key={tx.id} className="flex justify-between items-center p-5 hover:bg-gray-50/50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${tx.tx_type === 'credit' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                      {tx.tx_type === 'credit' ? '↙' : '↗'}
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900">{tx.note || "System Payout"}</p>
-                      <p className="text-xs text-gray-400 font-semibold">{new Date(tx.created_at).toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className={`font-black text-lg ${tx.tx_type === 'credit' ? "text-green-600" : "text-red-600"}`}>
-                    {tx.tx_type === 'credit' ? "+" : "-"}₹{parseFloat(tx.amount).toFixed(2)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-        ) : (
-          withdrawals.length === 0 ? (
-            <div className="bg-white p-12 rounded-3xl shadow-sm text-center border-2 border-dashed border-gray-100">
-              <span className="text-4xl mb-4 block">💰</span>
-              <p className="text-gray-500 font-medium">No withdrawal requests found.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {withdrawals.map((wdr) => (
-                <div key={wdr.id} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl">🏧</div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-extrabold text-gray-900">₹{parseFloat(wdr.amount).toFixed(2)}</p>
-                        <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-full ${getStatusColor(wdr.status)}`}>
-                          {wdr.status}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-gray-400 font-bold mt-0.5">{new Date(wdr.requested_at).toLocaleDateString()} • {wdr.upi_id || 'Bank Transfer'}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[9px] text-gray-400 font-black uppercase tracking-widest leading-none mb-1">Status</p>
-                    <p className={`text-xs font-black uppercase ${wdr.status === 'paid' ? 'text-blue-600' : wdr.status === 'approved' ? 'text-green-600' : 'text-yellow-600'}`}>
-                      {wdr.status}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-        )}
+        {activeTab === "transactions"
+          ? <TransactionContent transactions={transactions} />
+          : <WithdrawalContent withdrawals={withdrawals} getStatusColor={getStatusColor} />}
       </div>
     </div>
   );

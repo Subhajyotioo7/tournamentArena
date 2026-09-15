@@ -65,10 +65,10 @@ export default function Home() {
         </div>
 
         {/* Tournaments Grid */}
-        {loading ? (
+        {loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden">
+            {['one', 'two', 'three', 'four', 'five', 'six'].map((skeletonId) => (
+              <div key={skeletonId} className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="h-32 bg-gradient-to-r from-gray-200 to-gray-300 animate-pulse"></div>
                 <div className="p-6 space-y-4">
                   <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
@@ -78,13 +78,15 @@ export default function Home() {
               </div>
             ))}
           </div>
-        ) : filteredTournaments.length > 0 ? (
+        )}
+        {!loading && filteredTournaments.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTournaments.map((tournament) => (
               <TournamentCard key={tournament.id} tournament={tournament} />
             ))}
           </div>
-        ) : (
+        )}
+        {!loading && filteredTournaments.length === 0 && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🎮</div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">No Tournaments Found</h3>

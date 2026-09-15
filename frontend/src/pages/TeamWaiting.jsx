@@ -4,6 +4,16 @@ import { Clock3, CheckCircle2, CircleX, Trash2, Users } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { roomService } from '../services/api';
 
+function InvitationStatus({ status }) {
+  if (status === 'accepted') {
+    return <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-label="Accepted" />;
+  }
+  if (status === 'rejected') {
+    return <CircleX className="h-5 w-5 text-red-500" aria-label="Declined" />;
+  }
+  return <span className="text-xs font-bold uppercase text-amber-600">Waiting</span>;
+}
+
 export default function TeamWaiting() {
   const { roomId } = useParams();
   const navigate = useNavigate();
@@ -74,11 +84,7 @@ export default function TeamWaiting() {
                     <p className="font-semibold text-stone-800">{invitation.invitee_username || invitation.game_id}</p>
                     <p className="text-xs text-stone-400">Game ID: {invitation.game_id}</p>
                   </div>
-                  {invitation.status === 'accepted'
-                    ? <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-label="Accepted" />
-                    : invitation.status === 'rejected'
-                      ? <CircleX className="h-5 w-5 text-red-500" aria-label="Declined" />
-                      : <span className="text-xs font-bold uppercase text-amber-600">Waiting</span>}
+                  <InvitationStatus status={invitation.status} />
                 </div>
               ))}
             </div>

@@ -49,6 +49,31 @@ def credit_tournament_creator(tournament, participant, amount):
         note=f"Entry fee from {participant.user.username}: {tournament.name}",
     )
 
+def _validate_br_tournament(request, team_mode, custom_player_count):
+    approved_request = HostPartnerRequest.objects.filter(
+        requested_by=request.user,
+        status='approved',
+    ).order_by('-created_at').first()
+    if not approved_request:
+        return None, Response({
+            "error": "Only approved host partners can create BR / long tournaments. Request access first."
+        }, status=403)
+    team_size = {"solo": 1, "duo": 2, "squad": 4}.get(team_mode)
+    if not team_size:
+        return None, Response({"error": "Invalid BR team mode"}, status=400)
+    if custom_player_count < team_size or custom_player_count % team_size != 0:
+        return None, Response({
+            "error": f"BR player count must be a multiple of {team_size} for {team_mode} mode"
+        }, status=400)
+    return approved_request, None
+
+
+def _prize_pool(prize_distributions):
+    return sum(
+        (Decimal(str(dist.get('prize', 0))) for dist in prize_distributions),
+        Decimal("0.00"),
+    )
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -276,6 +301,16 @@ def my_invitations(request):
     
     return Response({'invitations': data})
 
+def _invitation_payment_share(invitation, tournament, room):
+    if room.payment_type == 'leader_pays_all':
+        return Decimal("0")
+    leader_participant = RoomParticipant.objects.filter(
+        room=room, user=invitation.inviter, is_team_leader=True
+    ).first()
+    if leader_participant and leader_participant.payment_share >= tournament.entry_fee:
+        return Decimal("0")
+    return tournament.entry_fee / tournament.get_team_size()
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -302,16 +337,7 @@ def accept_invitation(request, invitation_id):
         tournament = room.tournament
         team_size = tournament.get_team_size()
         
-        payment_share = tournament.entry_fee / team_size
-        if room.payment_type == 'leader_pays_all':
-            payment_share = 0
-        else:
-            # Preserve legacy teams created before split payment was introduced.
-            leader_participant = RoomParticipant.objects.filter(
-                room=room, user=invitation.inviter, is_team_leader=True
-            ).first()
-            if leader_participant and leader_participant.payment_share >= tournament.entry_fee:
-                payment_share = 0
+        payment_share = _invitation_payment_share(invitation, tournament, room)
         
         # Use transaction to ensure atomicity
         with transaction.atomic():
@@ -366,7 +392,6 @@ def accept_invitation(request, invitation_id):
             invitation.save()
             
             # Check if team is complete
-            current_count = room.current_count()
             accepted_invites = room.invitations.filter(status='accepted').count()
             team_complete = accepted_invites == team_size - 1
 
@@ -894,32 +919,18 @@ def create_user_tournament(request):
 
     approved_request = None
     if tournament_type == 'br':
-        approved_request = HostPartnerRequest.objects.filter(
-            requested_by=request.user,
-            status='approved',
-        ).order_by('-created_at').first()
-
-        if not approved_request:
-            return Response({
-                "error": "Only approved host partners can create BR / long tournaments. Request access first."
-            }, status=403)
-
-        team_size = {"solo": 1, "duo": 2, "squad": 4}.get(team_mode)
-        if not team_size:
-            return Response({"error": "Invalid BR team mode"}, status=400)
-        if custom_player_count < team_size or custom_player_count % team_size != 0:
-            return Response({
-                "error": f"BR player count must be a multiple of {team_size} for {team_mode} mode"
-            }, status=400)
+        approved_request, validation_error = _validate_br_tournament(
+            request, team_mode, custom_player_count
+        )
+        if validation_error:
+            return validation_error
         max_participants = custom_player_count
 
     # Calculate total costs
     creation_fee = Decimal("50.00") if tournament_type == "br" else Decimal("10.00")
     
     # Calculate total prize money
-    total_prize_money = Decimal("0.00")
-    for dist in prize_distributions:
-        total_prize_money += Decimal(str(dist.get('prize', 0)))
+    total_prize_money = _prize_pool(prize_distributions)
     
     # Total amount to deduct = creation fee + prize pool
     total_deduction = creation_fee + total_prize_money
@@ -976,7 +987,7 @@ def create_user_tournament(request):
             )
 
         # 5. Create associated Room
-        room = Room.objects.create(tournament=tournament, owner=request.user)
+        Room.objects.create(tournament=tournament, owner=request.user)
 
     return Response({
         "message": "Tournament created successfully!",

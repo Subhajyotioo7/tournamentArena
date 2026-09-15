@@ -1,56 +1,11 @@
-import { Button } from './ui/button';
-// import { useEffect, useState } from "react";
+﻿import { Button } from './ui/button';
 
-// export default function RoomChat({ roomId }) {
-//   const [socket, setSocket] = useState(null);
-//   const [message, setMessage] = useState("");
-//   const [messages, setMessages] = useState([]);
 
-//   useEffect(() => {
-//     const ws = new WebSocket(
-//       `ws://127.0.0.1:8000/ws/room/${roomId}/`
-//     );
 
-//     ws.onmessage = (e) => {
-//       const data = JSON.parse(e.data);
-//       setMessages((prev) => [...prev, data]);
-//     };
 
-//     setSocket(ws);
-//     return () => ws.close();
-//   }, [roomId]);
 
-//   const sendMessage = () => {
-//     socket.send(JSON.stringify({ message }));
-//     setMessage("");
-//   };
 
-//   return (
-//     <div className="bg-gray-800 p-4 rounded-lg">
-//       <div className="h-64 overflow-y-auto space-y-2">
-//         {messages.map((msg, i) => (
-//           <div key={i} className={msg.is_admin ? "text-red-400" : "text-white"}>
-//             <b>{msg.sender}:</b> {msg.message}
-//           </div>
-//         ))}
-//       </div>
 
-//       <div className="flex gap-2 mt-2">
-//         <input
-//           className="flex-1 p-2 rounded text-black"
-//           value={message}
-//           onChange={(e) => setMessage(e.target.value)}
-//         />
-//         <button
-//           onClick={sendMessage}
-//           className="bg-purple-600 px-4 rounded text-white"
-//         >
-//           Send
-//         </button>
-//       </div>
-//     </div>
-//   );
-// }
 
 import { useEffect, useState, useRef } from "react";
 import { Crown, MessageCircle, Send } from "lucide-react";
@@ -63,7 +18,6 @@ export default function RoomChat({ roomId }) {
   const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
 
-  // ================== LOAD CHAT HISTORY ==================
   useEffect(() => {
     fetch(`/chat/room/${roomId}/messages/`, {
       headers: {
@@ -81,7 +35,6 @@ export default function RoomChat({ roomId }) {
       );
   }, [roomId, token]);
 
-  // ================== WEBSOCKET CONNECTION ==================
   useEffect(() => {
     if (!roomId || !token) return;
 
@@ -118,12 +71,10 @@ export default function RoomChat({ roomId }) {
     };
   }, [roomId, token]);
 
-  // ================== AUTO SCROLL ==================
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // ================== SEND MESSAGE ==================
   const sendMessage = (type = "chat") => {
     const socket = socketRef.current;
     if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -143,7 +94,6 @@ export default function RoomChat({ roomId }) {
     setMessage("");
   };
 
-  // ================== UI ==================
   return (
     <div className="flex flex-col h-[500px] bg-gray-900 rounded-xl shadow-xl border border-gray-700">
       {/* Header */}
@@ -154,17 +104,17 @@ export default function RoomChat({ roomId }) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg, i) => (
+        {messages.map((msg) => {
+          let messageClass = "bg-gray-700 text-white";
+          if (msg.msg_type === "winner") {
+            messageClass = "bg-green-700 text-white mx-auto text-center font-bold";
+          } else if (msg.is_admin) {
+            messageClass = "bg-red-600 text-white ml-auto";
+          }
+          return (
           <div
-            key={i}
-            className={`p-3 rounded-lg max-w-[80%]
-              ${
-                msg.msg_type === "winner"
-                  ? "bg-green-700 text-white mx-auto text-center font-bold"
-                  : msg.is_admin
-                  ? "bg-red-600 text-white ml-auto"
-                  : "bg-gray-700 text-white"
-              }`}
+            key={msg.id || msg.created_at || msg.message}
+            className={`p-3 rounded-lg max-w-[80%] ${messageClass}`}
           >
             {msg.msg_type !== "winner" && (
               <div className="text-xs text-gray-300 mb-1">
@@ -173,7 +123,8 @@ export default function RoomChat({ roomId }) {
             )}
             <div>{msg.message}</div>
           </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
@@ -196,4 +147,3 @@ export default function RoomChat({ roomId }) {
     </div>
   );
 }
-

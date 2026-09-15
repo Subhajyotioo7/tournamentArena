@@ -137,14 +137,14 @@ class TournamentEarning(models.Model):
 
 class RoomResult(models.Model):
     """Stores results and prize payout information for room participants"""
-    PAYOUT_STATUS = (("pending","Pending"),("approved","Approved"),("paid","Paid"),("rejected","Rejected"))
+    PAYOUT_STATUS_CHOICES = (("pending","Pending"),("approved","Approved"),("paid","Paid"),("rejected","Rejected"))
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="results")
     participant = models.ForeignKey(RoomParticipant, on_delete=models.CASCADE, related_name="results")
     rank = models.IntegerField()  # Final rank achieved by participant
     prize_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    payout_status = models.CharField(max_length=20, choices=PAYOUT_STATUS, default="pending")
+    payout_status = models.CharField(max_length=20, choices=PAYOUT_STATUS_CHOICES, default="pending")
     approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="approved_payouts")
     approved_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

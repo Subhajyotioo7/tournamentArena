@@ -76,7 +76,7 @@ class Transaction(models.Model):
         return f"{self.tx_type} {self.amount} ({self.profile.user.username})"
 
 class Withdrawal(models.Model):
-    STATUS = (("pending","Pending"),("processing","Processing"),("approved","Approved"),("rejected","Rejected"),("paid","Paid"),("failed","Failed"))
+    STATUS_CHOICES = (("pending","Pending"),("processing","Processing"),("approved","Approved"),("rejected","Rejected"),("paid","Paid"),("failed","Failed"))
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="withdrawals")
     amount = models.DecimalField(max_digits=12, decimal_places=2)
@@ -84,7 +84,7 @@ class Withdrawal(models.Model):
     gateway_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     gst_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     requested_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS, default="pending")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     # Payment destination
     upi_id = models.CharField(max_length=100, blank=True, null=True)
 
@@ -99,13 +99,13 @@ class Withdrawal(models.Model):
         return f"WDR {self.amount} ({self.profile.user.username})"
 
 class Deposit(models.Model):
-    STATUS = (("pending","Pending"),("approved","Approved"),("rejected","Rejected"))
+    STATUS_CHOICES = (("pending","Pending"),("approved","Approved"),("rejected","Rejected"))
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="deposits")
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     utr_number = models.CharField(max_length=100, help_text="Transaction ID / UTR Number")
     created_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS, default="pending")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     admin_note = models.TextField(blank=True, null=True)
 
     def __str__(self):

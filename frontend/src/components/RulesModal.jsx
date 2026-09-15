@@ -1,6 +1,12 @@
 import { Banknote, CreditCard } from 'lucide-react';
 import { Button } from './ui/button';
 
+const getMedal = (rank) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    return '🥉';
+};
+
 export default function RulesModal({ tournament, onClose, onAccept }) {
     if (!tournament) return null;
 
@@ -78,7 +84,7 @@ export default function RulesModal({ tournament, onClose, onAccept }) {
                                     return (
                                         <div key={prize.rank} className={`rounded-xl border p-3 text-center shadow-sm ${isWinner ? 'bg-gradient-to-br from-yellow-100 to-orange-50 border-yellow-300 ring-1 ring-yellow-200' : 'bg-gray-50 border-gray-100'}`}>
                                             <div className="mb-1 text-2xl drop-shadow-sm">
-                                                {prize.rank === 1 ? '🥇' : prize.rank === 2 ? '🥈' : '🥉'}
+                                                {getMedal(prize.rank)}
                                             </div>
                                             <p className="text-[10px] font-black uppercase tracking-wide text-gray-500">Rank #{prize.rank}</p>
                                             <p className={`mt-1 text-xl font-black ${isWinner ? 'text-orange-600' : 'text-gray-700'}`}>₹{totalPayout.toFixed(0)}</p>

@@ -6,6 +6,35 @@ import { Button } from '../components/ui/button';
 import { getGameTheme } from '../config/gameThemes';
 import { Check, Gamepad2, Hourglass, Mail, MessageCircle, Send, Trash2, Trophy, Users, X } from 'lucide-react';
 
+function roomStatus(room) {
+    if (room.status === 'full' || room.current_players >= room.max_players) {
+        return { label: 'FULL', className: 'text-orange-600' };
+    }
+    if (room.status === 'open') return { label: 'OPEN', className: 'text-green-600' };
+    if (room.status === 'started') return { label: 'STARTED', className: 'text-blue-600' };
+    if (room.status === 'completed') return { label: 'COMPLETED', className: 'text-gray-600' };
+    return { label: room.status.toUpperCase(), className: 'text-green-600' };
+}
+
+function RoomAction({ room, onView }) {
+    if (room.status === 'started') {
+        return <Button onClick={() => onView(room.id)} className="w-full"><span className="inline-flex items-center gap-2"><Gamepad2 className="h-4 w-4" aria-hidden="true" />Enter Room</span></Button>;
+    }
+    if (room.status === 'completed') {
+        return <Button onClick={() => onView(room.id)} variant="secondary" className="w-full">👁️ View Results</Button>;
+    }
+    return <Button onClick={() => onView(room.id)} variant={room.status === 'full' || room.current_players >= room.max_players ? 'outline' : 'default'} className="w-full">👁️ View Room</Button>;
+}
+
+function PaymentStatus({ paid }) {
+    if (paid) {
+        return <span className="inline-flex items-center gap-1"><Check className="h-4 w-4" aria-hidden="true" />Paid</span>;
+    }
+    return <span className="inline-flex items-center gap-1"><X className="h-4 w-4" aria-hidden="true" />Unpaid</span>;
+}
+
+const messageKey = (message) => message.id || message.timestamp || [message.username, message.text].join('-');
+const resultKey = (result) => result.id || [result.username, result.rank].join('-');
 
 export default function MyRooms() {
     const { user } = useAuth();
@@ -281,20 +310,17 @@ export default function MyRooms() {
                                 {/* Room Details */}
                                 <div className="p-6">
                                     <div className="space-y-3 mb-4">
+                                        {(() => {
+                                            const status = roomStatus(room);
+                                            return (
                                         <div className="flex justify-between text-sm">
                                             <span className="text-gray-600">Room Status</span>
-                                            <span className={`font-semibold capitalize ${room.status === 'full' || room.current_players >= room.max_players ? 'text-orange-600' :
-                                                room.status === 'started' ? 'text-blue-600' :
-                                                    room.status === 'completed' ? 'text-gray-600' :
-                                                        'text-green-600'
-                                                }`}>
-                                                {room.status === 'full' || room.current_players >= room.max_players ? 'FULL' :
-                                                    room.status === 'open' ? 'OPEN' :
-                                                        room.status === 'started' ? 'STARTED' :
-                                                            room.status === 'completed' ? 'COMPLETED' :
-                                                                room.status.toUpperCase()}
+                                            <span className={`font-semibold capitalize ${status.className}`}>
+                                                {status.label}
                                             </span>
                                         </div>
+                                            );
+                                        })()}
                                         <div className="flex justify-between text-sm">
                                             <span className="text-gray-600">Players</span>
                                             <span className="font-semibold text-gray-900">
@@ -312,7 +338,7 @@ export default function MyRooms() {
                                         <div className="flex justify-between text-sm">
                                             <span className="text-gray-600">Payment</span>
                                             <span className={`font-semibold ${room.paid ? 'text-green-600' : 'text-red-600'}`}>
-                                                <span className="inline-flex items-center gap-1">{room.paid ? <Check className="h-4 w-4" aria-hidden="true" /> : <X className="h-4 w-4" aria-hidden="true" />}{room.paid ? 'Paid' : 'Unpaid'}</span>
+                                                <PaymentStatus paid={room.paid} />
                                             </span>
                                         </div>
                                         <div className="flex justify-between text-sm">
@@ -335,37 +361,7 @@ export default function MyRooms() {
                                                     : 'View Team Waiting Status'}
                                             </Button>
                                         )}
-                                        {room.status === 'started' ? (
-                                            <Button
-                                                onClick={() => handleViewRoom(room.id)}
-                                                className="w-full"
-                                            >
-                                                <span className="inline-flex items-center gap-2"><Gamepad2 className="h-4 w-4" aria-hidden="true" />Enter Room</span>
-                                            </Button>
-                                        ) : room.status === 'completed' ? (
-                                            <Button
-                                                onClick={() => handleViewRoom(room.id)}
-                                                variant="secondary"
-                                                className="w-full"
-                                            >
-                                                👁️ View Results
-                                            </Button>
-                                        ) : room.status === 'full' || room.current_players >= room.max_players ? (
-                                            <Button
-                                                onClick={() => handleViewRoom(room.id)}
-                                                variant="outline"
-                                                className="w-full"
-                                            >
-                                                👁️ View Room
-                                            </Button>
-                                        ) : (
-                                            <Button
-                                                onClick={() => handleViewRoom(room.id)}
-                                                className="w-full"
-                                            >
-                                                👁️ View Room
-                                            </Button>
-                                        )}
+                                        <RoomAction room={room} onView={handleViewRoom} />
                                     </div>
                                 </div>
                             </div>
@@ -469,8 +465,8 @@ export default function MyRooms() {
                                             <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{roomDetails.current_players}/{roomDetails.max_players}</span>
                                         </div>
                                         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                                            {roomDetails.participants.map((p, i) => (
-                                                <div key={i} className="p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-purple-200 transition-all hover:shadow-md group">
+                                            {roomDetails.participants.map((p) => (
+                                                <div key={p.id || p.username} className="p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-purple-200 transition-all hover:shadow-md group">
                                                     <p className="font-black text-gray-900 text-xs truncate group-hover:text-purple-600 transition-colors">{p.username}</p>
                                                     <p className="text-[10px] text-gray-400 font-bold mt-0.5 tracking-tight">ID: {p.game_id || 'N/A'}</p>
                                                 </div>
@@ -491,10 +487,10 @@ export default function MyRooms() {
                                             </div>
                                         </div>
                                         <div className="flex-1 p-6 space-y-4 overflow-y-auto bg-blue-50/10">
-                                            {messages.length > 0 ? messages.map((msg, i) => {
+                                            {messages.length > 0 ? messages.map((msg) => {
                                                 const isMe = (msg.username || '').toLowerCase() === (user?.username || '').toLowerCase();
                                                 return (
-                                                    <div key={i} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
+                                                    <div key={messageKey(msg)} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
                                                         <div className={`max-w-[85%] px-4 py-3 rounded-2xl shadow-sm text-xs font-medium leading-relaxed ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border-gray-200 text-gray-800 rounded-tl-none border'}`}>
                                                             {!isMe && <p className="text-[10px] font-black text-blue-600 mb-1 tracking-tight">{msg.username.toUpperCase()}</p>}
                                                             <p>{msg.text}</p>
@@ -557,8 +553,8 @@ export default function MyRooms() {
                                                 <span className="bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-full">{roomDetails.results.length}</span>
                                             </h4>
                                             <div className="flex-1 overflow-y-auto space-y-3">
-                                                {roomDetails.results.map((res, i) => (
-                                                    <div key={i} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-gray-200 transition-all animate-in slide-in-from-right duration-500">
+                                                {roomDetails.results.map((res) => (
+                                                    <div key={resultKey(res)} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-gray-200 transition-all animate-in slide-in-from-right duration-500">
                                                         <div className="flex items-center gap-3">
                                                             <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${res.rank === 1 ? 'bg-yellow-400 text-white shadow-md shadow-yellow-100' : 'bg-gray-200 text-gray-600'}`}>#{res.rank}</span>
                                                             <span className="font-black text-gray-800 text-xs truncate w-24">{res.username}</span>
@@ -594,7 +590,7 @@ export default function MyRooms() {
                                             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                     {roomDetails.participants.map((p, i) => (
-                                                        <div key={i} className="p-5 bg-white border border-gray-100 rounded-3xl flex justify-between items-center shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
+                                                        <div key={p.id || p.username} className="p-5 bg-white border border-gray-100 rounded-3xl flex justify-between items-center shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
                                                             <div>
                                                                 <p className="font-black text-gray-900 group-hover:text-purple-600 transition-colors uppercase tracking-tighter">{p.username}</p>
                                                                 <p className="text-[10px] text-gray-400 font-black mt-1 uppercase tracking-widest">Player ID: {p.game_id || 'N/A'}</p>
@@ -609,10 +605,12 @@ export default function MyRooms() {
                                         {activeTab === 'messages' && (
                                             <div className="flex flex-col h-[55vh] min-h-[320px] max-h-[500px] bg-white border border-gray-100 rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-sm animate-in zoom-in-95 duration-500">
                                                 <div className="flex-1 p-6 space-y-4 overflow-y-auto bg-gray-50/30">
-                                                    {messages.map((msg, i) => {
+                                                    {messages.map((msg) => {
                                                         const isMe = (msg.username || '').toLowerCase() === (user?.username || '').toLowerCase();
+                                                        const alignment = isMe ? 'justify-end' : 'justify-start';
+                                                        const slideDirection = isMe ? 'right' : 'left';
                                                         return (
-                                                            <div key={i} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-${isMe ? 'right' : 'left'}-4 duration-300`}>
+                                                            <div key={messageKey(msg)} className={`flex ${alignment} animate-in slide-in-from-${slideDirection}-4 duration-300`}>
                                                                 <div className={`max-w-[85%] px-5 py-4 rounded-[1.5rem] text-xs font-bold shadow-md transition-all ${isMe ? 'bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'}`}>
                                                                     {!isMe && <p className="text-[9px] font-black text-purple-600 mb-1.5 uppercase tracking-widest">{msg.username}</p>}
                                                                     <p className="leading-relaxed">{msg.text}</p>
@@ -637,8 +635,8 @@ export default function MyRooms() {
                                         {activeTab === 'results' && (
                                             <div className="space-y-4 animate-in slide-in-from-right-8 duration-500">
                                                 <div className="space-y-4">
-                                                    {roomDetails.results.map((res, i) => (
-                                                        <div key={i} className="p-6 bg-gradient-to-br from-yellow-50 to-orange-100/50 border border-yellow-200/50 rounded-[2.5rem] flex justify-between items-center shadow-lg hover:shadow-yellow-100 transition-shadow">
+                                                    {roomDetails.results.map((res) => (
+                                                        <div key={resultKey(res)} className="p-6 bg-gradient-to-br from-yellow-50 to-orange-100/50 border border-yellow-200/50 rounded-[2.5rem] flex justify-between items-center shadow-lg hover:shadow-yellow-100 transition-shadow">
                                                             <div className="flex items-center gap-5">
                                                                 <span className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center font-black text-2xl ${res.rank === 1 ? 'bg-yellow-400 text-white shadow-xl shadow-yellow-200' : 'bg-white text-gray-600 border'}`}>{res.rank}</span>
                                                                 <div>

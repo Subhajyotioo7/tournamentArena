@@ -79,10 +79,15 @@ export default function TournamentCard({ tournament }) {
                         const isWinner = prize.rank === 1;
                         const pAmount = parseFloat(prize.prize_amount);
                         const displayAmount = isWinner ? pAmount + entryFee : pAmount;
-                        const medal = prize.rank === 1 ? '🥇' : prize.rank === 2 ? '🥈' : '🥉';
+                        let medal = '🥉';
+                        if (prize.rank === 1) medal = '🥇';
+                        else if (prize.rank === 2) medal = '🥈';
+                        const prizeClasses = isWinner
+                          ? `${theme.soft} ${theme.border}`
+                          : 'border-white bg-white/80';
 
                         return (
-                          <div key={prize.rank} className={`rounded-lg border p-2 text-center shadow-sm ${isWinner ? `${theme.soft} ${theme.border}` : 'border-white bg-white/80'}`}>
+                          <div key={prize.rank} className={`rounded-lg border p-2 text-center shadow-sm ${prizeClasses}`}>
                             <div className="text-base leading-none">{medal}</div>
                             <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-gray-400">Rank {prize.rank}</p>
                             <p className={`mt-1 text-sm font-black ${isWinner ? theme.accent : 'text-gray-700'}`}>₹{displayAmount.toFixed(0)}</p>

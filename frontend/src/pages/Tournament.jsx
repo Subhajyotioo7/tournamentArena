@@ -7,6 +7,21 @@ import { Button } from '../components/ui/button';
 import { ArrowLeft, Ban, ClipboardList, CircleX, Info, Medal, Rocket, Share2, Trophy, Users } from 'lucide-react';
 import { getGameTheme } from '../config/gameThemes';
 
+function CreateRoomLabel({ creating, full, solo }) {
+  if (creating) {
+    return (
+      <>
+        <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        Processing...
+      </>
+    );
+  }
+  if (full) return <span className="inline-flex items-center gap-2"><Ban className="h-4 w-4" aria-hidden="true" />TOURNAMENT FULL</span>;
+  return solo
+    ? <span className="inline-flex items-center gap-2"><Rocket className="h-4 w-4" aria-hidden="true" />JOIN TOURNAMENT</span>
+    : <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" aria-hidden="true" />CREATE TEAM</span>;
+}
+
 export default function Tournament() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -52,7 +67,8 @@ export default function Tournament() {
     const token = localStorage.getItem('token');
     if (!token) {
       alert('Please login first to join this tournament.');
-      navigate(`/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`);
+      const nextPath = location.pathname + location.search;
+      navigate(`/login?next=${encodeURIComponent(nextPath)}`);
       return;
     }
 
@@ -346,15 +362,11 @@ export default function Tournament() {
                   disabled={creating || (tournament.total_participants >= tournament.max_participants)}
                   className="w-full py-3 text-base sm:py-4 sm:text-lg"
                 >
-                  {creating ? (
-                    <>
-                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Processing...
-                    </>
-                  ) : (tournament.total_participants >= tournament.max_participants) ? (
-                    <span className="inline-flex items-center gap-2"><Ban className="h-4 w-4" aria-hidden="true" />TOURNAMENT FULL</span>
-                  ) : (tournament.team_mode === 'solo' ? <span className="inline-flex items-center gap-2"><Rocket className="h-4 w-4" aria-hidden="true" />JOIN TOURNAMENT</span> : <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" aria-hidden="true" />CREATE TEAM</span>)
-                  }
+                  <CreateRoomLabel
+                    creating={creating}
+                    full={tournament.total_participants >= tournament.max_participants}
+                    solo={tournament.team_mode === 'solo'}
+                  />
                 </Button>
 
                 <p className="text-xs text-center text-gray-400 leading-relaxed px-4">

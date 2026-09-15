@@ -4,6 +4,35 @@ import { Button } from '../components/ui/button';
 import { getGameTheme } from '../config/gameThemes';
 import { getApiBaseUrl } from '../services/api';
 
+const TEAM_MEMBER_KEYS = ['first', 'second', 'third'];
+
+function acceptSuccessMessage(data) {
+    let message = `✅ ${data.message}`;
+    if (data.leader_paid && data.leader_game_id) {
+        return `${message}\n\nFREE - Already paid by: ${data.leader_game_id}`;
+    }
+    const payment = data.payment || data.payment_status;
+    if (payment && payment !== 'FREE') {
+        message += `\nPaid: ₹${payment}`;
+    }
+    return message;
+}
+
+function acceptErrorMessage(data) {
+    let message = data.error || 'Failed to accept invitation';
+    if (data.details) message += `\n\nDetails: ${data.details}`;
+    if (data.traceback) console.error('Backend traceback:', data.traceback);
+    if (data.invited_game_id) {
+        message += `\n\nInvited Game ID: ${data.invited_game_id}`;
+        message += `\nYour Game IDs: ${data.your_game_ids?.join(', ') || 'None'}`;
+    }
+    if (data.required) {
+        message += `\n\nRequired: ₹${data.required}`;
+        message += `\nYour Balance: ₹${data.current_balance}`;
+    }
+    return message;
+}
+
 export default function MyInvitations() {
     const navigate = useNavigate();
     const apiBaseUrl = getApiBaseUrl();
@@ -53,35 +82,10 @@ export default function MyInvitations() {
 
             const data = await response.json();
             if (response.ok) {
-                let message = `✅ ${data.message}`;
-                if (data.leader_paid && data.leader_game_id) {
-                    message += `\n\nFREE - Already paid by: ${data.leader_game_id}`;
-                } else if (data.payment || data.payment_status) {
-                    const payment = data.payment || data.payment_status;
-                    if (payment !== 'FREE') {
-                        message += `\nPaid: ₹${payment}`;
-                    }
-                }
-                alert(message);
+                alert(acceptSuccessMessage(data));
                 fetchInvitations(); // Refresh list
             } else {
-                // Show detailed error for debugging
-                let errorMsg = data.error || 'Failed to accept invitation';
-                if (data.details) {
-                    errorMsg += `\n\nDetails: ${data.details}`;
-                }
-                if (data.traceback) {
-                    console.error('Backend traceback:', data.traceback);
-                }
-                if (data.invited_game_id) {
-                    errorMsg += `\n\nInvited Game ID: ${data.invited_game_id}`;
-                    errorMsg += `\nYour Game IDs: ${data.your_game_ids?.join(', ') || 'None'}`;
-                }
-                if (data.required) {
-                    errorMsg += `\n\nRequired: ₹${data.required}`;
-                    errorMsg += `\nYour Balance: ₹${data.current_balance}`;
-                }
-                alert(`❌ ${errorMsg}`);
+                alert(`❌ ${acceptErrorMessage(data)}`);
             }
         } catch {
             alert('❌ Error accepting invitation');
@@ -194,9 +198,9 @@ export default function MyInvitations() {
 
                             <div className="space-y-3 mb-6">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Teammate Game IDs</label>
-                                {Array.from({ length: newTeam.mode === 'duo' ? 1 : 3 }).map((_, i) => (
+                                {TEAM_MEMBER_KEYS.slice(0, newTeam.mode === 'duo' ? 1 : 3).map((memberKey, i) => (
                                     <input
-                                        key={i}
+                                        key={memberKey}
                                         type="text"
                                         value={newTeam.members[i]}
                                         onChange={e => {

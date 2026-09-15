@@ -3,6 +3,26 @@ import { adminService, tournamentService, roomService } from '../services/api'; 
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
+
+const getRankMedal = (rank) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return '🏅';
+};
+
+const getWithdrawalBadgeClass = (status) => {
+    if (status === 'pending') return 'bg-yellow-100 text-yellow-800';
+    if (status === 'approved') return 'bg-green-100 text-green-800';
+    if (status === 'rejected') return 'bg-red-100 text-red-800';
+    return 'bg-gray-100 text-gray-800';
+};
+
+const getVerificationCardClass = (status, colors) => {
+    if (status === 'pending') return colors.pending;
+    if (status === 'approved') return colors.approved;
+    return colors.other;
+};
 export default function AdminDashboard() {
     const { user, loading: authLoading } = useAuth();
     const isAdmin = user?.is_staff || user?.is_superuser;
@@ -286,12 +306,13 @@ export default function AdminDashboard() {
                         </Button>
                     </div>
 
-                    {loading ? (
+                    {loading && (
                         <div className="text-center py-12">
                             <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                             <p className="text-gray-600">Loading tournaments...</p>
                         </div>
-                    ) : tournaments.length > 0 ? (
+                    )}
+                    {!loading && tournaments.length > 0 && (
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
@@ -361,7 +382,8 @@ export default function AdminDashboard() {
                                 </tbody >
                             </table >
                         </div >
-                    ) : (
+                    )}
+                    {!loading && tournaments.length === 0 && (
                         <div className="text-center py-12 text-gray-500">
                             <div className="text-6xl mb-4">📊</div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">No Tournaments Found</h3>
@@ -374,13 +396,13 @@ export default function AdminDashboard() {
                 < div className="bg-white rounded-xl shadow-lg p-6" >
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Pending Payouts</h2>
 
-                    {
-                        loading ? (
+                    {loading && (
                             <div className="text-center py-12">
                                 <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                                 <p className="text-gray-600">Loading payouts...</p>
                             </div>
-                        ) : Object.keys(payoutsByRoom).length > 0 ? (
+                        )}
+                        {!loading && Object.keys(payoutsByRoom).length > 0 && (
                             <div className="space-y-6">
                                 {Object.entries(payoutsByRoom).map(([roomId, payouts]) => (
                                     <div key={roomId} className="border-2 border-gray-200 rounded-lg p-6 hover:border-purple-300 transition-all">
@@ -403,7 +425,7 @@ export default function AdminDashboard() {
                                                 <div key={payout.id} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                                                     <div className="flex items-center gap-4">
                                                         <div className="text-2xl">
-                                                            {payout.rank === 1 ? '🥇' : payout.rank === 2 ? '🥈' : payout.rank === 3 ? '🥉' : '🏅'}
+                                                            {getRankMedal(payout.rank)}
                                                         </div>
                                                         <div>
                                                             <p className="font-semibold text-gray-900">{payout.participant_username}</p>
@@ -420,26 +442,27 @@ export default function AdminDashboard() {
                                     </div>
                                 ))}
                             </div>
-                        ) : (
+                        )}
+                    {!loading && Object.keys(payoutsByRoom).length === 0 && (
                             <div className="text-center py-12 text-gray-500">
                                 <div className="text-6xl mb-4">✅</div>
                                 <h3 className="text-xl font-bold text-gray-900 mb-2">All Caught Up!</h3>
                                 <p>No pending payouts at the moment.</p>
                             </div>
-                        )
-                    }
+                    )}
                 </div >
 
                 {/* Withdrawal Requests */}
                 <div className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Withdrawal Requests</h2>
 
-                    {loading ? (
+                    {loading && (
                         <div className="text-center py-12">
                             <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                             <p className="text-gray-600">Loading withdrawals...</p>
                         </div>
-                    ) : withdrawals.length > 0 ? (
+                    )}
+                    {!loading && withdrawals.length > 0 && (
                         <div className="space-y-4">
                             {withdrawals.map((withdrawal) => (
                                 <div key={withdrawal.id} className="border-2 border-gray-200 rounded-lg p-6 hover:border-purple-300 transition-all">
@@ -450,11 +473,7 @@ export default function AdminDashboard() {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-2xl font-bold text-green-600">₹{parseFloat(withdrawal.amount).toFixed(2)}</p>
-                                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${withdrawal.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                withdrawal.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                                    withdrawal.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                        'bg-blue-100 text-blue-800'
-                                                }`}>
+                                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getWithdrawalBadgeClass(withdrawal.status)}`}>
                                                 {withdrawal.status.charAt(0).toUpperCase() + withdrawal.status.slice(1)}
                                             </span>
                                         </div>
@@ -494,7 +513,8 @@ export default function AdminDashboard() {
                                 </div>
                             ))}
                         </div>
-                    ) : (
+                    )}
+                    {!loading && withdrawals.length === 0 && (
                         <div className="text-center py-12 text-gray-500">
                             <div className="text-6xl mb-4">💰</div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">No Withdrawal Requests</h3>
@@ -506,9 +526,10 @@ export default function AdminDashboard() {
                 <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Money Deposit Requests</h2>
 
-                    {loading ? (
+                    {loading && (
                         <p className="text-gray-500">Loading deposits...</p>
-                    ) : deposits.length > 0 ? (
+                    )}
+                    {!loading && deposits.length > 0 && (
                         <div className="space-y-4">
                             {deposits.map((dep) => (
                                 <div key={dep.id} className="border-2 border-emerald-100 rounded-2xl p-6 bg-emerald-50/10 hover:border-emerald-200 transition-all">
@@ -540,7 +561,8 @@ export default function AdminDashboard() {
                                 </div>
                             ))}
                         </div>
-                    ) : (
+                    )}
+                    {!loading && deposits.length === 0 && (
                         <div className="text-center py-12 text-gray-400">
                             <span className="text-5xl block mb-2">📥</span>
                             <p className="font-bold">No pending deposits</p>
@@ -551,9 +573,10 @@ export default function AdminDashboard() {
                 {/* Pending Verifications */}
                 <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Pending Verifications</h2>
-                    {loading ? (
+                    {loading && (
                         <p>Loading...</p>
-                    ) : verifications.length > 0 ? (
+                    )}
+                    {!loading && verifications.length > 0 && (
                         <div className="space-y-6">
                             {verifications.map((prof) => (
                                 <div key={prof.username} className="border border-gray-100 rounded-xl p-6 bg-gray-50/30">
@@ -568,12 +591,11 @@ export default function AdminDashboard() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         {/* Game Verification */}
-                                        <div className={`p-4 rounded-lg border relative ${prof.game_id_status === 'pending'
-                                            ? 'bg-gradient-to-br from-purple-50 to-white border-purple-300 shadow-lg ring-2 ring-purple-200'
-                                            : prof.game_id_status === 'approved'
-                                                ? 'bg-green-50/50 border-green-200'
-                                                : 'bg-gray-50 border-gray-200'
-                                            }`}>
+                                        <div className={`p-4 rounded-lg border relative ${getVerificationCardClass(prof.game_id_status, {
+                                            pending: 'bg-gradient-to-br from-purple-50 to-white border-purple-300 shadow-lg ring-2 ring-purple-200',
+                                            approved: 'bg-green-50/50 border-green-200',
+                                            other: 'bg-gray-50 border-gray-200'
+                                        })}`}>
                                             <div className="flex items-center justify-between mb-3">
                                                 <h4 className="font-bold text-sm text-purple-600 uppercase tracking-wide">Game IDs</h4>
                                                 {prof.game_id_status === 'pending' && (
@@ -600,12 +622,11 @@ export default function AdminDashboard() {
                                         </div>
 
                                         {/* KYC Verification */}
-                                        <div className={`p-4 rounded-lg border relative ${prof.kyc_status === 'pending'
-                                            ? 'bg-gradient-to-br from-blue-50 to-white border-blue-300 shadow-lg ring-2 ring-blue-200'
-                                            : prof.kyc_status === 'approved'
-                                                ? 'bg-green-50/50 border-green-200'
-                                                : 'bg-gray-50 border-gray-200'
-                                            }`}>
+                                        <div className={`p-4 rounded-lg border relative ${getVerificationCardClass(prof.kyc_status, {
+                                            pending: 'bg-gradient-to-br from-blue-50 to-white border-blue-300 shadow-lg ring-2 ring-blue-200',
+                                            approved: 'bg-green-50/50 border-green-200',
+                                            other: 'bg-gray-50 border-gray-200'
+                                        })}`}>
                                             <div className="flex items-center justify-between mb-3">
                                                 <h4 className="font-bold text-sm text-blue-600 uppercase tracking-wide">KYC Details</h4>
                                                 {prof.kyc_status === 'pending' && (
@@ -632,12 +653,11 @@ export default function AdminDashboard() {
                                         </div>
 
                                         {/* Payment Verification */}
-                                        <div className={`p-4 rounded-lg border relative ${prof.payment_details_status === 'pending'
-                                            ? 'bg-gradient-to-br from-indigo-50 to-white border-indigo-300 shadow-lg ring-2 ring-indigo-200'
-                                            : prof.payment_details_status === 'approved'
-                                                ? 'bg-green-50/50 border-green-200'
-                                                : 'bg-gray-50 border-gray-200'
-                                            }`}>
+                                        <div className={`p-4 rounded-lg border relative ${getVerificationCardClass(prof.payment_details_status, {
+                                            pending: 'bg-gradient-to-br from-indigo-50 to-white border-indigo-300 shadow-lg ring-2 ring-indigo-200',
+                                            approved: 'bg-green-50/50 border-green-200',
+                                            other: 'bg-gray-50 border-gray-200'
+                                        })}`}>
                                             <div className="flex items-center justify-between mb-3">
                                                 <h4 className="font-bold text-sm text-indigo-600 uppercase tracking-wide">Payments</h4>
                                                 {prof.payment_details_status === 'pending' && (
@@ -667,7 +687,8 @@ export default function AdminDashboard() {
                                 </div>
                             ))}
                         </div>
-                    ) : (
+                    )}
+                    {!loading && verifications.length === 0 && (
                         <p className="text-center py-8 text-gray-500">No pending verifications</p>
                     )}
                 </div>
@@ -811,8 +832,8 @@ export default function AdminDashboard() {
                                 <p className="text-sm text-gray-600 mb-4">Set fixed prize amount (₹) for each rank.</p>
 
                                 <div className="space-y-4 max-h-[400px] overflow-y-auto mb-6">
-                                    {prizeDistributions.map((dist, index) => (
-                                        <div key={index} className="flex gap-4 items-center">
+                                    {prizeDistributions.map((dist) => (
+                                        <div key={dist.rank} className="flex gap-4 items-center">
                                             <div className="flex-1">
                                                 <label className="text-xs font-semibold text-gray-500 uppercase">Rank</label>
                                                 <input

@@ -16,9 +16,14 @@ COPY requirements.txt ./
 RUN python -m pip install --upgrade pip setuptools wheel \
     && pip install -r requirements.txt
 
-COPY . .
+RUN useradd --create-home --shell /usr/sbin/nologin appuser
+
+COPY --chown=appuser:appuser manage.py run_migrations.py requirements.txt ./
+COPY --chown=appuser:appuser api backend chat hostpartner payments tournaments wallet ./
 
 RUN python manage.py collectstatic --noinput
+
+USER appuser
 
 EXPOSE 8000
 

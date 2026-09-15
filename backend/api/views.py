@@ -11,6 +11,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 import logging
 from wallet.models import EmailVerification, Profile
 from .utils import send_verification_email
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 # ---------- REGISTER API ----------
 @api_view(["POST"])
+@require_POST
 @permission_classes([AllowAny])
 def register_api(request):
     username = request.data.get("username")
@@ -81,6 +83,7 @@ def login_api(request):
 
 
 @api_view(["POST"])
+@require_POST
 @permission_classes([AllowAny])
 def verify_email(request, uidb64, token):
     try:

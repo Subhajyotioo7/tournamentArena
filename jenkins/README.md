@@ -1,123 +1,165 @@
-# Jenkins CI/CD for Tournament Arena
+# Jenkins SonarQube Scan for Tournament Arena
 
-This folder contains the Jenkins pipeline configuration for the Tournament Arena project.
+This folder contains the Jenkins pipeline used to scan the Tournament Arena
+source code with SonarQube.
 
 ## Files
 
-- `Jenkinsfile` - CI/CD pipeline for test, security, build, and production-ready stages
+- `Jenkinsfile` - checks out the repository and runs the SonarQube scanner
 
-## Pipeline overview
-
-The Jenkins pipeline is designed for a devsecops workflow and includes the following stages:
-
-1. Checkout
-2. Environment validation
-3. Backend setup
-4. Frontend setup
-5. Code quality and tests
-   - Django checks
-   - Django unit tests
-   - Frontend lint
-6. Security scanning
-   - Bandit for Python
-   - pip-audit for Python dependencies
-   - npm audit for frontend dependencies
-7. Build artifacts
-   - Django static files
-   - Frontend production build
-8. Archive artifacts
-9. Production-ready stage for `main` branch
+The pipeline does not install dependencies, run tests, build the application,
+run security scans, or deploy the application.
 
 ## Prerequisites
 
-Before using this pipeline in Jenkins, make sure the Jenkins agent has:
+The Jenkins agent must have:
 
-- Git installed
-- Python 3 installed
-- Node.js and npm installed
-- Access to the project repository
-- Internet access to install Python and npm packages
+- Git installed and available on `PATH`
+- A Unix shell with `sh` support (Linux agent, Docker agent, or WSL)
+- Java installed (required by the SonarQube scanner)
+- Network access to the SonarQube server
+- Permission to check out the project repository
+
+The pipeline scans these directories:
+
+- `backend`
+- `frontend`
+
+Virtual environments, dependencies, generated files, media, static files,
+frontend build output, and minified JavaScript are excluded.
+
+## Configure SonarQube
+
+### 1. Create a SonarQube project
+
+In SonarQube:
+
+1. Open **Projects** and select **Create project**.
+2. Select **Manually**.
+3. Set the project key to:
+
+   ```text
+   tournament-arena
+   ```
+
+4. Set the project display name to `TournamentArena`.
+5. Create or select a project token when SonarQube asks for authentication.
+
+Keep the token private. Do not put it in the `Jenkinsfile` or commit it to the
+repository.
+
+### 2. Add SonarQube to Jenkins
+
+Install the **SonarQube Scanner for Jenkins** plugin, then go to:
+
+**Manage Jenkins > System > SonarQube servers**
+
+Add a server with:
+
+- **Name:** `Sonar`
+- **Server URL:** the URL of your SonarQube server
+- **Authentication token:** the SonarQube project or global token
+
+The server name must be exactly `Sonar`, because the pipeline uses:
+
+```groovy
+withSonarQubeEnv('Sonar')
+```
+
+### 3. Configure the scanner tool
+
+Go to:
+
+**Manage Jenkins > Tools > SonarQube Scanner installations**
+
+Add a scanner installation with:
+
+- **Name:** `SonarQube Scanner`
+- **Install automatically:** enabled, or select an existing scanner installation
+
+The tool name must be exactly `SonarQube Scanner`, because the pipeline uses:
+
+```groovy
+tool 'SonarQube Scanner'
+```
 
 ## Jenkins setup
 
-### 1. Install required Jenkins plugins
+### 1. Install required plugins
 
-Install these plugins in Jenkins:
+Install these Jenkins plugins:
 
-- Git Plugin
 - Pipeline
-- Blue Ocean (optional)
-- HTML Publisher (optional)
-- NodeJS Plugin (optional)
+- Git
+- SonarQube Scanner for Jenkins
 
-### 2. Create a new pipeline job
+### 2. Create the pipeline job
 
-- Go to Jenkins Dashboard
-- Click New Item
-- Choose Pipeline
-- Set the repository URL
-- Under Pipeline, choose:
-  - Definition: Pipeline script from SCM
-  - SCM: Git
-  - Repository URL: your project Git URL
-  - Script Path: `jenkins/Jenkinsfile`
+1. Open the Jenkins dashboard.
+2. Select **New Item**.
+3. Enter a job name and choose **Pipeline**.
+4. Under **Pipeline**, set **Definition** to `Pipeline script from SCM`.
+5. Select **Git** as the SCM.
+6. Enter the project repository URL and credentials if the repository is private.
+7. Set **Script Path** to:
 
-### 3. Branch configuration
+   ```text
+   tournamentArena/jenkins/Jenkinsfile
+   ```
 
-The production-ready stage is restricted to the `main` branch.
+   If the Jenkins job uses `tournamentArena` as its repository root, use:
 
-## Run locally on a Linux machine
+   ```text
+   jenkins/Jenkinsfile
+   ```
 
-You can also test the same steps manually from the project root:
+8. Save the job and select **Build Now**.
 
-```bash
-cd backend
-python3 -m venv .venv
-. .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-python manage.py check
-python manage.py test
+The pipeline checks out the repository first, then runs the SonarQube scan.
+Open the build log to confirm that the scanner connected to the server and
+uploaded the analysis.
 
-decativate
+## Verify the scan
 
-cd ../frontend
-npm install
-npm run lint
-npm run build
-```
+After a successful build:
 
-## Security tools
+1. Open the SonarQube dashboard.
+2. Open the `TournamentArena` project.
+3. Review bugs, vulnerabilities, code smells, coverage, and the quality gate.
 
-This pipeline uses:
+The current Jenkinsfile uploads the analysis but does not wait for or fail on
+the SonarQube quality gate. A quality-gate stage can be added later if you want
+Jenkins to block builds that do not meet the configured gate.
 
-```bash
-pip install bandit pip-audit
-bandit -r backend
-pip-audit -r backend/requirements.txt --progress-spinner off
-npm audit --audit-level=high
-```
+## Troubleshooting
 
-## Production readiness
+### `No tool named SonarQube Scanner`
 
-The production stage currently runs only on the `main` branch and prints a deployment-ready message. You can extend this stage to:
+Create a SonarQube Scanner installation under **Manage Jenkins > Tools** and
+use the exact name `SonarQube Scanner`.
 
-- SSH deploy to a server
-- Build Docker images
-- Push to a registry
-- Deploy to Kubernetes
-- Run smoke tests after deployment
+### `SonarQube server Sonar not found`
 
-## Recommended next improvements
+Add the server under **Manage Jenkins > System > SonarQube servers** and use
+the exact name `Sonar`.
 
-- Add Docker build stage
-- Add deployment to staging and production
-- Add SonarQube scanning
-- Add Trivy image scanning
-- Add notification to Slack or email
+### `sonar-scanner: not found`
+
+Confirm that the scanner installation is configured and that the Jenkins agent
+can use it. Also verify that Java is installed on the agent.
+
+### The pipeline fails at `sh`
+
+This Jenkinsfile requires a Unix-compatible Jenkins agent. Run the job on a
+Linux agent, a Docker-based agent, or an agent with WSL configured.
+
+### The scan cannot connect to SonarQube
+
+Check the SonarQube URL, Jenkins credentials, firewall rules, and network
+access from the Jenkins agent to the SonarQube server.
 
 ## Useful links
 
-- Jenkins docs: https://www.jenkins.io/doc/
-- Django docs: https://docs.djangoproject.com/en/5.1/
-- Vite docs: https://vite.dev/
+- Jenkins documentation: https://www.jenkins.io/doc/
+- SonarQube documentation: https://docs.sonarsource.com/sonarqube/
+- SonarQube Scanner for Jenkins: https://docs.sonarsource.com/sonarqube-server/latest/devops-platform-integration/jenkins-integration/

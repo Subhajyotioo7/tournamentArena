@@ -1,4 +1,3 @@
-from urllib import request
 from decimal import Decimal
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
@@ -12,8 +11,12 @@ from hostpartner.models import HostPartnerRequest
 from .models import Tournament, Room, RoomParticipant, PrizeDistribution, RoomResult, TeamInvitation, TournamentEarning
 from .serializers import RoomSerializer, TournamentSerializer, PrizeDistributionSerializer, RoomResultSerializer, TournamentParticipantSerializer
 from django.db import transaction
+from django.db import IntegrityError
 from django.db.models import Q
 from django.utils import timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def is_game_id_verified(profile):
@@ -427,12 +430,10 @@ def accept_invitation(request, invitation_id):
             "team_complete": team_complete
         })
     
-    except Exception as e:
-        import traceback
+    except (IntegrityError, TypeError, ValueError) as exc:
+        logger.exception("Unable to accept invitation %s", invitation_id)
         return Response({
             "error": "An error occurred while accepting invitation",
-            "details": str(e),
-            "traceback": traceback.format_exc()
         }, status=500)
 
 

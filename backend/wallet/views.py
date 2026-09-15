@@ -14,6 +14,7 @@ from django.db import transaction
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 from django.conf import settings
 from django.http import HttpResponseRedirect
+from django.views.decorators.http import require_GET
 from django.utils import timezone
 from .payouts import calculate_payout_breakdown, send_phonepe_payout
 
@@ -21,6 +22,7 @@ INVALID_AMOUNT_ERROR = "Invalid amount"
 WITHDRAWAL_NOT_FOUND_ERROR = "Withdrawal not found"
 
 
+@require_GET
 def add_money_redirect(request):
     """Forward PhonePe callbacks from the backend to the React wallet page."""
     target = f"{settings.FRONTEND_URL.rstrip('/')}/wallet/add-money"

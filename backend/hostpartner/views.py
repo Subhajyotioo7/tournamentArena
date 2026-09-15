@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from .models import HostPartnerRequest
 
@@ -103,7 +104,7 @@ def approve_host_partner_request(request, request_id):
 
     host_request.status = status_value
     host_request.reviewed_by = request.user
-    host_request.reviewed_at = __import__("django.utils.timezone").utils.timezone.now()
+    host_request.reviewed_at = timezone.now()
     host_request.save()
 
     return Response({

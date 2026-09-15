@@ -13,7 +13,7 @@ export default function VerifyEmail({ initialEmail = '' }) {
   useEffect(() => {
     if (!uid || !token) return undefined;
 
-    fetch(`/api/verify-email/${uid}/${token}/`)
+    fetch(`/api/verify-email/${uid}/${token}/`, { method: 'POST' })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Email verification failed');

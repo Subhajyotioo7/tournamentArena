@@ -436,7 +436,7 @@ def accept_invitation(request, invitation_id):
             "team_complete": team_complete
         })
     
-    except (IntegrityError, TypeError, ValueError) as exc:
+    except (IntegrityError, TypeError, ValueError):
         logger.exception("Unable to accept invitation %s", invitation_id)
         return Response({
             "error": "An error occurred while accepting invitation",

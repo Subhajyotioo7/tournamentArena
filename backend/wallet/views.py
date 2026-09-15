@@ -20,6 +20,52 @@ from .payouts import calculate_payout_breakdown, send_phonepe_payout
 
 INVALID_AMOUNT_ERROR = "Invalid amount"
 WITHDRAWAL_NOT_FOUND_ERROR = "Withdrawal not found"
+GAME_ID_FIELDS = {
+    "bgmi_id": "BGMI ID",
+    "freefire_id": "Free Fire ID",
+    "fifa_id": "FIFA ID",
+}
+GAME_ID_FIELD_BY_GAME = {
+    "bgmi": "bgmi_id",
+    "freefire": "freefire_id",
+    "fifa": "fifa_id",
+}
+
+
+def _validate_profile_identifiers(profile, user, data):
+    if data.get("mobile_number"):
+        duplicate_mobile = Profile.objects.filter(
+            mobile_number=data["mobile_number"],
+        ).exclude(user=user).first()
+        if duplicate_mobile:
+            return "Mobile number already exists. This number is already registered with another account."
+
+    selected_game = data.get("selected_game", profile.selected_game)
+    selected_field = GAME_ID_FIELD_BY_GAME.get(selected_game)
+    if selected_field and not data.get(selected_field, getattr(profile, selected_field, None)):
+        return f"Enter your {GAME_ID_FIELDS[selected_field]} before selecting this game."
+
+    for field_name, display_name in GAME_ID_FIELDS.items():
+        field_value = str(data.get(field_name, "")).strip()
+        if field_value and Profile.objects.filter(
+            **{field_name: field_value},
+        ).exclude(user=user).exists():
+            return f"{display_name} already exists. This {display_name} is already registered with another account."
+    return None
+
+
+def _reset_profile_verification_statuses(profile, data):
+    if any(field in data for field in ("bgmi_id", "freefire_id", "fifa_id")):
+        profile.game_id_status = "pending"
+        profile.game_id_verified = False
+        profile.game_id = next(
+            (game_id for game_id in (profile.bgmi_id, profile.freefire_id, profile.fifa_id) if game_id),
+            profile.game_id,
+        )
+    if any(field in data for field in ("kyc_full_name", "kyc_id_number", "kyc_document")):
+        profile.kyc_status = "pending"
+    if any(field in data for field in ("bank_name", "account_number", "upi_id")):
+        profile.payment_details_status = "pending"
 
 
 @require_GET
@@ -107,61 +153,14 @@ def get_transactions(request):
 def update_profile(request):
     profile = request.user.profile
     data = request.data
-    
-    # Check for duplicate mobile number
-    if 'mobile_number' in data and data['mobile_number']:
-        existing_mobile = Profile.objects.filter(
-            mobile_number=data['mobile_number']
-        ).exclude(user=request.user).first()
-        
-        if existing_mobile:
-            return Response({
-                "error": "Mobile number already exists. This number is already registered with another account."
-            }, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Check for duplicate game IDs
-    game_id_fields = {
-        'bgmi_id': 'BGMI ID',
-        'freefire_id': 'Free Fire ID',
-        'fifa_id': 'FIFA ID'
-    }
+    validation_error = _validate_profile_identifiers(profile, request.user, data)
+    if validation_error:
+        return Response({"error": validation_error}, status=status.HTTP_400_BAD_REQUEST)
 
-    selected_game = data.get("selected_game", profile.selected_game)
-    selected_game_field = {"bgmi": "bgmi_id", "freefire": "freefire_id", "fifa": "fifa_id"}.get(selected_game)
-    if selected_game_field and not data.get(selected_game_field, getattr(profile, selected_game_field, None)):
-        return Response({
-            "error": f"Enter your {game_id_fields[selected_game_field]} before selecting this game."
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    for field_name, display_name in game_id_fields.items():
-        if field_name in data and data[field_name]:
-            field_value = data[field_name].strip()
-            if field_value:  # Only check if not empty
-                existing = Profile.objects.filter(**{field_name: field_value}).exclude(user=request.user).first()
-                if existing:
-                    return Response({
-                        "error": f"{display_name} already exists. This {display_name} is already registered with another account."
-                    }, status=status.HTTP_400_BAD_REQUEST)
-    
     serializer = ProfileUpdateSerializer(profile, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
-        
-        # Reset statuses for updated sections
-        if any(k in data for k in ["bgmi_id", "freefire_id", "fifa_id"]):
-            profile.game_id_status = "pending"
-            profile.game_id_verified = False
-            for gid in [profile.bgmi_id, profile.freefire_id, profile.fifa_id]:
-                if gid:
-                    profile.game_id = gid
-                    break
-        
-        if any(k in data for k in ["kyc_full_name", "kyc_id_number", "kyc_document"]):
-            profile.kyc_status = "pending"
-            
-        if any(k in data for k in ["bank_name", "account_number", "upi_id"]):
-            profile.payment_details_status = "pending"
-
+        _reset_profile_verification_statuses(profile, data)
         profile.save()
         return Response({"message": "Profile updated, awaiting admin verification"})
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

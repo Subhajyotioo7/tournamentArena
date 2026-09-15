@@ -6,6 +6,21 @@ import { notify } from '../lib/toast';
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2000];
 
+async function checkPayment(orderId, onStatus, onBalance, onError) {
+  try {
+    const result = await paymentService.getPhonePePaymentStatus(orderId);
+    onStatus(result.status.toLowerCase());
+    if (result.status === 'PENDING') return true;
+    if (result.status === 'SUCCESS') {
+      const wallet = await walletService.getBalance();
+      onBalance(Number(wallet.balance || 0));
+    }
+  } catch (error) {
+    onError(error);
+  }
+  return false;
+}
+
 function PaymentContent({ status, amount, setAmount, loading, startPayment, navigate }) {
   if (status === 'success') {
     return (
@@ -78,23 +93,26 @@ export default function AddMoney() {
     let cancelled = false;
     let timer;
     const check = async () => {
-      try {
-        const result = await paymentService.getPhonePePaymentStatus(orderId);
-        if (cancelled) return;
-        setStatus(result.status.toLowerCase());
-        setLoading(false);
-        if (result.status === 'PENDING') timer = setTimeout(check, 3000);
-        if (result.status === 'SUCCESS') {
-          const wallet = await walletService.getBalance();
-          if (!cancelled) setBalance(Number(wallet.balance || 0));
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setStatus('error');
-          setLoading(false);
-          notify(error.message, { variant: 'destructive' });
-        }
-      }
+      const pending = await checkPayment(
+        orderId,
+        (nextStatus) => {
+          if (!cancelled) {
+            setStatus(nextStatus);
+            setLoading(false);
+          }
+        },
+        (nextBalance) => {
+          if (!cancelled) setBalance(nextBalance);
+        },
+        (error) => {
+          if (!cancelled) {
+            setStatus('error');
+            setLoading(false);
+            notify(error.message, { variant: 'destructive' });
+          }
+        },
+      );
+      if (pending && !cancelled) timer = setTimeout(check, 3000);
     };
     check();
     return () => {

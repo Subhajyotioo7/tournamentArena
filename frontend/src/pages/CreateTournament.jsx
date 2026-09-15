@@ -39,6 +39,10 @@ export default function CreateTournament() {
         phone_number: '',
         note: ''
     });
+    const hostRequestStatusMessage = {
+        approved: 'Your host-partner request is approved, so you can create BR events.',
+        pending: 'Your host-partner request is pending admin approval.',
+    }[hostRequestStatus] || 'Only approved host-partner accounts can create BR / long tournaments. Submit a request first.';
     const [formData, setFormData] = useState({
         name: '',
         game: 'bgmi',
@@ -187,11 +191,7 @@ export default function CreateTournament() {
                             {formData.tournament_type === 'br' && (
                                 <div className="mt-3 space-y-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-800">
                                     <div>
-                                        {hostRequestStatus === 'approved'
-                                            ? 'Your host-partner request is approved, so you can create BR events.'
-                                            : hostRequestStatus === 'pending'
-                                                ? 'Your host-partner request is pending admin approval.'
-                                                : 'Only approved host-partner accounts can create BR / long tournaments. Submit a request first.'}
+                                        {hostRequestStatusMessage}
                                     </div>
 
                                     {hostRequestStatus !== 'approved' && (

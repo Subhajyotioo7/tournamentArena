@@ -65,7 +65,12 @@ const ToastStack = memo(({ position, items, duration }) => {
               ? hoveredId === item.id
               : index === displayedItems.length - 1;
             const gradient = GRADIENTS[item.type] || GRADIENTS.default;
-            const marginLeft = index === 0 ? 0 : (hoveredId === item.id ? 6 : -12);
+            let marginLeft = -12;
+            if (index === 0) {
+              marginLeft = 0;
+            } else if (hoveredId === item.id) {
+              marginLeft = 6;
+            }
 
             return (
               <motion.div

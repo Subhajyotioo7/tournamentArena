@@ -1,3 +1,5 @@
+import secrets
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
@@ -9,7 +11,10 @@ User = get_user_model()
 
 class HostPartnerRequestTests(TestCase):
     def test_approved_request_allows_br_access(self):
-        user = User.objects.create_user(username='hostuser', password='secret123')
+        user = User.objects.create_user(
+            username='hostuser',
+            password=secrets.token_urlsafe(16),
+        )
         Profile.objects.create(user=user)
         request = HostPartnerRequest.objects.create(
             requested_by=user,
@@ -23,7 +28,10 @@ class HostPartnerRequestTests(TestCase):
         self.assertTrue(request.can_create_br_tournament(user))
 
     def test_pending_request_blocks_br_access(self):
-        user = User.objects.create_user(username='newhost', password='secret123')
+        user = User.objects.create_user(
+            username='newhost',
+            password=secrets.token_urlsafe(16),
+        )
         Profile.objects.create(user=user)
         request = HostPartnerRequest.objects.create(
             requested_by=user,

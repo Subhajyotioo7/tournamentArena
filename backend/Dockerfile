@@ -2,11 +2,12 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONPATH=/app
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     gcc \
@@ -18,8 +19,7 @@ RUN python -m pip install --upgrade pip setuptools wheel \
 
 RUN useradd --create-home --shell /usr/sbin/nologin appuser
 
-COPY --chown=appuser:appuser manage.py run_migrations.py requirements.txt ./
-COPY --chown=appuser:appuser api backend chat hostpartner payments tournaments wallet ./
+COPY --chown=appuser:appuser . .
 
 RUN python manage.py collectstatic --noinput
 

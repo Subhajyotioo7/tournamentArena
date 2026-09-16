@@ -30,7 +30,7 @@ docker run -d \
   --name ta-preprod-fro \
   --restart unless-stopped \
   --add-host host.docker.internal:host-gateway \
-  -p 80:80 \
+  -p 80:8080 \
   ta-preprod-frontend
 ```
 

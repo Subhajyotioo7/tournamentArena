@@ -3,7 +3,8 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    DJANGO_DB_PATH=/app/data/db.sqlite3
 
 WORKDIR /app
 
@@ -22,8 +23,12 @@ RUN useradd --create-home --shell /usr/sbin/nologin appuser
 COPY --chown=appuser:appuser . .
 
 RUN python manage.py collectstatic --noinput
+RUN mkdir -p /app/data /app/media /app/staticfiles \
+    && chown -R appuser:appuser /app/data /app/media /app/staticfiles
 
 USER appuser
+
+VOLUME ["/app/data", "/app/media"]
 
 EXPOSE 8000
 

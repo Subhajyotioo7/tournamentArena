@@ -5,7 +5,7 @@ import { getApiBaseUrl, roomService } from '../services/api';
 import { Button } from '../components/ui/button';
 import { getGameTheme } from '../config/gameThemes';
 import TournamentCountdown from '../components/TournamentCountdown';
-import { Check, Gamepad2, Hourglass, Mail, MessageCircle, Send, Trash2, Trophy, Users, X } from 'lucide-react';
+import { Check, Clock3, Gamepad2, Hourglass, Mail, MessageCircle, Send, Trash2, Trophy, Users, X } from 'lucide-react';
 
 function roomStatus(room) {
     if (room.status === 'full' || room.current_players >= room.max_players) {
@@ -105,9 +105,11 @@ export default function MyRooms() {
             if (response.ok) {
                 const data = await response.json();
                 const history = data.map(msg => ({
+                    id: msg.id,
                     username: msg.sender,
                     text: msg.message,
-                    timestamp: msg.created_at
+                    timestamp: msg.created_at,
+                    is_admin: msg.is_admin
                 }));
                 setMessages(history);
             }
@@ -143,9 +145,11 @@ export default function MyRooms() {
             const data = JSON.parse(e.data);
             if (data.type === 'chat_message') {
                 setMessages(prev => [...prev, {
+                    id: `${data.sender}-${Date.now()}`,
                     username: data.sender,
                     text: data.message,
-                    timestamp: new Date()
+                    timestamp: new Date(),
+                    is_admin: data.is_admin
                 }]);
             }
         };
@@ -274,6 +278,8 @@ export default function MyRooms() {
         }
     };
 
+    const adminMessages = messages.filter((msg) => msg.is_admin);
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -394,7 +400,7 @@ export default function MyRooms() {
                     <div className={`bg-white rounded-2xl sm:rounded-[2rem] ${canManageRoom ? 'max-w-7xl' : 'max-w-2xl'} w-full max-h-[94vh] flex flex-col overflow-hidden shadow-2xl border border-white/20`}>
 
                         {/* Modal Header */}
-                        <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 p-4 sm:p-6 flex flex-shrink-0 justify-between items-center shadow-lg">
+                        <div className="bg-gradient-to-r from-purple-700 via-indigo-700 to-blue-700 p-4 sm:p-6 flex flex-shrink-0 justify-between items-center shadow-lg backdrop-blur-xl">
                             <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                                 <div className="hidden w-12 h-12 shrink-0 bg-white/20 rounded-2xl sm:flex items-center justify-center backdrop-blur-md">
                                     <Gamepad2 className="h-6 w-6" aria-hidden="true" />
@@ -402,6 +408,10 @@ export default function MyRooms() {
                                 <div className="min-w-0">
                                     <h2 className="text-lg sm:text-2xl font-black text-white leading-tight mb-1 break-words">{roomDetails.tournament_name}</h2>
                                     <p className="text-white/70 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.12em] sm:tracking-[0.2em] truncate">ROOM #{roomDetails.room_number || '1'} • {roomDetails.game.toUpperCase()}</p>
+                                    <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-white/80">
+                                        <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.9)]" />
+                                        {roomDetails.participants?.length || 0} online
+                                    </div>
                                 </div>
                             </div>
                             <Button
@@ -462,7 +472,33 @@ export default function MyRooms() {
                             )}
                             {canManageRoom ? (
                                 /* --- 🛠️ ADMIN MASTER DASHBOARD (3-Pane) --- */
-                                <div className="p-4 sm:p-8 flex flex-col lg:flex-row gap-4 sm:gap-8 min-h-[600px]">
+                                <div className="p-4 sm:p-8">
+                                    <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+                                        <div className="mb-3 flex items-center gap-2">
+                                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400 text-sm shadow-sm" aria-hidden="true">📢</span>
+                                            <div>
+                                                <p className="text-xs font-black uppercase tracking-widest text-amber-900">Admin message</p>
+                                                <p className="text-[11px] text-amber-700">Important room updates are always visible here.</p>
+                                            </div>
+                                        </div>
+                                        {adminMessages.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {adminMessages.map((msg) => (
+                                                    <div key={`manager-admin-${messageKey(msg)}`} className="rounded-xl border border-amber-200 bg-white/80 px-3 py-2.5">
+                                                        <p className="text-sm font-semibold leading-relaxed text-slate-800">{msg.text}</p>
+                                                        <p className="mt-1 text-[10px] font-medium text-slate-400">
+                                                            {msg.timestamp ? new Date(msg.timestamp).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Just now'}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="rounded-xl border border-dashed border-amber-200 bg-white/50 px-3 py-3 text-xs text-amber-700">
+                                                No admin message yet. Important announcements will appear here.
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="flex min-h-[600px] flex-col gap-4 sm:gap-8 lg:flex-row">
 
                                     {/* Column 1: Participants */}
                                     <div className="w-full lg:w-72 flex flex-col bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-sm">
@@ -576,18 +612,47 @@ export default function MyRooms() {
                                         </div>
                                     </div>
                                     )}
+                                    </div>
                                 </div>
                             ) : (
                                 /* --- 👤 STANDARD PLAYER INTERFACE (Tabs) --- */
                                 <div className="p-4 sm:p-8">
-                                    <div className="grid grid-cols-3 gap-1 bg-gray-100/80 backdrop-blur-md p-1 sm:p-1.5 rounded-xl sm:rounded-[1.5rem] mb-5 sm:mb-8 shadow-inner">
+                                    <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+                                        <div className="mb-3 flex items-center gap-2">
+                                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400 text-sm shadow-sm" aria-hidden="true">📢</span>
+                                            <div>
+                                                <p className="text-xs font-black uppercase tracking-widest text-amber-900">Admin message</p>
+                                                <p className="text-[11px] text-amber-700">Important room updates are always visible here.</p>
+                                            </div>
+                                        </div>
+                                        {adminMessages.length > 0 ? (
+                                            <div className="space-y-2">
+                                                {adminMessages.map((msg) => (
+                                                    <div key={`admin-${messageKey(msg)}`} className="rounded-xl border border-amber-200 bg-white/80 px-3 py-2.5">
+                                                        <p className="text-sm font-semibold leading-relaxed text-slate-800">{msg.text}</p>
+                                                        <p className="mt-1 text-[10px] font-medium text-slate-400">
+                                                            {msg.timestamp ? new Date(msg.timestamp).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Just now'}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="rounded-xl border border-dashed border-amber-200 bg-white/50 px-3 py-3 text-xs text-amber-700">
+                                                No admin message yet. Important announcements will appear here.
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100/90 p-1 shadow-inner sm:rounded-[1.5rem] sm:p-1.5 mb-5 sm:mb-8">
                                         {['participants', 'messages', 'results'].map(tab => (
                                             <Button
                                                 key={tab}
                                                 onClick={() => setActiveTab(tab)}
-                                                variant={activeTab === tab ? 'secondary' : 'ghost'}
-                                                className="min-w-0 px-2 text-[10px] sm:text-sm uppercase tracking-normal sm:tracking-wider"
+                                                variant="ghost"
+                                                className={`min-w-0 rounded-lg px-2 py-2.5 text-[10px] font-extrabold uppercase tracking-normal transition-all sm:rounded-xl sm:text-sm sm:tracking-wider ${activeTab === tab ? 'bg-white !text-amber-700 shadow-sm ring-1 ring-amber-100' : '!text-slate-500 hover:bg-white/70 hover:!text-slate-800'}`}
                                             >
+                                                <span className="mr-1.5 inline-flex align-middle">
+                                                    {tab === 'participants' ? <Users className="h-3.5 w-3.5" aria-hidden="true" /> : tab === 'messages' ? <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" /> : <Trophy className="h-3.5 w-3.5" aria-hidden="true" />}
+                                                </span>
                                                 {tab}
                                             </Button>
                                         ))}
@@ -611,31 +676,39 @@ export default function MyRooms() {
                                         )}
 
                                         {activeTab === 'messages' && (
-                                            <div className="flex flex-col h-[55vh] min-h-[320px] max-h-[500px] bg-white border border-gray-100 rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-sm animate-in zoom-in-95 duration-500">
-                                                <div className="flex-1 p-6 space-y-4 overflow-y-auto bg-gray-50/30">
+                                            <div className="flex flex-col h-[55vh] min-h-[320px] max-h-[500px] overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-violet-50 via-white to-blue-50 shadow-lg animate-in zoom-in-95 duration-500 sm:rounded-[2.5rem]">
+                                                <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.08),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.08),transparent_35%)] p-6">
+                                                    {messages.length <= 1 && (
+                                                        <div className="mb-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-indigo-200/80 bg-white/60 px-4 py-5 text-center">
+                                                            <MessageCircle className="mb-2 h-9 w-9 text-indigo-400" aria-hidden="true" />
+                                                            <p className="text-sm font-black text-indigo-900">Say hello to your squad! 👋</p>
+                                                            <p className="mt-1 text-[11px] font-medium text-slate-500">Start the match-day conversation.</p>
+                                                        </div>
+                                                    )}
                                                     {messages.map((msg) => {
                                                         const isMe = (msg.username || '').toLowerCase() === (user?.username || '').toLowerCase();
                                                         const alignment = isMe ? 'justify-end' : 'justify-start';
                                                         const slideDirection = isMe ? 'right' : 'left';
                                                         return (
                                                             <div key={messageKey(msg)} className={`flex ${alignment} animate-in slide-in-from-${slideDirection}-4 duration-300`}>
-                                                                <div className={`max-w-[85%] px-5 py-4 rounded-[1.5rem] text-xs font-bold shadow-md transition-all ${isMe ? 'bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-100 text-gray-800 rounded-tl-none'}`}>
-                                                                    {!isMe && <p className="text-[9px] font-black text-purple-600 mb-1.5 uppercase tracking-widest">{msg.username}</p>}
+                                                                <div className={`max-w-[85%] px-5 py-4 rounded-[1.2rem] text-xs font-bold shadow-md transition-all ${isMe ? 'bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-tr-md shadow-indigo-200/70' : 'bg-white border border-slate-200 text-gray-800 rounded-tl-md shadow-slate-200/70'}`}>
+                                                                    {!isMe && <div className="mb-1.5 flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-purple-600"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-[8px] text-indigo-700">{(msg.username || '?').charAt(0).toUpperCase()}</span>{msg.username}</div>}
                                                                     <p className="leading-relaxed">{msg.text}</p>
+                                                                    <p className={`mt-2 flex items-center gap-1 text-[9px] font-medium ${isMe ? 'text-white/65 justify-end' : 'text-slate-400'}`}><Clock3 className="h-3 w-3" aria-hidden="true" />{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Just now'}</p>
                                                                 </div>
                                                             </div>
                                                         );
                                                     })}
                                                     {messages.length === 0 && (
-                                                        <div className="h-full flex flex-col items-center justify-center space-y-4 py-20 grayscale opacity-40">
-                                                            <Mail className="h-12 w-12" aria-hidden="true" />
-                                                            <p className="text-[10px] font-black uppercase tracking-[0.3em]">Inbox Empty</p>
+                                                        <div className="h-full flex flex-col items-center justify-center space-y-4 py-20">
+                                                            <Mail className="h-12 w-12 text-indigo-300" aria-hidden="true" />
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-900/50">Your room is ready for a hello</p>
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="p-3 sm:p-4 bg-white border-t flex gap-2 sm:gap-4">
-                                                    <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} className="min-w-0 flex-1 px-3 sm:px-6 py-3 sm:py-4 bg-gray-50 border-none rounded-2xl text-xs font-black tracking-tight focus:ring-2 focus:ring-purple-500 transition-all shadow-inner" placeholder="Message the entire room..." />
-                                                    <Button onClick={handleSendMessage} size="icon" aria-label="Send message"><Send className="h-4 w-4" aria-hidden="true" /></Button>
+                                                <div className="flex gap-2 border-t border-indigo-100 bg-white/90 p-3 sm:gap-4 sm:p-4">
+                                                    <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-black tracking-tight shadow-inner outline-none transition-all focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-100 sm:px-6 sm:py-4" placeholder="Message the entire room..." />
+                                                    <Button onClick={handleSendMessage} size="icon" aria-label="Send message" className="rounded-full bg-amber-400 text-stone-950 shadow-lg shadow-amber-400/30 transition-all hover:scale-105 hover:bg-amber-500 active:scale-90"><Send className="h-4 w-4" aria-hidden="true" /></Button>
                                                 </div>
                                             </div>
                                         )}
@@ -676,9 +749,9 @@ export default function MyRooms() {
                         <div className="p-3 sm:p-6 border-t bg-white flex-shrink-0 flex justify-center lg:justify-end">
                             <Button
                                 onClick={() => { setSelectedRoom(null); setRoomDetails(null); }}
-                                variant="secondary"
+                                variant="outline"
                                 size="lg"
-                                className="w-full sm:w-auto uppercase tracking-wider"
+                                className="w-full border-red-200 text-red-600 transition-all hover:bg-red-50 hover:text-red-700 active:scale-95 sm:w-auto uppercase tracking-wider"
                             >
                                 Leave Arena
                             </Button>

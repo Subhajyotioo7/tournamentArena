@@ -3,7 +3,7 @@ import { walletService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { notify } from '../lib/toast';
-import { AlertTriangle, Banknote, Camera, CheckCircle, Gamepad2, LockKeyhole, LogOut, Plus, Rocket, RotateCw, Smartphone, User, Wallet, X } from 'lucide-react';
+import { AlertTriangle, Banknote, Camera, CheckCircle, CircleDollarSign, Gamepad2, History, LockKeyhole, LogOut, Plus, Rocket, RotateCw, ShieldCheck, Smartphone, User, Wallet, X } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -28,6 +28,15 @@ export default function Profile() {
   const [showAddMoney, setShowAddMoney] = useState(false);
   const [siteConfig, setSiteConfig] = useState(null);
   const [depositForm, setDepositForm] = useState({ amount: '', utr_number: '' });
+  const selectedGameId = formData.selected_game === 'bgmi'
+    ? formData.bgmi_id
+    : formData.selected_game === 'freefire'
+      ? formData.freefire_id
+      : formData.selected_game === 'fifa'
+        ? formData.fifa_id
+        : '';
+  const isGameIdentityComplete = Boolean(formData.selected_game && selectedGameId?.trim());
+  const isAccountDetailsComplete = Boolean(formData.mobile_number?.trim());
 
   // Fetch detailed profile
   const fetchProfile = useCallback(async () => {
@@ -138,7 +147,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       {/* Premium Header */}
-      <div className="bg-gradient-to-r from-[#292524] via-[#44403c] to-[#78350f] text-white shadow-lg overflow-hidden relative">
+      <div className="bg-gradient-to-br from-slate-950 via-slate-800 to-amber-950 text-white shadow-2xl overflow-hidden relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/20 rounded-full -ml-24 -mb-24 blur-3xl"></div>
 
@@ -150,7 +159,10 @@ export default function Profile() {
           </div>
 
           <div className="text-center md:text-left">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-2">{profile.username}</h1>
+            <h1 className="flex items-center justify-center gap-2 text-3xl sm:text-4xl md:text-5xl font-black tracking-tight mb-2 md:justify-start">
+              {profile.username}
+              {profile.game_id_status === 'approved' && <ShieldCheck className="h-6 w-6 text-emerald-300 sm:h-7 sm:w-7" aria-label="Verified player" />}
+            </h1>
             <p className="text-amber-100 text-lg sm:text-xl opacity-90 font-medium mb-4">{profile.email}</p>
             <div className="flex flex-wrap justify-center md:justify-start gap-3">
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-xl flex items-center gap-2">
@@ -177,59 +189,77 @@ export default function Profile() {
 
           {/* Main Form Area */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-[1.25rem] shadow-2xl border border-slate-200 overflow-hidden">
 
-              {/* Profile Tabs */}
-              <div className="flex border-b border-gray-100 bg-gray-50/50">
+              {/* Profile Stepper */}
+              <div className="border-b border-gray-100 bg-slate-50/80 px-4 py-5 sm:px-8">
+                <div className="relative flex items-start justify-between">
+                  <div className="absolute left-[18%] right-[18%] top-5 h-1 overflow-hidden rounded-full bg-slate-200" aria-hidden="true">
+                    <div className={`h-full rounded-full bg-amber-400 transition-all duration-500 ${isGameIdentityComplete ? 'w-full' : 'w-0'}`} />
+                  </div>
                 {[
-                  { id: 'games', label: '1. Game Identity', icon: Gamepad2 },
-                  { id: 'account', label: '2. Account Details', icon: Banknote }
+                  { id: 'games', label: 'Game Identity', caption: 'Game IDs', icon: Gamepad2, complete: isGameIdentityComplete },
+                  { id: 'account', label: 'Account Details', caption: 'Bank & KYC details', icon: Banknote, complete: isAccountDetailsComplete }
                 ].map(tab => (
                   <Button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      if (tab.id === 'games' || isGameIdentityComplete) setActiveTab(tab.id);
+                    }}
+                    disabled={tab.id === 'account' && !isGameIdentityComplete}
+                    title={tab.id === 'account' && !isGameIdentityComplete ? 'Complete Game Identity first' : `Open ${tab.label}`}
                     variant="ghost"
-                    className={`flex-1 py-5 text-sm font-bold uppercase tracking-wider border-b-2 ${activeTab === tab.id
-                      ? 'border-amber-600 !text-amber-700 bg-white'
-                      : 'border-transparent !text-gray-500'
-                      }`}
+                    className={`relative z-10 flex flex-1 !h-auto flex-col gap-2 py-0 text-center !text-slate-500 ${activeTab === tab.id ? '!text-amber-800' : ''} ${tab.id === 'account' && !isGameIdentityComplete ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                   >
-                    <span className="inline-flex items-center gap-2"><tab.icon className="h-4 w-4" aria-hidden="true" />{tab.label}</span>
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-white text-sm font-black transition-all duration-300 ${activeTab === tab.id ? 'scale-110 border-amber-500 text-amber-800 ring-4 ring-amber-100' : tab.complete && activeTab !== tab.id ? 'border-amber-500 bg-amber-400 text-stone-950' : 'border-slate-300 text-slate-500'}`}>
+                      {tab.complete && activeTab !== tab.id ? <CheckCircle className="h-5 w-5" aria-hidden="true" /> : <span>{tab.id === 'games' ? '1' : '2'}</span>}
+                    </span>
+                    <span className={`text-xs font-bold sm:text-sm ${activeTab === tab.id ? 'font-black' : tab.complete ? 'text-slate-700' : 'text-slate-400'}`}>{tab.label}</span>
+                    <span className="text-[10px] font-medium text-slate-400 sm:text-xs">{tab.caption}</span>
                   </Button>
                 ))}
+                </div>
               </div>
 
               <form onSubmit={handleUpdate} className="p-8 sm:p-10">
 
                 {/* Game IDs Section */}
                 {activeTab === 'games' && (
-                  <div className="space-y-8 animate-fadeIn">
+                  <div className="space-y-8 rounded-2xl bg-slate-50/60 p-1 animate-fadeIn">
                     <div className="flex items-center justify-between mb-2">
                       <h2 className="text-2xl font-black text-gray-900">Game Information</h2>
                       {getStatusBadge(profile.game_id_status, profile.game_id_rejection_reason)}
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                       <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Primary Tournament Game</label>
-                      <select
-                        className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-amber-500 rounded-2xl outline-none transition-all font-bold text-gray-800"
-                        value={formData.selected_game}
-                        onChange={(e) => setFormData({ ...formData, selected_game: e.target.value })}
-                      >
-                        <option value="">Choose the game you play</option>
-                        <option value="bgmi">BGMI</option>
-                        <option value="freefire">Free Fire</option>
-                        <option value="fifa">FIFA</option>
-                      </select>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { value: 'bgmi', label: 'BGMI', icon: '🎯', tone: 'from-purple-50 to-indigo-50' },
+                          { value: 'freefire', label: 'Free Fire', icon: '🔥', tone: 'from-orange-50 to-amber-50' },
+                          { value: 'fifa', label: 'FIFA', icon: '⚽', tone: 'from-blue-50 to-sky-50' },
+                        ].map((game) => (
+                          <button
+                            key={game.value}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, selected_game: game.value })}
+                            className={`rounded-xl border p-3 text-center transition-all hover:-translate-y-0.5 hover:shadow-md ${formData.selected_game === game.value ? `border-amber-400 bg-gradient-to-br ${game.tone} shadow-md ring-2 ring-amber-100` : 'border-slate-200 bg-slate-50 hover:border-amber-200'}`}
+                          >
+                            <span className="block text-2xl">{game.icon}</span>
+                            <span className="mt-1 block text-xs font-bold text-slate-700 sm:text-sm">{game.label}</span>
+                            {formData.selected_game === game.value && <CheckCircle className="mx-auto mt-1 h-4 w-4 text-emerald-600" aria-hidden="true" />}
+                          </button>
+                        ))}
+                      </div>
                       <p className="text-sm text-gray-500">Choose a game and enter its ID below. Team invitations will use the ID for the tournament game.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 gap-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-3">
                       <div className="space-y-2">
                         <label className="text-xs font-black text-gray-400 uppercase tracking-widest">BGMI IGN</label>
                         <input
                           type="text"
-                          className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-purple-500 rounded-2xl outline-none transition-all font-bold text-gray-800"
+                          className={`w-full rounded-xl border-2 bg-gray-50 px-4 py-4 font-bold text-gray-800 outline-none transition-all focus:border-purple-500 ${formData.selected_game === 'bgmi' && !formData.bgmi_id ? 'border-amber-300 ring-4 ring-amber-100' : 'border-transparent'}`}
                           placeholder="Your BGMI ID"
                           required={formData.selected_game === 'bgmi'}
                           value={formData.bgmi_id}
@@ -240,27 +270,29 @@ export default function Profile() {
                         <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Free Fire ID</label>
                         <input
                           type="text"
-                          className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-orange-500 rounded-2xl outline-none transition-all font-bold text-gray-800"
+                          className={`w-full rounded-xl border-2 bg-gray-50 px-4 py-4 font-bold text-gray-800 outline-none transition-all focus:border-orange-500 ${formData.selected_game === 'freefire' && !formData.freefire_id ? 'border-amber-300 ring-4 ring-amber-100' : 'border-transparent'}`}
                           placeholder="Your FF ID"
                           required={formData.selected_game === 'freefire'}
                           value={formData.freefire_id}
                           onChange={(e) => setFormData({ ...formData, freefire_id: e.target.value })}
                         />
+                        <p className="text-[11px] leading-4 text-slate-400">Optional — add later to join Free Fire tournaments.</p>
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-black text-gray-400 uppercase tracking-widest">FIFA EA ID</label>
                         <input
                           type="text"
-                          className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-800"
+                          className={`w-full rounded-xl border-2 bg-gray-50 px-4 py-4 font-bold text-gray-800 outline-none transition-all focus:border-blue-500 ${formData.selected_game === 'fifa' && !formData.fifa_id ? 'border-amber-300 ring-4 ring-amber-100' : 'border-transparent'}`}
                           placeholder="Your EA ID"
                           required={formData.selected_game === 'fifa'}
                           value={formData.fifa_id}
                           onChange={(e) => setFormData({ ...formData, fifa_id: e.target.value })}
                         />
+                        <p className="text-[11px] leading-4 text-slate-400">Optional — add later to join FIFA tournaments.</p>
                       </div>
                     </div>
                     <p className="text-sm text-gray-500 italic">Your selected game ID is used when joining a tournament or inviting teammates. Admin will verify game IDs before tournament entry.</p>
-                    <Button type="button" onClick={() => setActiveTab('account')} className="w-full sm:w-auto">
+                    <Button type="button" onClick={() => setActiveTab('account')} className="w-full rounded-xl bg-amber-400 px-6 py-3 font-extrabold text-stone-950 shadow-lg shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:bg-amber-500 active:scale-95 sm:w-auto">
                       Continue to Account Details
                     </Button>
                   </div>
@@ -268,7 +300,7 @@ export default function Profile() {
 
                 {/* Account Section */}
                 {activeTab === 'account' && (
-                  <div className="space-y-8 animate-fadeIn">
+                  <div className="space-y-8 rounded-2xl bg-slate-50/60 p-1 animate-fadeIn">
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <h2 className="text-2xl font-black text-gray-900">Account Details</h2>
@@ -277,14 +309,14 @@ export default function Profile() {
                       {getStatusBadge(profile.payment_details_status, profile.payment_details_rejection_reason)}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 gap-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-2">
                       <div className="space-y-2 md:col-span-2">
                         <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest">
                           <Smartphone className="h-4 w-4 text-amber-600" aria-hidden="true" /> Mobile Number
                         </label>
                         <input
                           type="tel"
-                          className="w-full px-4 py-4 bg-gray-50 border-2 border-transparent focus:border-amber-500 rounded-2xl outline-none transition-all font-bold text-gray-800"
+                          className={`w-full rounded-xl border-2 bg-gray-50 px-4 py-4 font-bold text-gray-800 outline-none transition-all focus:border-amber-500 ${activeTab === 'account' && !formData.mobile_number ? 'border-amber-300 ring-4 ring-amber-100' : 'border-transparent'}`}
                           value={formData.mobile_number}
                           onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
                           placeholder="Enter your 10-digit mobile number"
@@ -334,11 +366,11 @@ export default function Profile() {
                 )}
 
                 {/* Footer Actions */}
-                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col sm:flex-row gap-4">
+                <div className="mt-12 flex flex-col gap-4 border-t border-gray-100 pt-8 sm:flex-row">
                   <Button
                     type="submit"
                     disabled={saving}
-                    className="flex-[2] h-16"
+                    className="h-16 flex-[2] rounded-xl bg-amber-400 font-extrabold text-stone-950 shadow-lg shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:bg-amber-500 active:scale-95"
                   >
                     {saving ? (
                       <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -350,7 +382,7 @@ export default function Profile() {
                     type="button"
                     onClick={() => fetchProfile()}
                     variant="secondary"
-                    className="flex-1 h-16"
+                    className="h-16 flex-1 rounded-xl transition-all hover:-translate-y-0.5 active:scale-95"
                   >
                     Discard
                   </Button>
@@ -362,7 +394,7 @@ export default function Profile() {
 
           {/* Quick Stats Sidebar */}
           <div className="lg:col-span-1 space-y-8">
-            <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
               <h3 className="text-xl font-black text-gray-900 mb-6">Wallet Highlights</h3>
               <div className="space-y-4">
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
@@ -370,23 +402,23 @@ export default function Profile() {
                   <p className="text-3xl font-black text-gray-900">₹{balance.toFixed(2)}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-4">
-                  <Button onClick={() => navigate('/wallet/add-money')} variant="outline" className="p-4 !text-gray-700 text-xs uppercase tracking-widest">
-                    Add Money
+                  <Button onClick={() => navigate('/wallet/add-money')} variant="outline" className="group flex h-auto items-center justify-start gap-2 rounded-xl p-4 text-left !text-gray-700 text-xs uppercase tracking-widest transition-all hover:-translate-y-0.5 hover:bg-amber-50">
+                    <Plus className="h-4 w-4 text-amber-600 transition-transform group-hover:scale-110" aria-hidden="true" />Add Money
                   </Button>
-                  <Button onClick={() => navigate('/wallet/transactions')} variant="outline" className="p-4 !text-gray-700 text-xs uppercase tracking-widest">
-                    History
+                  <Button onClick={() => navigate('/wallet/transactions')} variant="outline" className="group flex h-auto items-center justify-start gap-2 rounded-xl p-4 text-left !text-gray-700 text-xs uppercase tracking-widest transition-all hover:-translate-y-0.5 hover:bg-amber-50">
+                    <History className="h-4 w-4 text-slate-500 transition-transform group-hover:scale-110" aria-hidden="true" />History
                   </Button>
-                  <Button onClick={() => navigate('/withdraw')} variant="outline" className="p-4 !text-gray-700 text-xs uppercase tracking-widest">
-                    Withdraw
+                  <Button onClick={() => navigate('/withdraw')} variant="outline" className="group col-span-2 flex h-auto items-center justify-start gap-2 rounded-xl p-4 text-left !text-gray-700 text-xs uppercase tracking-widest transition-all hover:-translate-y-0.5 hover:bg-amber-50">
+                    <CircleDollarSign className="h-4 w-4 text-emerald-600 transition-transform group-hover:scale-110" aria-hidden="true" />Withdraw
                   </Button>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
               <h3 className="text-xl font-black text-gray-900 mb-6">Security</h3>
               <div className="space-y-4">
-                <div className="flex items-center gap-4 group cursor-pointer" onClick={() => navigate('/forgot-password')}>
+                <div className="flex cursor-pointer items-center gap-4 rounded-xl p-2 transition-colors hover:bg-amber-50 group" onClick={() => navigate('/forgot-password')}>
                   <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform"><LockKeyhole className="h-5 w-5" aria-hidden="true" /></div>
                   <div>
                     <h4 className="font-bold text-gray-900">Reset Password</h4>
@@ -394,7 +426,7 @@ export default function Profile() {
                   </div>
                 </div>
                 <hr className="border-gray-50" />
-                <div className="flex items-center gap-4 group cursor-pointer" onClick={handleLogout}>
+                <div className="flex cursor-pointer items-center gap-4 rounded-xl p-2 transition-colors hover:bg-red-50 group" onClick={handleLogout}>
                   <div className="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform"><LogOut className="h-5 w-5" aria-hidden="true" /></div>
                   <div>
                     <h4 className="font-bold text-gray-900">Logout</h4>

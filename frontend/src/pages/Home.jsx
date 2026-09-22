@@ -39,15 +39,16 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Active Tournaments</h2>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button onClick={() => navigate('/create-tournament?tournamentType=one_vs_one')} size="sm">
-                  One vs One
-                </Button>
-                <Button onClick={() => navigate('/create-tournament?tournamentType=br')} variant="outline" size="sm">
-                  BR / Long Tournament
-                </Button>
-              </div>
+              <p className="mt-1 text-sm text-gray-500">Find your next match or host a tournament.</p>
             </div>
+            <Button
+              onClick={() => navigate('/create-tournament')}
+              className="w-full rounded-xl bg-amber-400 px-6 py-3 text-base font-extrabold text-stone-950 shadow-lg shadow-amber-500/20 transition-all hover:-translate-y-0.5 hover:bg-amber-500 hover:shadow-xl hover:shadow-amber-500/25 active:scale-95 sm:w-auto"
+              aria-label="Create a tournament"
+            >
+              <span className="mr-2 text-lg leading-none" aria-hidden="true">＋</span>
+              Create Tournament
+            </Button>
             <div className="flex flex-wrap gap-2">
               {['all', 'fifa', 'bgmi', 'freefire'].map((game) => (
                 <Button

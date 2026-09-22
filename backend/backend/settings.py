@@ -26,7 +26,7 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-khpz1n-)d6+cb3mt%6&psf802(#2^8ndqixqu2snvh2l3k@zak')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() == 'true'
 
 # Allowed hosts - configured via environment variable or default to all hosts
 # For production, replace '*' with your specific domain/IP for better security
@@ -60,7 +60,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
      "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -68,6 +67,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+if not DEBUG:
+    MIDDLEWARE.insert(2, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 # CORS Configuration
 if DEBUG:
@@ -139,7 +141,13 @@ else:
 import dj_database_url
 from decouple import config
 
-DEBUG = config('DEBUG', default=False, cast=bool)
+# Keep the legacy DEBUG variable as a fallback, while giving DJANGO_DEBUG
+# precedence so local and production configurations use the same setting.
+DEBUG = config(
+    'DJANGO_DEBUG',
+    default=config('DEBUG', default=DEBUG, cast=bool),
+    cast=bool,
+)
 
 DATABASES = {
     'default': dj_database_url.config(
@@ -175,7 +183,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -187,7 +195,10 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+if DEBUG:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

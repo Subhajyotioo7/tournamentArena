@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path,include
 from django.conf import settings
+from django.conf.urls.static import static
 from django.http import HttpResponseRedirect
 from django.views.decorators.http import require_GET
 from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
@@ -45,3 +46,6 @@ urlpatterns = [
     path("wallet/", include("wallet.urls")),
     path("payments/", include("payments.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

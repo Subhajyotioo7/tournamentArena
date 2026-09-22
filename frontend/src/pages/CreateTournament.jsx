@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { hostPartnerService, tournamentService } from '../services/api';
 import { Button } from '../components/ui/button';
+import { getGameTheme } from '../config/gameThemes';
 
 const getTeamSize = (mode) => {
     if (mode === 'solo') return 1;
@@ -15,7 +16,13 @@ const getRoomPlayerCount = (mode) => {
     return 8;
 };
 
-const getCreationFee = (type) => (type === 'br' ? 50 : 10);
+const getCreationFee = (type) => (type === 'br' ? 50 : 0);
+
+const getDefaultStartTime = () => {
+    const date = new Date(Date.now() + 60 * 60 * 1000);
+    const offset = date.getTimezoneOffset();
+    return new Date(date.getTime() - offset * 60 * 1000).toISOString().slice(0, 16);
+};
 
 const getHostRequestText = (status, requesting) => {
     if (requesting) return 'Submitting...';
@@ -30,6 +37,7 @@ export default function CreateTournament() {
     const [requestingAccess, setRequestingAccess] = useState(false);
     const [hostRequestStatus, setHostRequestStatus] = useState(null);
     const [hostRequestMessage, setHostRequestMessage] = useState('');
+    const [timeSlots, setTimeSlots] = useState([]);
     const [requestForm, setRequestForm] = useState({
         game: 'bgmi',
         requested_tournament_name: '',
@@ -52,10 +60,13 @@ export default function CreateTournament() {
         max_participants: 2,
         custom_player_count: 0,
         start_time: '',
+        time_slot_id: '',
         prize_distributions: [
             { rank_from: 1, rank_to: 1, prize: 0 }
         ]
     });
+    const theme = getGameTheme(formData.game);
+    const ThemeIcon = theme.icon;
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -69,12 +80,15 @@ export default function CreateTournament() {
                 const data = await hostPartnerService.getStatus();
                 setHostRequestStatus(data.status || 'pending');
                 setHostRequestMessage(data.message || '');
-            } catch (error) {
+            } catch {
                 setHostRequestStatus('not_requested');
             }
         };
 
         loadHostStatus();
+        tournamentService.getAvailableTimeSlots()
+            .then(setTimeSlots)
+            .catch((error) => console.error('Failed to load available start times:', error));
     }, [location.search]);
 
     const handleChange = (e) => {
@@ -83,9 +97,12 @@ export default function CreateTournament() {
     };
 
     const handlePrizeChange = (index, field, value) => {
-        const newPrizes = [...formData.prize_distributions];
-        newPrizes[index][field] = value;
-        setFormData(prev => ({ ...prev, prize_distributions: newPrizes }));
+        setFormData(prev => ({
+            ...prev,
+            prize_distributions: prev.prize_distributions.map((prize, prizeIndex) =>
+                prizeIndex === index ? { ...prize, [field]: value } : prize
+            ),
+        }));
     };
 
     const addPrizeRange = () => {
@@ -131,17 +148,20 @@ export default function CreateTournament() {
 
         setLoading(true);
         try {
-            const distributions = formData.prize_distributions.flatMap((range) => {
-                const from = Math.max(1, Number(range.rank_from) || 1);
-                const to = Math.max(from, Number(range.rank_to) || from);
-                return Array.from({ length: to - from + 1 }, (_, index) => ({
-                    rank: from + index,
-                    prize: Number(range.prize) || 0
-                }));
-            });
+                    const distributions = formData.tournament_type === 'one_vs_one'
+                        ? []
+                        : formData.prize_distributions.flatMap((range) => {
+                        const from = Math.max(1, Number(range.rank_from) || 1);
+                        const to = Math.max(from, Number(range.rank_to) || from);
+                        return Array.from({ length: to - from + 1 }, (_, index) => ({
+                            rank: from + index,
+                            prize: Number(range.prize) || 0
+                        }));
+                        });
             const payload = {
                 ...formData,
                 tournament_type: formData.tournament_type,
+                time_slot_id: formData.tournament_type === 'one_vs_one' ? formData.time_slot_id : undefined,
                 custom_player_count: formData.tournament_type === 'br' ? Number(formData.custom_player_count || 0) : 0,
                 prize_distributions: distributions,
             };
@@ -149,7 +169,8 @@ export default function CreateTournament() {
             const response = await tournamentService.createUserTournament(payload);
             const breakdown = response.breakdown || {};
             const creationFee = breakdown.creation_fee || String(getCreationFee(formData.tournament_type));
-            alert(`✅ ${response.message}\n\n💰 Total Deducted: ₹${response.fee_deducted}\n- Creation Fee: ₹${creationFee}\n- Prize Pool: ₹${breakdown.prize_pool || '0'}`);
+            const creatorEntryFee = breakdown.entry_fee || '0';
+            alert(`✅ ${response.message}\n\n💰 Total Deducted: ₹${response.fee_deducted}\n- Creation Fee: ₹${creationFee}\n- Prize Pool: ₹${breakdown.prize_pool || '0'}\n- Entry Fee: ₹${creatorEntryFee}`);
             navigate('/');
         } catch (error) {
             console.error('Failed to create tournament:', error);
@@ -160,13 +181,18 @@ export default function CreateTournament() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="bg-purple-600 px-8 py-6">
-                    <h2 className="text-3xl font-extrabold text-white">Create Your Tournament</h2>
-                    <p className="mt-2 text-purple-100 italic">
-                        {formData.tournament_type === 'br' ? '₹50 long tournament creation fee' : '₹10 tournament creation fee'} + your prize distribution will be deducted from your wallet.
-                    </p>
+        <div className={`min-h-screen bg-gradient-to-br ${theme.soft} via-white to-gray-50 py-12 px-4 sm:px-6 lg:px-8`}>
+            <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl bg-white shadow-xl">
+                <div className={`relative overflow-hidden bg-gradient-to-r ${theme.gradient} px-8 py-6`}>
+                    <ThemeIcon className={`absolute -right-2 -top-5 h-36 w-36 opacity-10 ${theme.headerText}`} aria-hidden="true" />
+                    <div className="relative z-10">
+                        <h2 className={`text-3xl font-extrabold ${theme.headerText}`}>Create Your Tournament</h2>
+                        <p className={`mt-2 italic ${theme.headerMuted}`}>
+                        {formData.tournament_type === 'br'
+                            ? '₹50 long tournament creation fee plus your prize distribution is deducted from your wallet.'
+                            : 'No creation fee. The entry fee is charged when you join your own room, and the winner receives the full two-player pool.'}
+                        </p>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
@@ -176,14 +202,14 @@ export default function CreateTournament() {
                                 <Button
                                     type="button"
                                     variant={formData.tournament_type === 'one_vs_one' ? 'default' : 'outline'}
-                                    onClick={() => setFormData(prev => ({ ...prev, tournament_type: 'one_vs_one', team_mode: 'solo', max_participants: 2 }))}
+                                    onClick={() => setFormData(prev => ({ ...prev, tournament_type: 'one_vs_one', team_mode: 'solo', max_participants: 2, time_slot_id: '' }))}
                                 >
                                     One vs One
                                 </Button>
                                 <Button
                                     type="button"
                                     variant={formData.tournament_type === 'br' ? 'default' : 'outline'}
-                                    onClick={() => setFormData(prev => ({ ...prev, tournament_type: 'br', team_mode: 'solo', max_participants: 16, custom_player_count: 16 }))}
+                                    onClick={() => setFormData(prev => ({ ...prev, tournament_type: 'br', team_mode: 'solo', max_participants: 16, custom_player_count: 16, time_slot_id: '' }))}
                                 >
                                     BR / Long Tournament
                                 </Button>
@@ -312,7 +338,7 @@ export default function CreateTournament() {
                                 value={formData.name}
                                 onChange={handleChange}
                                 required
-                                className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500"
+                                className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-amber-500 focus:border-amber-500"
                                 placeholder="Global BGMI Championship"
                             />
                         </div>
@@ -323,7 +349,7 @@ export default function CreateTournament() {
                                 name="game"
                                 value={formData.game}
                                 onChange={handleChange}
-                                className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500"
+                                className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-amber-500 focus:border-amber-500"
                             >
                                 <option value="bgmi">BGMI</option>
                                 <option value="freefire">Free Fire</option>
@@ -339,7 +365,7 @@ export default function CreateTournament() {
                                 value={formData.entry_fee}
                                 onChange={handleChange}
                                 min="0"
-                                className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500"
+                                className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-amber-500 focus:border-amber-500"
                             />
                         </div>
 
@@ -352,6 +378,9 @@ export default function CreateTournament() {
                                     const mode = e.target.value;
                                     const maxPlayers = getRoomPlayerCount(mode);
                                     const brPlayerCount = 16;
+                                    if (formData.tournament_type === 'one_vs_one' && mode !== 'solo') {
+                                        return;
+                                    }
                                     setFormData(prev => ({
                                         ...prev,
                                         team_mode: mode,
@@ -359,7 +388,7 @@ export default function CreateTournament() {
                                         max_participants: formData.tournament_type === 'br' ? Math.max(brPlayerCount, prev.custom_player_count || brPlayerCount) : maxPlayers
                                     }));
                                 }}
-                                className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500"
+                                className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-amber-500 focus:border-amber-500"
                             >
                                 <option value="solo">Solo (1 vs 1)</option>
                                 <option value="duo">Duo (2 vs 2)</option>
@@ -380,7 +409,7 @@ export default function CreateTournament() {
                                         const roundedValue = value > 0 ? Math.max(teamSize, value - (value % teamSize)) : 0;
                                         setFormData(prev => ({ ...prev, custom_player_count: roundedValue, max_participants: roundedValue }));
                                     }}
-                                    className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500"
+                                    className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-amber-500 focus:border-amber-500"
                                 />
                             ) : (
                                 <div className="mt-1 block w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 text-gray-600 font-bold">
@@ -389,24 +418,42 @@ export default function CreateTournament() {
                             )}
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Start Time</label>
-                            <input
-                                type="datetime-local"
-                                name="start_time"
-                                value={formData.start_time}
-                                onChange={handleChange}
-                                className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-purple-500 focus:border-purple-500"
-                            />
-                        </div>
+                        {formData.tournament_type === 'one_vs_one' && (
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700">Choose Start Time</label>
+                                <select
+                                    name="time_slot_id"
+                                    value={formData.time_slot_id}
+                                    onChange={handleChange}
+                                    required
+                                    className="mt-1 block w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-amber-500 focus:border-amber-500"
+                                >
+                                    <option value="">Select an admin-approved time</option>
+                                    {timeSlots.map((slot) => (
+                                        <option key={slot.id} value={slot.id}>
+                                            {new Date(slot.start_time).toLocaleString('en-IN', {
+                                                timeZone: 'Asia/Kolkata',
+                                                dateStyle: 'medium',
+                                                timeStyle: 'short',
+                                            })}
+                                        </option>
+                                    ))}
+                                </select>
+                                {timeSlots.length === 0 && (
+                                    <p className="mt-1 text-sm text-amber-700">No start times are available yet. Please ask an admin to add one.</p>
+                                )}
+                            </div>
+                        )}
+
                     </div>
 
+                    {formData.tournament_type === 'br' && (
                     <div className="border-t border-gray-200 pt-6">
                         <h3 className="text-lg font-bold text-gray-900 mb-4">🏆 Set Prize Distribution</h3>
                         <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl p-5 shadow-sm">
                             <div className="space-y-3">
-                                {formData.prize_distributions.map((range) => (
-                                    <div key={`${range.rank_from}-${range.rank_to}`} className="grid grid-cols-[1fr_1fr_1.5fr_auto] items-end gap-2">
+                                {formData.prize_distributions.map((range, index) => (
+                                    <div key={index} className="grid grid-cols-[1fr_1fr_1.5fr_auto] items-end gap-2">
                                         <label className="text-xs font-semibold text-gray-700">
                                             From rank
                                             <input type="number" min="1" value={range.rank_from} onChange={(e) => handlePrizeChange(index, 'rank_from', e.target.value)} className="mt-1 w-full rounded-lg border border-yellow-300 px-3 py-2" />
@@ -430,7 +477,7 @@ export default function CreateTournament() {
                                 <div className="space-y-1 text-sm text-gray-600">
                                     <div className="flex justify-between">
                                         <span>Tournament creation fee:</span>
-                                        <span className="font-semibold">₹{formData.tournament_type === 'br' ? 50 : 10}</span>
+                                        <span className="font-semibold">₹{getCreationFee(formData.tournament_type)}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span>Prize distribution:</span>
@@ -438,7 +485,7 @@ export default function CreateTournament() {
                                     </div>
                                     <div className="border-t border-yellow-300 pt-2 mt-2 flex justify-between text-lg font-bold text-green-600">
                                         <span>Total required:</span>
-                                        <span>₹{(formData.tournament_type === 'br' ? 50 : 10) + formData.prize_distributions.reduce((total, range) => total + ((Math.max(1, Number(range.rank_to) || 1) - Math.max(1, Number(range.rank_from) || 1) + 1) * (parseFloat(range.prize) || 0)), 0)}</span>
+                                        <span>₹{getCreationFee(formData.tournament_type) + formData.prize_distributions.reduce((total, range) => total + ((Math.max(1, Number(range.rank_to) || 1) - Math.max(1, Number(range.rank_from) || 1) + 1) * (parseFloat(range.prize) || 0)), 0)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -449,6 +496,7 @@ export default function CreateTournament() {
                             </p>
                         </div>
                     </div>
+                    )}
 
                     <div className="pt-6">
                         <Button

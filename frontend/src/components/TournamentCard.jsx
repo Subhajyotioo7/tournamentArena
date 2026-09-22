@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { getGameTheme } from '../config/gameThemes';
 import { DragButton } from './ui/drag-button';
+import TournamentCountdown from './TournamentCountdown';
 
 export default function TournamentCard({ tournament }) {
   const navigate = useNavigate();
@@ -35,15 +36,19 @@ export default function TournamentCard({ tournament }) {
         <div className="p-4 sm:p-6">
           {(() => {
             const rank1Prize = tournament.prize_distributions?.find(p => p.rank === 1);
-            const winnerPrize = rank1Prize ? parseFloat(rank1Prize.prize_amount) : 0;
             const entryFee = parseFloat(tournament.entry_fee) || 0;
-            const totalPayout = winnerPrize + entryFee;
+            const isOneVsOne = tournament.tournament_type === 'one_vs_one';
+            const totalPayout = isOneVsOne
+              ? entryFee * 2
+              : (rank1Prize ? parseFloat(rank1Prize.prize_amount) : 0) + entryFee;
 
             return (
               <>
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
                   <div className={`bg-gradient-to-br from-white to-gray-50 rounded-lg p-2 sm:p-3 border ${theme.border}`}>
-                    <p className="text-gray-600 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">Total Payout</p>
+                    <p className="text-gray-600 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">
+                      {isOneVsOne ? 'Prize' : 'Total Payout'}
+                    </p>
                     <p className={`text-xl sm:text-2xl font-black ${theme.accent} leading-none`}>₹{totalPayout.toFixed(0)}</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-2 sm:p-3 border border-gray-100">
@@ -63,12 +68,17 @@ export default function TournamentCard({ tournament }) {
                   </div>
                   <div className="text-xs sm:text-sm text-gray-600 flex justify-between">
                     <span>Slots:</span>
-                    <span className="font-semibold text-blue-600">{tournament.total_participants || 0} / {tournament.max_participants || 100}</span>
+                    <span className="font-semibold text-blue-600">{tournament.total_participants || 0} / {tournament.max_participants || 100} ({Math.max(0, (tournament.max_participants || 100) - (tournament.total_participants || 0))} available)</span>
                   </div>
                 </div>
+                {tournament.start_time && (
+                  <div className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    <TournamentCountdown target={tournament.start_time} />
+                  </div>
+                )}
 
                 {/* Prize Distribution Preview */}
-                {tournament.prize_distributions && tournament.prize_distributions.length > 0 && (
+                {tournament.tournament_type !== 'one_vs_one' && tournament.prize_distributions && tournament.prize_distributions.length > 0 && (
                   <div className="mb-5 rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50/80 to-orange-50/50 p-3">
                     <div className="mb-3 flex items-center justify-between">
                       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Prize pool</p>

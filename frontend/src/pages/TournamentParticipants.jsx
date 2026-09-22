@@ -2,11 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { tournamentService, roomService } from '../services/api';
 import { Button } from '../components/ui/button';
+import { useAuth } from '../context/AuthContext';
 
 export default function TournamentParticipants() {
     const { id } = useParams();
+    const { user } = useAuth();
     const [participants, setParticipants] = useState([]);
     const [canManage, setCanManage] = useState(false);
+    const [tournamentType, setTournamentType] = useState(null);
+    const isAdmin = Boolean(user?.is_staff || user?.is_superuser);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -17,6 +21,7 @@ export default function TournamentParticipants() {
             const data = await tournamentService.getParticipants(id);
             setParticipants(data.participants || []);
             setCanManage(Boolean(data.can_manage));
+            setTournamentType(data.tournament_type || null);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -103,7 +108,7 @@ export default function TournamentParticipants() {
                 </div>
             )}
 
-            {canManage && (
+            {canManage && (tournamentType !== 'one_vs_one' || isAdmin) && (
                 <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
                     You can manage teams because you are the tournament creator or an admin.
                 </p>
@@ -119,7 +124,7 @@ export default function TournamentParticipants() {
                                     <p className="text-xs font-black uppercase tracking-widest text-stone-400">👥 Pair / Team</p>
                                     <p className="font-black text-stone-900">{team.team_leader_username || team.username}</p>
                                 </div>
-                                {canManage && (
+                                {canManage && (tournamentType !== 'one_vs_one' || isAdmin) && (
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -193,7 +198,7 @@ export default function TournamentParticipants() {
                                             )}
                                         </td>
                                         <td className="p-4 text-right">
-                                            {canManage && (
+                                            {canManage && (tournamentType !== 'one_vs_one' || isAdmin) && (
                                                 <Button
                                                     onClick={() => handleSetWinner(participant.id, participant.room_id)}
                                                     disabled={processing[participant.id]}

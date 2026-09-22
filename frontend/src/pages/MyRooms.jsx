@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getApiBaseUrl, roomService } from '../services/api';
 import { Button } from '../components/ui/button';
 import { getGameTheme } from '../config/gameThemes';
+import TournamentCountdown from '../components/TournamentCountdown';
 import { Check, Gamepad2, Hourglass, Mail, MessageCircle, Send, Trash2, Trophy, Users, X } from 'lucide-react';
 
 function roomStatus(room) {
@@ -324,9 +325,14 @@ export default function MyRooms() {
                                         <div className="flex justify-between text-sm">
                                             <span className="text-gray-600">Players</span>
                                             <span className="font-semibold text-gray-900">
-                                                <span className="inline-flex items-center gap-1"><Users className="h-4 w-4" aria-hidden="true" />{room.current_players}/{room.max_players}</span>
+                                                <span className="inline-flex items-center gap-1"><Users className="h-4 w-4" aria-hidden="true" />{room.current_players}/{room.max_players} ({room.available_slots ?? Math.max(0, room.max_players - room.current_players)} available)</span>
                                             </span>
                                         </div>
+                                        {room.start_time && (
+                                            <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                                <TournamentCountdown target={room.start_time} />
+                                            </div>
+                                        )}
                                         <div className="flex justify-between text-sm">
                                             <span className="text-gray-600">Prize Pool</span>
                                             <span className="font-semibold text-green-600">₹{room.prize_pool}</span>
@@ -411,7 +417,7 @@ export default function MyRooms() {
 
                         {/* Modal Body */}
                         <div className="flex-1 overflow-y-auto bg-gray-50/50">
-                            {roomDetails.teams?.length > 0 && (
+                            {(roomDetails.tournament_type !== 'one_vs_one' || isAdmin) && roomDetails.teams?.length > 0 && (
                                 <div className="border-b border-stone-200 bg-white p-4 sm:p-6">
                                     <div className="mb-4 flex items-center justify-between">
                                         <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-stone-700">
@@ -426,7 +432,7 @@ export default function MyRooms() {
                                                     <p className="text-xs font-black uppercase tracking-widest text-stone-400">
                                                         {roomDetails.team_mode === 'duo' ? '👥 Pair' : '👥 Team'} • {team.leader_username}
                                                     </p>
-                                                    {roomDetails.can_manage && (
+                                                    {(roomDetails.tournament_type !== 'one_vs_one' || isAdmin) && roomDetails.can_manage && (
                                                         <Button
                                                             type="button"
                                                             variant="outline"
@@ -518,6 +524,7 @@ export default function MyRooms() {
                                     </div>
 
                                     {/* Column 3: Winners & Payouts */}
+                                    {(roomDetails.tournament_type !== 'one_vs_one' || isAdmin) && (
                                     <div className="w-full lg:w-80 flex flex-col gap-6">
                                         <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200 rounded-[2rem] p-6 shadow-sm">
                                             <h4 className="text-sm font-black text-gray-900 mb-5 flex items-center gap-2 tracking-tight"><Trophy className="h-4 w-4 text-yellow-600" aria-hidden="true" />Declare Winners</h4>
@@ -568,6 +575,7 @@ export default function MyRooms() {
                                             </div>
                                         </div>
                                     </div>
+                                    )}
                                 </div>
                             ) : (
                                 /* --- 👤 STANDARD PLAYER INTERFACE (Tabs) --- */

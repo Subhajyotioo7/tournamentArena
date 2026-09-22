@@ -212,6 +212,19 @@ export const tournamentService = {
     });
   },
 
+  getAvailableTimeSlots: async () => apiRequest('/tournaments/time-slots/'),
+
+  getAllTimeSlots: async () => apiRequest('/tournaments/time-slots/'),
+
+  createTimeSlot: async (startTime) => apiRequest('/tournaments/time-slots/', {
+    method: 'POST',
+    body: JSON.stringify({ start_time: startTime }),
+  }),
+
+  deleteTimeSlot: async (slotId) => apiRequest(`/tournaments/time-slots/${slotId}/`, {
+    method: 'DELETE',
+  }),
+
   getPrizeDistribution: async (tournamentId) => {
     return apiRequest(`/tournaments/tournament/${tournamentId}/prizes/`);
   },

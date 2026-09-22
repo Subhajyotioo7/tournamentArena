@@ -23,6 +23,13 @@ const getVerificationCardClass = (status, colors) => {
     if (status === 'approved') return colors.approved;
     return colors.other;
 };
+
+const getDefaultStartTime = () => {
+    const date = new Date(Date.now() + 60 * 60 * 1000);
+    const offset = date.getTimezoneOffset();
+    return new Date(date.getTime() - offset * 60 * 1000).toISOString().slice(0, 16);
+};
+
 export default function AdminDashboard() {
     const { user, loading: authLoading } = useAuth();
     const isAdmin = user?.is_staff || user?.is_superuser;
@@ -33,6 +40,9 @@ export default function AdminDashboard() {
     const [deposits, setDeposits] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState({});
+    const [timeSlots, setTimeSlots] = useState([]);
+    const [newTimeSlot, setNewTimeSlot] = useState('');
+    const [showNotifications, setShowNotifications] = useState(false);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [formData, setFormData] = useState({
@@ -41,7 +51,7 @@ export default function AdminDashboard() {
         entry_fee: '',
         team_mode: 'solo',
         registration_deadline: '',
-        start_time: '',
+        start_time: getDefaultStartTime(),
         max_participants: 100
     });
 
@@ -52,6 +62,8 @@ export default function AdminDashboard() {
     useEffect(() => {
         if (!authLoading && isAdmin) {
             fetchData();
+            const refreshTimer = window.setInterval(fetchData, 30000);
+            return () => window.clearInterval(refreshTimer);
         }
     }, [authLoading, isAdmin]);
 
@@ -69,10 +81,32 @@ export default function AdminDashboard() {
             setWithdrawals(withdrawalsData || []);
             setVerifications(verificationsData || []);
             setDeposits(depositsData || []);
+            setTimeSlots(await tournamentService.getAllTimeSlots());
         } catch (error) {
             console.error('Failed to fetch admin data:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleCreateTimeSlot = async (event) => {
+        event.preventDefault();
+        if (!newTimeSlot) return;
+        try {
+            const slot = await tournamentService.createTimeSlot(newTimeSlot);
+            setTimeSlots((current) => [...current, slot].sort((a, b) => new Date(a.start_time) - new Date(b.start_time)));
+            setNewTimeSlot('');
+        } catch (error) {
+            alert('Failed to add start time: ' + error.message);
+        }
+    };
+
+    const handleDeleteTimeSlot = async (slotId) => {
+        try {
+            await tournamentService.deleteTimeSlot(slotId);
+            setTimeSlots((current) => current.filter((slot) => slot.id !== slotId));
+        } catch (error) {
+            alert('Failed to remove start time: ' + error.message);
         }
     };
 
@@ -119,7 +153,7 @@ export default function AdminDashboard() {
                 entry_fee: '',
                 team_mode: 'solo',
                 registration_deadline: '',
-                start_time: '',
+                start_time: getDefaultStartTime(),
                 max_participants: 100
             });
             fetchData(); // Refresh list
@@ -238,13 +272,70 @@ export default function AdminDashboard() {
         return acc;
     }, {});
 
+    const totalRooms = tournaments.reduce(
+        (total, tournament) => total + (Array.isArray(tournament.rooms) ? tournament.rooms.length : 0),
+        0
+    );
+    const newTournaments = tournaments.filter((tournament) => (
+        tournament.created_at &&
+        Date.now() - new Date(tournament.created_at).getTime() < 24 * 60 * 60 * 1000
+    ));
+    const notificationItems = [
+        { label: 'New tournaments', count: newTournaments.length, href: '#tournament-registrations' },
+        { label: 'Pending payouts', count: pendingPayouts.length, href: '#pending-payouts' },
+        { label: 'Pending verifications', count: verifications.length, href: '#verifications' },
+        { label: 'Pending deposits', count: deposits.length, href: '#pending-deposits' },
+        { label: 'Pending withdrawals', count: withdrawals.filter((item) => item.status === 'pending').length, href: '#withdrawals' },
+    ];
+    const notificationCount = notificationItems.reduce((total, item) => total + item.count, 0);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
             {/* Header */}
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                    <h1 className="text-4xl font-extrabold mb-2">🛠️ Admin Dashboard</h1>
-                    <p className="text-indigo-100">Manage tournament payouts and results</p>
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <h1 className="text-4xl font-extrabold mb-2">🛠️ Admin Dashboard</h1>
+                            <p className="text-indigo-100">Manage tournaments, players, payouts, and results</p>
+                        </div>
+                        <div className="relative">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="relative text-white hover:bg-white/10 hover:text-white"
+                                onClick={() => setShowNotifications((visible) => !visible)}
+                                aria-label={`${notificationCount} admin notifications`}
+                            >
+                                🔔
+                                {notificationCount > 0 && (
+                                    <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-500 px-1 text-center text-xs font-bold text-white">
+                                        {notificationCount > 99 ? '99+' : notificationCount}
+                                    </span>
+                                )}
+                            </Button>
+                            {showNotifications && (
+                                <div className="absolute right-0 top-12 z-30 w-72 rounded-xl bg-white p-3 text-gray-900 shadow-2xl">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <p className="font-bold">Notifications</p>
+                                        <span className="text-xs text-gray-500">{notificationCount} open</span>
+                                    </div>
+                                    {notificationItems.filter((item) => item.count > 0).map((item) => (
+                                        <a
+                                            key={item.label}
+                                            href={item.href}
+                                            onClick={() => setShowNotifications(false)}
+                                            className="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-gray-100"
+                                        >
+                                            <span>{item.label}</span>
+                                            <span className="rounded-full bg-red-100 px-2 py-0.5 font-bold text-red-700">{item.count}</span>
+                                        </a>
+                                    ))}
+                                    {notificationCount === 0 && <p className="px-3 py-2 text-sm text-gray-500">No new notifications.</p>}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -255,7 +346,10 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-gray-500 text-sm font-medium">Pending Payouts</p>
-                                <p className="text-3xl font-bold text-gray-900 mt-1">{pendingPayouts.length}</p>
+                                <p className="text-3xl font-bold text-gray-900 mt-1">
+                                    {pendingPayouts.length}
+                                    {pendingPayouts.length > 0 && <span className="ml-2 rounded-full bg-red-100 px-2 py-1 text-xs text-red-700">NEW</span>}
+                                </p>
                             </div>
                             <div className="bg-yellow-100 p-3 rounded-full">
                                 <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,7 +363,7 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-gray-500 text-sm font-medium">Total Rooms</p>
-                                <p className="text-3xl font-bold text-gray-900 mt-1">{Object.keys(payoutsByRoom).length}</p>
+                                <p className="text-3xl font-bold text-gray-900 mt-1">{totalRooms}</p>
                             </div>
                             <div className="bg-blue-100 p-3 rounded-full">
                                 <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,7 +377,10 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-gray-500 text-sm font-medium">Pending Verifications</p>
-                                <p className="text-3xl font-bold text-gray-900 mt-1">{verifications.length}</p>
+                                <p className="text-3xl font-bold text-gray-900 mt-1">
+                                    {verifications.length}
+                                    {verifications.length > 0 && <span className="ml-2 rounded-full bg-red-100 px-2 py-1 text-xs text-red-700">NEW</span>}
+                                </p>
                             </div>
                             <div className="bg-purple-100 p-3 rounded-full">
                                 <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,6 +388,38 @@ export default function AdminDashboard() {
                                 </svg>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div id="tournament-registrations" className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900">One-v-one Start Times</h2>
+                            <p className="text-sm text-gray-500">Add times that creators can book. Booked times cannot be reused.</p>
+                        </div>
+                    </div>
+                    <form onSubmit={handleCreateTimeSlot} className="flex flex-col sm:flex-row gap-3 mb-4">
+                        <input
+                            type="datetime-local"
+                            required
+                            value={newTimeSlot}
+                            onChange={(event) => setNewTimeSlot(event.target.value)}
+                            className="flex-1 rounded-lg border border-gray-300 px-4 py-2"
+                        />
+                        <Button type="submit">Add Available Time</Button>
+                    </form>
+                    <div className="flex flex-wrap gap-2">
+                        {timeSlots.length === 0 && <span className="text-sm text-gray-500">No future times configured.</span>}
+                        {timeSlots.map((slot) => (
+                            <div key={slot.id} className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm ${slot.booked ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-700'}`}>
+                                <span>{new Date(slot.start_time).toLocaleString('en-IN')}</span>
+                                {slot.booked ? (
+                                    <span className="text-xs font-semibold">Booked</span>
+                                ) : (
+                                    <button type="button" onClick={() => handleDeleteTimeSlot(slot.id)} className="font-bold hover:text-red-600" aria-label="Remove time slot">×</button>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
 
@@ -362,13 +491,15 @@ export default function AdminDashboard() {
                                                     ₹{(t.total_participants || 0) * parseFloat(t.entry_fee)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <Button
-                                                        onClick={() => handleOpenPrizeModal(t.id)}
-                                                        variant="outline"
-                                                        size="sm"
-                                                    >
-                                                        🏆 Set Prizes
-                                                    </Button>
+                                                    {t.tournament_type !== 'one_vs_one' && (
+                                                        <Button
+                                                            onClick={() => handleOpenPrizeModal(t.id)}
+                                                            variant="outline"
+                                                            size="sm"
+                                                        >
+                                                            🏆 Set Prizes
+                                                        </Button>
+                                                    )}
                                                     <Link
                                                         to={`/admin/tournament/${t.id}/participants`}
                                                         className="inline-flex items-center text-blue-600 hover:text-blue-900 font-semibold text-sm bg-blue-50 px-3 py-1 rounded-full hover:bg-blue-100 transition-colors ml-2"
@@ -393,7 +524,7 @@ export default function AdminDashboard() {
                 </div >
 
                 {/* Pending Payouts */}
-                < div className="bg-white rounded-xl shadow-lg p-6" >
+                < div id="pending-payouts" className="bg-white rounded-xl shadow-lg p-6" >
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Pending Payouts</h2>
 
                     {loading && (
@@ -453,7 +584,7 @@ export default function AdminDashboard() {
                 </div >
 
                 {/* Withdrawal Requests */}
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div id="withdrawals" className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Withdrawal Requests</h2>
 
                     {loading && (
@@ -523,7 +654,7 @@ export default function AdminDashboard() {
                     )}
                 </div>
                 {/* Deposit Requests */}
-                <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <div id="pending-deposits" className="bg-white rounded-xl shadow-lg p-6 mb-8">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Money Deposit Requests</h2>
 
                     {loading && (
@@ -571,7 +702,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Pending Verifications */}
-                <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <div id="verifications" className="bg-white rounded-xl shadow-lg p-6 mb-8">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Pending Verifications</h2>
                     {loading && (
                         <p>Loading...</p>
@@ -787,7 +918,7 @@ export default function AdminDashboard() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-gray-700">Start Time</label>
+                                            <label className="text-sm font-semibold text-gray-700">Start Time (required)</label>
                                             <input
                                                 type="datetime-local"
                                                 required
@@ -795,6 +926,7 @@ export default function AdminDashboard() {
                                                 value={formData.start_time}
                                                 onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                                             />
+                                            <p className="text-xs text-gray-500">Defaults to one hour from now. Players cannot join after this time.</p>
                                         </div>
                                     </div>
 
@@ -832,7 +964,7 @@ export default function AdminDashboard() {
                                 <p className="text-sm text-gray-600 mb-4">Set fixed prize amount (₹) for each rank.</p>
 
                                 <div className="space-y-4 max-h-[400px] overflow-y-auto mb-6">
-                                    {prizeDistributions.map((dist) => (
+                                    {prizeDistributions.map((dist, index) => (
                                         <div key={dist.rank} className="flex gap-4 items-center">
                                             <div className="flex-1">
                                                 <label className="text-xs font-semibold text-gray-500 uppercase">Rank</label>

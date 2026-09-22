@@ -8,16 +8,29 @@ from rest_framework import status as http_status
 
 from wallet.models import Transaction, Profile
 from hostpartner.models import HostPartnerRequest
-from .models import Tournament, Room, RoomParticipant, PrizeDistribution, RoomResult, TeamInvitation, TournamentEarning
-from .serializers import RoomSerializer, TournamentSerializer, PrizeDistributionSerializer, RoomResultSerializer, TournamentParticipantSerializer
+from .models import Tournament, TournamentTimeSlot, Room, RoomParticipant, PrizeDistribution, RoomResult, TeamInvitation, TournamentEarning
+from .serializers import RoomSerializer, TournamentSerializer, TournamentTimeSlotSerializer, PrizeDistributionSerializer, RoomResultSerializer, TournamentParticipantSerializer
 from django.db import transaction
 from django.db import IntegrityError
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_GET, require_POST
 import logging
+from .services import expire_unstarted_tournaments
 
 logger = logging.getLogger(__name__)
+
+
+def parse_start_time(value):
+    if not value:
+        return timezone.now() + timezone.timedelta(hours=1)
+    parsed = parse_datetime(str(value))
+    if parsed is None:
+        raise ValueError("Invalid start time")
+    if timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
+    return parsed
 
 
 def is_game_id_verified(profile):
@@ -35,7 +48,12 @@ def profile_game_id(profile, game):
 
 
 def credit_tournament_creator(tournament, participant, amount):
-    if not tournament.created_by_id or amount <= 0:
+    if (
+        not tournament.created_by_id
+        or tournament.tournament_type == "one_vs_one"
+        or participant.user_id == tournament.created_by_id
+        or amount <= 0
+    ):
         return
     creator_profile, _ = Profile.objects.get_or_create(user_id=tournament.created_by_id)
     creator_profile.balance += amount
@@ -79,6 +97,12 @@ def _prize_pool(prize_distributions):
     )
 
 
+def get_winner_prize(room):
+    if room.tournament.tournament_type == "one_vs_one":
+        return room.tournament.entry_fee * room.participants.filter(paid=True).count()
+    return Decimal("0.00")
+
+
 @api_view(["POST"])
 @require_POST
 @permission_classes([IsAuthenticated])
@@ -100,7 +124,12 @@ def create_room(request, tournament_id):
 @permission_classes([IsAuthenticated])
 def join_room_solo(request, room_id):
     """Join room as solo player (pays full entry fee)"""
+    expire_unstarted_tournaments()
     room = get_object_or_404(Room, pk=room_id)
+    if room.status != "open" or (
+        room.tournament.start_time and room.tournament.start_time <= timezone.now()
+    ):
+        return Response({"error": "This tournament is no longer accepting players."}, status=400)
     if not is_game_id_verified(request.user.profile) or not profile_game_id(request.user.profile, room.tournament.game):
         return Response({"error": f"Please add and verify your {room.tournament.game.upper()} ID in your profile first."}, status=400)
     
@@ -121,14 +150,13 @@ def join_room_solo(request, room_id):
     if total_participants >= tournament.max_participants:
         return Response({"error": "Tournament is full (Max participants reached)"}, status=400)
     
-    # BR entrants pay the full entry fee; regular team tournaments split it.
+    # One-v-one and BR entrants pay the full entry fee. Duo/squad team
+    # participants pay their existing proportional share.
     tournament = room.tournament
-    team_size = tournament.get_team_size()
-    payment_share = (
-        tournament.entry_fee
-        if tournament.tournament_type == "br"
-        else tournament.entry_fee / team_size
-    )
+    if tournament.tournament_type in {"one_vs_one", "br"}:
+        payment_share = tournament.entry_fee
+    else:
+        payment_share = tournament.entry_fee / tournament.get_team_size()
     
     profile = request.user.profile
     
@@ -142,6 +170,13 @@ def join_room_solo(request, room_id):
     
     # Deduct and create participant
     with transaction.atomic():
+        profile = Profile.objects.select_for_update().get(pk=profile.pk)
+        if profile.balance < payment_share:
+            return Response({
+                "error": "Insufficient balance",
+                "required": str(payment_share),
+                "balance": str(profile.balance)
+            }, status=400)
         profile.balance -= payment_share
         profile.save(update_fields=["balance"])
         Transaction.objects.create(
@@ -167,11 +202,16 @@ def join_room_solo(request, room_id):
 @permission_classes([IsAuthenticated])
 def create_team_and_invite(request, room_id):
     """Create team and send invitations for duo/squad"""
+    expire_unstarted_tournaments()
     if not is_game_id_verified(request.user.profile):
         return Response({"error": "Game ID not verified"}, status=400)
     
     room = get_object_or_404(Room, pk=room_id)
     tournament = room.tournament
+    if room.status != "open" or (
+        tournament.start_time and tournament.start_time <= timezone.now()
+    ):
+        return Response({"error": "This tournament is no longer accepting players."}, status=400)
     tournament_game_id = profile_game_id(request.user.profile, tournament.game)
     if not tournament_game_id:
         return Response({"error": f"Please add your {tournament.game.upper()} ID in your profile first."}, status=400)
@@ -326,6 +366,7 @@ def _invitation_payment_share(invitation, tournament, room):
 def accept_invitation(request, invitation_id):
     """Accept team invitation and pay share"""
     try:
+        expire_unstarted_tournaments()
         invitation = get_object_or_404(TeamInvitation, pk=invitation_id)
         
         if invitation.status != 'pending':
@@ -344,6 +385,10 @@ def accept_invitation(request, invitation_id):
         
         room = invitation.room
         tournament = room.tournament
+        if room.status != "open" or (
+            tournament.start_time and tournament.start_time <= timezone.now()
+        ):
+            return Response({"error": "This tournament is no longer accepting players."}, status=400)
         team_size = tournament.get_team_size()
         
         payment_share = _invitation_payment_share(invitation, tournament, room)
@@ -476,6 +521,7 @@ def join_room(request, room_id):
 @permission_classes([IsAuthenticated])
 def my_rooms(request):
     """Get rooms the current user joined or owns as a tournament creator."""
+    expire_unstarted_tournaments()
     participations = RoomParticipant.objects.filter(user=request.user).select_related('room', 'room__tournament')
     rooms_data = []
     seen_rooms = set()
@@ -489,11 +535,13 @@ def my_rooms(request):
             'tournament_game': room.tournament.game,
             'status': room.status,
             'current_players': room.current_count(),
-            'max_players': room.tournament.get_team_size(),
+            'max_players': room.tournament.max_participants,
+            'available_slots': max(0, room.tournament.max_participants - room.current_count()),
             'prize_pool': str(room.total_prize_pool()),
             'joined_at': participation.joined_at,
             'paid': participation.paid,
             'entry_fee': str(room.tournament.entry_fee),
+            'start_time': room.tournament.start_time,
             'is_owner': room.owner_id == request.user.id,
             'team_mode': room.tournament.team_mode,
             'payment_type': room.payment_type,
@@ -509,11 +557,13 @@ def my_rooms(request):
             'tournament_game': room.tournament.game,
             'status': room.status,
             'current_players': room.current_count(),
-            'max_players': room.tournament.get_team_size(),
+            'max_players': room.tournament.max_participants,
+            'available_slots': max(0, room.tournament.max_participants - room.current_count()),
             'prize_pool': str(room.total_prize_pool()),
             'joined_at': room.created_at,
             'paid': False,
             'entry_fee': str(room.tournament.entry_fee),
+            'start_time': room.tournament.start_time,
             'is_owner': True,
             'team_mode': room.tournament.team_mode,
             'payment_type': room.payment_type,
@@ -571,20 +621,65 @@ class TournamentViewSet(viewsets.ModelViewSet):
     permission_classes = []  # Allow anyone to view tournaments
     http_method_names = ["get", "post"]
 
+    def list(self, request, *args, **kwargs):
+        expire_unstarted_tournaments()
+        return super().list(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        expire_unstarted_tournaments()
+        return super().retrieve(request, *args, **kwargs)
+
 
 @api_view(["POST"])
 @require_POST
 @permission_classes([IsAdminUser])  
 def create_tournament(request):
+    try:
+        start_time = parse_start_time(request.data.get("start_time"))
+    except ValueError as error:
+        return Response({"error": str(error)}, status=400)
     serializer = TournamentSerializer(data=request.data)
     if serializer.is_valid():
-        tournament = serializer.save()
+        tournament = serializer.save(start_time=start_time)
         
         # 🎯 Auto-create room for the tournament
         Room.objects.create(tournament=tournament, owner=request.user)
         
         return Response(serializer.data, status=201)
     return Response(serializer.errors, status=400)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def tournament_time_slots(request):
+    if request.method == "GET":
+        slots = TournamentTimeSlot.objects.filter(start_time__gt=timezone.now())
+        if not (request.user.is_staff or request.user.is_superuser):
+            slots = slots.filter(booked_tournament__isnull=True)
+        return Response(TournamentTimeSlotSerializer(slots, many=True).data)
+    if not (request.user.is_staff or request.user.is_superuser):
+        return Response({"error": "Admin access required"}, status=403)
+    try:
+        start_time = parse_start_time(request.data.get("start_time"))
+    except ValueError as error:
+        return Response({"error": str(error)}, status=400)
+    if start_time <= timezone.now():
+        return Response({"error": "Start time must be in the future."}, status=400)
+    try:
+        slot = TournamentTimeSlot.objects.create(start_time=start_time)
+    except IntegrityError:
+        return Response({"error": "That start time already exists."}, status=409)
+    return Response(TournamentTimeSlotSerializer(slot).data, status=201)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAdminUser])
+def delete_tournament_time_slot(request, slot_id):
+    slot = get_object_or_404(TournamentTimeSlot, pk=slot_id)
+    if slot.booked_tournament_id:
+        return Response({"error": "Booked time slots cannot be deleted."}, status=400)
+    slot.delete()
+    return Response(status=204)
 
 
 # ============= PRIZE DISTRIBUTION ENDPOINTS =============
@@ -635,6 +730,7 @@ def get_tournament_participants(request, tournament_id):
         "participants": serializer.data,
         "can_manage": can_manage,
         "team_mode": tournament.team_mode,
+        "tournament_type": tournament.tournament_type,
     })
 
 
@@ -652,16 +748,16 @@ def declare_results(request, room_id):
         participant = get_object_or_404(RoomParticipant, pk=result['participant_id'])
         rank = result['rank']
         
-        # Calculate prize amount
-        prize_dist = PrizeDistribution.objects.filter(
-            tournament=room.tournament,
-            rank=rank
-        ).first()
-        
-        if prize_dist:
-            prize_amount = prize_dist.calculate_prize_amount(room.total_prize_pool())
+        if room.tournament.tournament_type == "one_vs_one":
+            if str(rank) != "1" or room.participants.filter(paid=True).count() != 2:
+                return Response({"error": "A one-vs-one tournament needs exactly two paid players and one winner."}, status=400)
+            prize_amount = get_winner_prize(room)
         else:
-            prize_amount = 0
+            prize_dist = PrizeDistribution.objects.filter(
+                tournament=room.tournament,
+                rank=rank
+            ).first()
+            prize_amount = prize_dist.calculate_prize_amount(room.total_prize_pool()) if prize_dist else Decimal("0.00")
         
         RoomResult.objects.update_or_create(
             room=room,
@@ -744,6 +840,7 @@ def pending_payouts(request):
 @permission_classes([IsAuthenticated])
 def get_room_detail(request, room_id):
     """Get detailed room information including participants and results"""
+    expire_unstarted_tournaments()
     room = get_object_or_404(Room, pk=room_id)
     tournament = room.tournament
     
@@ -813,14 +910,17 @@ def get_room_detail(request, room_id):
         'game': tournament.game,
         'status': room.status,
         'current_players': room.current_count(),
-        'max_players': tournament.get_team_size(),
+        'max_players': tournament.max_participants,
+        'available_slots': max(0, tournament.max_participants - room.current_count()),
         'entry_fee': str(tournament.entry_fee),
+        'start_time': tournament.start_time,
         'prize_pool': str(room.total_prize_pool()),
         'participants': participants_data,
         'results': results_data,
         'payment_type': room.payment_type,
         'tournament_game': tournament.game,
         'team_mode': tournament.team_mode,
+        'tournament_type': tournament.tournament_type,
         'invitations': invitations_data,
         'teams': list(teams.values()),
         'can_manage': request.user.is_staff or request.user.is_superuser or tournament.created_by_id == request.user.id,
@@ -837,7 +937,12 @@ def remove_team(request, room_id):
     """Remove a complete pair/team. Only the tournament owner or staff may do this."""
     room = get_object_or_404(Room, pk=room_id)
     tournament = room.tournament
-    if not (request.user.is_staff or request.user.is_superuser or tournament.created_by_id == request.user.id):
+    is_admin = request.user.is_staff or request.user.is_superuser
+    if not is_admin and tournament.tournament_type == "one_vs_one":
+        return Response({
+            "error": "Only an admin can remove players from one-v-one tournaments."
+        }, status=403)
+    if not (is_admin or tournament.created_by_id == request.user.id):
         return Response({"error": "Only the tournament creator or an admin can remove teams."}, status=403)
 
     participant_id = request.data.get("participant_id")
@@ -880,12 +985,26 @@ def add_single_winner(request, room_id):
     room = get_object_or_404(Room, pk=room_id)
     participant_id = request.data.get('participant_id')
     rank = request.data.get('rank')
-    prize_amount = Decimal(str(request.data.get('prize_amount', 0)))
+    if room.tournament.tournament_type == "one_vs_one":
+        if room.participants.filter(paid=True).count() != 2:
+            return Response({"error": "A one-v-one tournament needs exactly two paid players."}, status=400)
+        if str(rank) != "1":
+            return Response({"error": "One-v-one winners must be rank 1."}, status=400)
+        prize_amount = get_winner_prize(room)
+    else:
+        prize_amount = Decimal(str(request.data.get('prize_amount', 0)))
     
     if prize_amount <= 0:
         return Response({"error": "Invalid prize amount"}, status=400)
     
     participant = get_object_or_404(RoomParticipant, pk=participant_id, room=room)
+    if RoomResult.objects.filter(room=room, participant=participant, payout_status="paid").exists():
+        return Response({"error": "This participant has already been paid."}, status=400)
+    if (
+        room.tournament.tournament_type == "one_vs_one"
+        and RoomResult.objects.filter(room=room, payout_status="paid").exists()
+    ):
+        return Response({"error": "The one-vs-one winner has already been paid."}, status=400)
     
     with transaction.atomic():
         # 1. Create or update result
@@ -929,17 +1048,35 @@ def create_user_tournament(request):
     name = data.get('name')
     game = data.get('game')
     tournament_type = data.get('tournament_type', 'one_vs_one')
+    time_slot_id = data.get('time_slot_id')
     entry_fee = Decimal(str(data.get('entry_fee', 0)))
     team_mode = data.get('team_mode', 'solo')
     max_participants = int(data.get('max_participants', 100))
     custom_player_count = int(data.get('custom_player_count', 0) or 0)
-    start_time = data.get('start_time')
-    prize_distributions = data.get('prize_distributions', []) # List of {rank: int, prize: float}
+    try:
+        # User-created tournaments use the platform default; only admins set
+        # an explicit start time through the admin dashboard.
+        start_time = parse_start_time(
+            data.get('start_time') if request.user.is_staff or request.user.is_superuser else None
+        )
+    except ValueError as error:
+        return Response({"error": str(error)}, status=400)
+    prize_distributions = (
+        data.get('prize_distributions', [])
+        if tournament_type == "br"
+        else []
+    )
 
     if not name or not game:
         return Response({"error": "Name and Game are required"}, status=400)
     if not profile_game_id(profile, game):
         return Response({"error": f"Please add your {game.upper()} ID in your profile first."}, status=400)
+    if tournament_type == "one_vs_one" and team_mode != "solo":
+        return Response({
+            "error": "One-v-one tournaments must use Solo mode."
+        }, status=400)
+    if tournament_type == "one_vs_one" and not time_slot_id:
+        return Response({"error": "Select an available start time."}, status=400)
 
     approved_request = None
     if tournament_type == 'br':
@@ -951,21 +1088,36 @@ def create_user_tournament(request):
         max_participants = custom_player_count
 
     # Calculate total costs
-    creation_fee = Decimal("50.00") if tournament_type == "br" else Decimal("10.00")
+    if tournament_type not in {"one_vs_one", "br"}:
+        return Response({"error": "Invalid tournament type"}, status=400)
+    creation_fee = Decimal("50.00") if tournament_type == "br" else Decimal("0.00")
     
     # Calculate total prize money
     total_prize_money = _prize_pool(prize_distributions)
     
-    # Total amount to deduct = creation fee + prize pool
-    total_deduction = creation_fee + total_prize_money
+    # One-v-one creators join their own room immediately, so their entry fee
+    # is deducted at creation and recorded as the first paid participant.
+    creator_entry_fee = entry_fee if tournament_type == "one_vs_one" else Decimal("0.00")
+    total_deduction = creation_fee + total_prize_money + creator_entry_fee
     
     # Check if creator has enough balance
     if profile.balance < total_deduction:
         return Response({
-            "error": f"Insufficient balance. Required: ₹{total_deduction} (₹{creation_fee} creation fee + ₹{total_prize_money} prize pool). Your balance: ₹{profile.balance}"
+            "error": f"Insufficient balance. Required: ₹{total_deduction} (₹{creation_fee} creation fee + ₹{total_prize_money} prize pool + ₹{creator_entry_fee} entry fee). Your balance: ₹{profile.balance}"
         }, status=400)
 
     with transaction.atomic():
+        selected_slot = None
+        if tournament_type == "one_vs_one":
+            selected_slot = TournamentTimeSlot.objects.select_for_update().filter(
+                pk=time_slot_id,
+                start_time__gt=timezone.now(),
+                booked_tournament__isnull=True,
+            ).first()
+            if not selected_slot:
+                return Response({"error": "That start time is no longer available."}, status=409)
+            start_time = selected_slot.start_time
+
         # 1. Deduct creation fee + prize money
         profile.balance -= total_deduction
         profile.save()
@@ -986,6 +1138,13 @@ def create_user_tournament(request):
                 amount=total_prize_money,
                 note=f"Tournament Prize Pool: {name}"
             )
+        if creator_entry_fee > 0:
+            Transaction.objects.create(
+                profile=profile,
+                tx_type="debit",
+                amount=creator_entry_fee,
+                note=f"Entry fee for {name} (one-v-one creator)"
+            )
 
         # 3. Create Tournament
         tournament = Tournament.objects.create(
@@ -996,7 +1155,8 @@ def create_user_tournament(request):
             team_mode=team_mode,
             max_participants=max_participants,
             custom_player_count=custom_player_count if tournament_type == 'br' else 0,
-            start_time=start_time or timezone.now() + timezone.timedelta(hours=1),
+            start_time=start_time,
+            creator_prize_pool_funded=total_prize_money,
             created_by=request.user,
             is_active=True,
             host_partner_request=approved_request if tournament_type == 'br' else None,
@@ -1010,8 +1170,19 @@ def create_user_tournament(request):
                 prize_amount=Decimal(str(dist['prize']))
             )
 
-        # 5. Create associated Room
-        Room.objects.create(tournament=tournament, owner=request.user)
+        # 5. Create the room and join the creator as the first paid player.
+        room = Room.objects.create(tournament=tournament, owner=request.user)
+        if creator_entry_fee > 0:
+            RoomParticipant.objects.create(
+                room=room,
+                user=request.user,
+                paid=True,
+                is_team_leader=True,
+                payment_share=creator_entry_fee,
+            )
+        if selected_slot:
+            selected_slot.booked_tournament = tournament
+            selected_slot.save(update_fields=["booked_tournament"])
 
     return Response({
         "message": "Tournament created successfully!",
@@ -1019,6 +1190,7 @@ def create_user_tournament(request):
         "fee_deducted": str(total_deduction),
         "breakdown": {
             "creation_fee": str(creation_fee),
-            "prize_pool": str(total_prize_money)
+            "prize_pool": str(total_prize_money),
+            "entry_fee": str(creator_entry_fee),
         }
     })

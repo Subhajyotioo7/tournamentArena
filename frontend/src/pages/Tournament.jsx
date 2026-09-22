@@ -6,8 +6,10 @@ import TeamFormationModal from '../components/TeamFormationModal';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Ban, ClipboardList, CircleX, Info, Medal, Rocket, Share2, Trophy, Users } from 'lucide-react';
 import { getGameTheme } from '../config/gameThemes';
+import { useAuth } from '../context/AuthContext';
+import RoomChat from '../components/RoomChat';
 
-function CreateRoomLabel({ creating, full, solo }) {
+function CreateRoomLabel({ creating, full, solo, admin }) {
   if (creating) {
     return (
       <>
@@ -16,6 +18,7 @@ function CreateRoomLabel({ creating, full, solo }) {
       </>
     );
   }
+  if (admin) return <span className="inline-flex items-center gap-2"><Users className="h-4 w-4" aria-hidden="true" />WATCH TOURNAMENT</span>;
   if (full) return <span className="inline-flex items-center gap-2"><Ban className="h-4 w-4" aria-hidden="true" />TOURNAMENT FULL</span>;
   return solo
     ? <span className="inline-flex items-center gap-2"><Rocket className="h-4 w-4" aria-hidden="true" />JOIN TOURNAMENT</span>
@@ -26,6 +29,8 @@ export default function Tournament() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const isAdmin = Boolean(user?.is_staff || user?.is_superuser);
   const [tournament, setTournament] = useState(null);
   const [prizes, setPrizes] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -34,6 +39,7 @@ export default function Tournament() {
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [adminRoomDetails, setAdminRoomDetails] = useState(null);
 
   const fetchTournamentData = useCallback(async () => {
     try {
@@ -78,6 +84,12 @@ export default function Tournament() {
       const newRoom = await roomService.create(id);
       setRooms([...rooms, newRoom]);
       setSelectedRoom(newRoom.id);
+
+      if (isAdmin) {
+        const details = await roomService.getDetail(newRoom.id);
+        setAdminRoomDetails(details);
+        return;
+      }
 
       // Now show rules modal
       setShowRulesModal(true);
@@ -359,18 +371,21 @@ export default function Tournament() {
 
                 <Button
                   onClick={handleCreateRoom}
-                  disabled={creating || (tournament.total_participants >= tournament.max_participants)}
+                  disabled={creating || (!isAdmin && tournament.total_participants >= tournament.max_participants)}
                   className="w-full py-3 text-base sm:py-4 sm:text-lg"
                 >
                   <CreateRoomLabel
                     creating={creating}
-                    full={tournament.total_participants >= tournament.max_participants}
+                    full={!isAdmin && tournament.total_participants >= tournament.max_participants}
                     solo={tournament.team_mode === 'solo'}
+                    admin={isAdmin}
                   />
                 </Button>
 
                 <p className="text-xs text-center text-gray-400 leading-relaxed px-4">
-                  By joining, you agree to the rules. Entry fee will be deducted immediately.
+                  {isAdmin
+                    ? 'Admin watch access does not join the tournament, change player count, or deduct money.'
+                    : 'By joining, you agree to the rules. Entry fee will be deducted immediately.'}
                 </p>
               </div>
             </div>
@@ -396,6 +411,41 @@ export default function Tournament() {
           onJoinSolo={handleJoinSolo}
           onCreateTeam={handleCreateTeam}
         />
+      )}
+
+      {adminRoomDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Admin Watch: {tournament.name}</h2>
+                <p className="text-sm text-gray-500">
+                  Watching only — {adminRoomDetails.current_players} / {adminRoomDetails.max_players} players
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setAdminRoomDetails(null)} aria-label="Close admin watch">
+                ✕
+              </Button>
+            </div>
+            <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto p-6 lg:grid-cols-2">
+              <div>
+                <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-gray-500">Players</h3>
+                <div className="space-y-2">
+                  {adminRoomDetails.participants.map((participant) => (
+                    <div key={participant.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
+                      <span className="font-semibold text-gray-900">{participant.username}</span>
+                      <span className="text-sm text-gray-500">{participant.paid ? 'Paid' : 'Unpaid'}</span>
+                    </div>
+                  ))}
+                  {adminRoomDetails.participants.length === 0 && (
+                    <p className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">No players have joined yet.</p>
+                  )}
+                </div>
+              </div>
+              <RoomChat roomId={adminRoomDetails.id} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -4,6 +4,8 @@ from . import views
 urlpatterns = [
     path("create/", views.create_tournament),
     path("user-create/", views.create_user_tournament),
+    path("time-slots/", views.tournament_time_slots),
+    path("time-slots/<int:slot_id>/", views.delete_tournament_time_slot),
     path("tournaments/", views.TournamentViewSet.as_view({"get":"list","post":"create"})),
     path("tournaments/<int:pk>/", views.TournamentViewSet.as_view({"get":"retrieve"})),
     

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Tournament, Room, RoomParticipant, PrizeDistribution, RoomResult
+from .models import Tournament, TournamentTimeSlot, Room, RoomParticipant, PrizeDistribution, RoomResult
 
 
 class PrizeDistributionSerializer(serializers.ModelSerializer):
@@ -7,6 +7,15 @@ class PrizeDistributionSerializer(serializers.ModelSerializer):
         model = PrizeDistribution
         fields = ["id", "tournament", "rank", "prize_amount", "created_at"]
         read_only_fields = ["id", "created_at"]
+
+
+class TournamentTimeSlotSerializer(serializers.ModelSerializer):
+    booked = serializers.BooleanField(source="booked_tournament_id", read_only=True)
+
+    class Meta:
+        model = TournamentTimeSlot
+        fields = ["id", "start_time", "booked"]
+        read_only_fields = ["id", "booked"]
 
 
 class TournamentSerializer(serializers.ModelSerializer):
@@ -19,7 +28,7 @@ class TournamentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tournament
         fields = "__all__"
-        read_only_fields = ["created_by","created_at"]
+        read_only_fields = ["created_by", "created_at", "creator_prize_pool_funded"]
     
     def get_team_size(self, obj):
         """Get team size based on team mode"""
@@ -34,6 +43,7 @@ class TournamentSerializer(serializers.ModelSerializer):
             'status': room.status,
             'current_players': room.current_count(),
             'max_players': obj.max_participants,  # Use max_participants instead of team_size
+            'available_slots': max(0, obj.max_participants - room.current_count()),
             'prize_pool': str(room.total_prize_pool()),
             'owner': {'username': room.owner.username} if room.owner else None,
             'created_at': room.created_at
@@ -100,12 +110,13 @@ class RoomSerializer(serializers.ModelSerializer):
     current_players = serializers.SerializerMethodField()
     max_players = serializers.SerializerMethodField()  # Add max_players
     prize_pool = serializers.SerializerMethodField()
+    available_slots = serializers.SerializerMethodField()
     participants = RoomParticipantSerializer(many=True, read_only=True)
     results = RoomResultSerializer(many=True, read_only=True)
 
     class Meta:
         model = Room
-        fields = ["id","tournament","owner","status","created_at","required_amount","current_players","max_players","prize_pool","participants","results"]
+        fields = ["id","tournament","owner","status","created_at","required_amount","current_players","max_players","available_slots","prize_pool","participants","results"]
 
     def get_required_amount(self,obj):
         return obj.required_per_user_amount()
@@ -118,3 +129,6 @@ class RoomSerializer(serializers.ModelSerializer):
 
     def get_prize_pool(self, obj):
         return obj.total_prize_pool()
+
+    def get_available_slots(self, obj):
+        return max(0, obj.tournament.max_participants - obj.current_count())

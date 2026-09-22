@@ -19,6 +19,7 @@ class Tournament(models.Model):
     max_players_per_room = models.IntegerField(default=1)  # Deprecated, use team_mode
     max_participants = models.IntegerField(default=100, help_text="Maximum total participants allowed")
     custom_player_count = models.IntegerField(default=0, help_text="Used for BR / custom long tournaments")
+    creator_prize_pool_funded = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     registration_deadline = models.DateTimeField(null=True, blank=True, help_text="Last date/time to register")
     start_time = models.DateTimeField(null=True, blank=True, help_text="Tournament start date/time")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="created_tournaments")
@@ -32,6 +33,25 @@ class Tournament(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class TournamentTimeSlot(models.Model):
+    start_time = models.DateTimeField(unique=True)
+    booked_tournament = models.OneToOneField(
+        Tournament,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="booked_time_slot",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["start_time"]
+
+    def __str__(self):
+        return self.start_time.isoformat()
+
 
 class PrizeDistribution(models.Model):
     """Defines rank-wise prize structure for tournaments"""

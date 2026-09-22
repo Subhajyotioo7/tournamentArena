@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Tournament, Room, RoomParticipant, PrizeDistribution, RoomResult
+from .models import Tournament, TournamentTimeSlot, Room, RoomParticipant, PrizeDistribution, RoomResult
 
 
 class PrizeDistributionInline(admin.TabularInline):
@@ -21,6 +21,13 @@ class PrizeDistributionAdmin(admin.ModelAdmin):
     list_display = ["tournament", "rank", "prize_amount", "created_at"]
     list_filter = ["tournament"]
     ordering = ["tournament", "rank"]
+
+
+@admin.register(TournamentTimeSlot)
+class TournamentTimeSlotAdmin(admin.ModelAdmin):
+    list_display = ["start_time", "booked_tournament", "created_at"]
+    list_filter = ["start_time"]
+    search_fields = ["booked_tournament__name"]
 
 
 class RoomResultInline(admin.TabularInline):

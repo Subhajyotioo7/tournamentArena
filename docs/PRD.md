@@ -114,6 +114,12 @@ overseeing results and payouts.
 - Display room participants and relevant tournament context.
 - Provide live room chat using WebSockets.
 - Persist room messages so participants can review recent communication.
+- Provide a My Rooms view with room status, capacity, slots, countdown,
+  payment state, entry fee, and prize-pool context.
+- Support participant tabs for participants, messages, and results.
+- Show team waiting and split-payment progress for team rooms.
+- Give authorized managers team-removal controls and staff a winner declaration
+  flow that records results and credits the winner's wallet.
 
 ### 7. Administration
 

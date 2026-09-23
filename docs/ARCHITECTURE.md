@@ -225,3 +225,21 @@ WebSocket proxy settings.
   temporary connection loss must not remove stored messages.
 - Environment-specific configuration belongs in `.env` or deployment
   configuration and must not be committed to source control.
+
+### My Rooms interaction
+
+The My Rooms page is a protected frontend route backed by two HTTP reads and
+one WebSocket channel:
+
+1. `GET /tournaments/my-rooms/` returns the user's joined or owned rooms and
+   summary values used by the room cards.
+2. `GET /tournaments/room/<uuid>/` returns the selected room's participants,
+   teams, announcements, and recorded results.
+3. `/ws/room/<uuid>/?token=<jwt>` authenticates the participant or staff user,
+   persists sent messages, and broadcasts them to the tournament chat group.
+
+Room managers can remove a team through
+`POST /tournaments/room/<uuid>/remove-team/`. Staff can add a winner through
+`POST /tournaments/room/<uuid>/add-winner/`; the backend validates the
+participant and credits the wallet. These authorization and financial rules
+remain server-side even though the UI hides controls from ordinary players.

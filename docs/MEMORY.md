@@ -52,6 +52,10 @@ tournament administrators or organizers.
   validation standards.
 - [DESIGN.md](./DESIGN.md) defines the visual system, palette, typography, and
   UI component guidance.
+- The `/my-rooms` route is implemented in
+  `frontend/src/pages/MyRooms.jsx`. It combines room summaries, team waiting
+  links, participant and result views, persisted/live chat, admin
+  announcements, team removal, and staff winner payouts.
 
 ## Completed tasks
 
@@ -68,6 +72,8 @@ tournament administrators or organizers.
 - [x] Created the design document with design principles, color palette,
   typography, responsive/accessibility guidance, and UI component standards.
 - [x] Validated that each document contains its required top-level sections.
+- [x] Documented the implemented My Rooms workflow and its room, chat, team,
+  result, and payout surfaces.
 
 ## In progress
 
@@ -82,6 +88,8 @@ tournament administrators or organizers.
   WebSocket room access as those areas evolve.
 - [ ] Verify production configuration for PostgreSQL, Redis, email delivery,
   payment providers, Nginx, and process supervision before release.
+- [ ] Add regression coverage for My Rooms permissions, WebSocket reconnect
+  behavior, team removal, and winner payout validation.
 
 No specific feature implementation was marked as actively in progress at the
 time this memory was updated. Update this section when a feature is assigned,

@@ -24,6 +24,8 @@ The pipeline scans these directories:
 
 - `backend`
 - `frontend`
+- `docs` and project Markdown files are documentation inputs for review, but
+  the pipeline does not execute documentation tests.
 
 Virtual environments, dependencies, generated files, media, static files,
 frontend build output, and minified JavaScript are excluded.
@@ -130,6 +132,12 @@ After a successful build:
 The current Jenkinsfile uploads the analysis but does not wait for or fail on
 the SonarQube quality gate. A quality-gate stage can be added later if you want
 Jenkins to block builds that do not meet the configured gate.
+
+The documented frontend workflow includes `/my-rooms`, room detail views,
+persisted and WebSocket chat, team management, and winner payouts. When
+changing that workflow, update the related files under `docs/` and the
+frontend README in the same change; documentation synchronization is part of
+the delivery checklist even though SonarQube does not validate Markdown.
 
 ## Troubleshooting
 

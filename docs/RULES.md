@@ -60,6 +60,10 @@ apply to frontend, backend, documentation, and deployment changes.
   error behavior stay consistent.
 - Treat WebSocket events as realtime updates, not as a replacement for
   persisted backend data.
+- For room screens, load persisted message history before relying on live
+  WebSocket events and close the socket when the selected room or page changes.
+- Keep room-manager and staff controls conditional in the UI, but enforce
+  participant, manager, staff, and payout permissions in Django.
 
 ### Backend
 
@@ -162,6 +166,8 @@ apply to frontend, backend, documentation, and deployment changes.
 - Make mutation endpoints safe to retry where practical, especially for
   deposits, withdrawals, payouts, registration fees, and team invitations.
 - Do not expose fields that the requesting user is not authorized to see.
+- Room removal and winner/payout mutations must return explicit success or
+  validation errors; the UI must not show a success state for a failed request.
 
 ### Database and data standards
 

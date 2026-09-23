@@ -44,6 +44,11 @@ backend, back up `backend/db.sqlite3` and `backend/media/` first and mount
 those paths as Docker volumes; removing a container without a volume can
 remove its application data.
 
+The deployed SPA includes the protected `/my-rooms` workflow. It uses the
+same-origin `/tournaments/` and `/chat/` proxies for room data and the
+same-origin `/ws/` proxy for authenticated room chat, so do not point the
+production build at a private container hostname.
+
 If port 80 is already used, map another host port temporarily, for example
 `-p 5173:80`, and open that port in the EC2 security group. For normal
 production traffic, use port 80/443 behind a domain.
@@ -93,6 +98,9 @@ Django for a `GET` is expected because login accepts `POST`; the important
 check is that the response is Django JSON rather than an Nginx HTML page.
 Finally open the frontend URL and submit the login form. The browser request
 should be `POST /api/login/` on the frontend host and return Django JSON.
+After signing in, open `/my-rooms` and confirm that room details load and that
+the room chat connection changes from `connecting` to `connected`. Test this
+through the public HTTPS hostname as well as the direct HTTP deployment.
 
 ## HTTPS
 

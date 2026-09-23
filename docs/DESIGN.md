@@ -232,6 +232,23 @@ Guidelines:
 - Show reconnecting or unavailable states and keep persisted message history
   accessible after a WebSocket interruption.
 
+### My Rooms
+
+- Use a responsive card grid for the room list; keep status, player capacity,
+  available slots, payment state, entry fee, prize pool, and start countdown
+  scannable.
+- Use game-theme gradients only for room identity. Use text labels and icons
+  for `OPEN`, `FULL`, `STARTED`, and `COMPLETED` states.
+- Open room details in a scrollable responsive dialog. Participants receive
+  participant, message, and result tabs; managers may receive the expanded
+  participant/chat/payout layout.
+- Keep admin announcements in an amber notice panel above room content so
+  operational messages are visible before chat.
+- Treat team removal as destructive: use a confirmation dialog and state
+  clearly that paid entry amounts are not refunded.
+- Display winner rank, participant, and prize amount together. Confirm payout
+  success and never imply a payout occurred until the backend response succeeds.
+
 ### Tables and admin panels
 
 - Use clear column headings, compact row spacing, and readable status badges.

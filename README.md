@@ -11,6 +11,7 @@ Tournament Arena is a full-stack tournament platform for competitive game rooms,
 - Email verification with a 6-digit OTP and Resend
 - JWT authentication with unverified-login protection
 - Live room chat with Django Channels and WebSockets
+- My Rooms workspace with participant, team, chat, result, and payout views
 - React admin dashboard and Django admin site
 - Responsive layouts for desktop and mobile
 
@@ -166,7 +167,27 @@ POST /tournaments/tournament/<id>/create-room/
 POST /tournaments/room/<id>/join-solo/
 POST /tournaments/room/<id>/create-team/
 GET  /chat/room/<id>/messages/
+GET  /tournaments/my-rooms/
+GET  /tournaments/room/<uuid>/
+POST /tournaments/room/<uuid>/remove-team/
+POST /tournaments/room/<uuid>/add-winner/
 ```
+
+### My Rooms workflow
+
+The `/my-rooms` route lists rooms that the signed-in user joined or owns. Each
+room card shows the game, tournament, status, player capacity, available slots,
+start countdown, prize pool, entry fee, payment state, and join date. Team
+rooms also link to the team-waiting status page when invitations or split
+payments are still pending.
+
+Opening a room loads its participants and results. Participants can switch
+between participant, message, and result views. Room messages are loaded from
+the persisted chat-history endpoint and then updated through the authenticated
+`/ws/room/<uuid>/` WebSocket. Staff and authorized room managers additionally
+see admin announcements, team-management controls, and the winner form. Adding
+a winner calls the backend payout endpoint, which credits the selected
+participant's wallet.
 
 Protected endpoints require:
 

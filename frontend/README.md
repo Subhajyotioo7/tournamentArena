@@ -1,16 +1,55 @@
-# React + Vite
+# Tournament Arena frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The frontend is the React/Vite single-page application for Tournament Arena.
+It provides tournament discovery, registration, wallet, team, profile,
+administration, and room-management workflows.
 
-Currently, two official plugins are available:
+## Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+From this directory:
 
-## React Compiler
+```bash
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The Vite server runs on `http://localhost:5173`. During local development it
+proxies `/api`, `/wallet`, `/tournaments`, `/payments`, `/chat`, `/admin`, and
+`/ws` to the Django backend. Use `npm run build` for a production bundle and
+`npm run lint` for the frontend lint check.
 
-## Expanding the ESLint configuration
+## Important routes
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `/`: tournament discovery
+- `/my-rooms`: rooms joined or created by the signed-in user
+- `/team-waiting/:roomId`: team invitations and split-payment progress
+- `/wallet`: balance, deposits, withdrawals, and transactions
+- `/admin`: protected tournament and payment administration
+
+## My Rooms
+
+`src/pages/MyRooms.jsx` loads the authenticated user's rooms and opens a
+responsive room details view. The view includes:
+
+- room status, capacity, available slots, countdown, payment state, and entry
+  fee
+- participant and team information, including game IDs and pending invitations
+- persisted room-message history plus live WebSocket chat
+- admin announcements and, for authorized managers, team removal
+- result viewing for participants and winner declaration with wallet payout for
+  administrators
+
+The backend remains authoritative for room membership, permissions, result
+creation, and payouts. The frontend only presents those states and sends
+authenticated requests through the configured API base URL.
+
+## Environment
+
+Create `.env` only when the frontend is not using the Vite proxy:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+VITE_WS_URL=ws://localhost:8000/ws/
+```
+
+Never commit credentials or tokens in frontend environment files.

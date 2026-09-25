@@ -28,7 +28,7 @@ tournament administrators or organizers.
 - Backend: Django 5.2, Django REST Framework, SimpleJWT, Django Channels.
 - Realtime: ASGI/WebSockets with Redis recommended for production.
 - Data: SQLite for local development and PostgreSQL recommended for production.
-- Integrations: Resend for email and Razorpay/PhonePe payment flows.
+- Integrations: Resend for email, Razorpay wallet deposits, and PhonePe Payouts.
 - Delivery: Nginx, Supervisor, Docker, and Kubernetes Helm assets.
 
 ### Important boundaries

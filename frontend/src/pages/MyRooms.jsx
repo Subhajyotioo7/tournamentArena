@@ -5,7 +5,7 @@ import { getApiBaseUrl, roomService } from '../services/api';
 import { Button } from '../components/ui/button';
 import { getGameTheme } from '../config/gameThemes';
 import TournamentCountdown from '../components/TournamentCountdown';
-import { Check, Clock3, Gamepad2, Hourglass, Mail, MessageCircle, Send, Trash2, Trophy, Users, X } from 'lucide-react';
+import { Check, CheckCheck, Clock3, Gamepad2, Hourglass, Mail, MessageCircle, Send, Trash2, Trophy, Users, X } from 'lucide-react';
 
 function roomStatus(room) {
     if (room.status === 'full' || room.current_players >= room.max_players) {
@@ -50,6 +50,8 @@ export default function MyRooms() {
     const [wsStatus, setWsStatus] = useState('connecting'); // 'connecting', 'connected', 'error'
     const [winnerForm, setWinnerForm] = useState({ participant_id: '', rank: 1, prize_amount: '' });
     const wsRef = useRef(null);
+    const messagesRef = useRef([]);
+    messagesRef.current = messages;
 
     const isAdmin = user && (user.is_staff || user.is_superuser);
     const canManageRoom = Boolean(isAdmin || roomDetails?.can_manage);
@@ -109,7 +111,9 @@ export default function MyRooms() {
                     username: msg.sender,
                     text: msg.message,
                     timestamp: msg.created_at,
-                    is_admin: msg.is_admin
+                    is_admin: msg.is_admin,
+                    is_self: msg.is_self,
+                    seen: msg.seen,
                 }));
                 setMessages(history);
             }
@@ -139,18 +143,32 @@ export default function MyRooms() {
         ws.onopen = () => {
             console.log('✅ WebSocket Connected!');
             setWsStatus('connected');
+            const unreadIds = messagesRef.current
+                .filter(message => !message.is_self && !message.seen && message.id)
+                .map(message => message.id);
+            if (unreadIds.length) {
+                ws.send(JSON.stringify({ type: 'read_receipt', message_ids: unreadIds }));
+            }
         };
 
         ws.onmessage = (e) => {
             const data = JSON.parse(e.data);
             if (data.type === 'chat_message') {
                 setMessages(prev => [...prev, {
-                    id: `${data.sender}-${Date.now()}`,
+                    id: data.id,
                     username: data.sender,
                     text: data.message,
                     timestamp: new Date(),
-                    is_admin: data.is_admin
+                    is_admin: data.is_admin,
+                    is_self: data.is_self,
+                    seen: data.seen,
                 }]);
+            } else if (data.type === 'messages_read') {
+                setMessages(prev => prev.map(message => (
+                    data.message_ids.includes(message.id)
+                        ? { ...message, seen: true }
+                        : message
+                )));
             }
         };
 
@@ -166,6 +184,16 @@ export default function MyRooms() {
 
         wsRef.current = ws;
     }, []);
+
+    useEffect(() => {
+        const socket = wsRef.current;
+        const unreadIds = messages
+            .filter(message => !message.is_self && !message.seen && message.id)
+            .map(message => message.id);
+        if (socket?.readyState === WebSocket.OPEN && unreadIds.length) {
+            socket.send(JSON.stringify({ type: 'read_receipt', message_ids: unreadIds }));
+        }
+    }, [messages]);
 
     // WebSocket connection lifecycle
     useEffect(() => {
@@ -535,7 +563,7 @@ export default function MyRooms() {
                                                     <div key={messageKey(msg)} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
                                                         <div className={`max-w-[85%] px-4 py-3 rounded-2xl shadow-sm text-xs font-medium leading-relaxed ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border-gray-200 text-gray-800 rounded-tl-none border'}`}>
                                                             {!isMe && <p className="text-[10px] font-black text-blue-600 mb-1 tracking-tight">{msg.username.toUpperCase()}</p>}
-                                                            <p>{msg.text}</p>
+                                                            <p className="flex items-end gap-1">{msg.text}{isMe && (msg.seen ? <CheckCheck className="h-3.5 w-3.5 text-sky-200" aria-label="Seen" /> : <Check className="h-3.5 w-3.5 text-white/70" aria-label="Sent" />)}</p>
                                                         </div>
                                                     </div>
                                                 );
@@ -693,7 +721,7 @@ export default function MyRooms() {
                                                             <div key={messageKey(msg)} className={`flex ${alignment} animate-in slide-in-from-${slideDirection}-4 duration-300`}>
                                                                 <div className={`max-w-[85%] px-5 py-4 rounded-[1.2rem] text-xs font-bold shadow-md transition-all ${isMe ? 'bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-tr-md shadow-indigo-200/70' : 'bg-white border border-slate-200 text-gray-800 rounded-tl-md shadow-slate-200/70'}`}>
                                                                     {!isMe && <div className="mb-1.5 flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-purple-600"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-[8px] text-indigo-700">{(msg.username || '?').charAt(0).toUpperCase()}</span>{msg.username}</div>}
-                                                                    <p className="leading-relaxed">{msg.text}</p>
+                                                                    <p className="flex items-end justify-end gap-1 leading-relaxed">{msg.text}{isMe && (msg.seen ? <CheckCheck className="h-3.5 w-3.5 text-sky-200" aria-label="Seen" /> : <Check className="h-3.5 w-3.5 text-white/70" aria-label="Sent" />)}</p>
                                                                     <p className={`mt-2 flex items-center gap-1 text-[9px] font-medium ${isMe ? 'text-white/65 justify-end' : 'text-slate-400'}`}><Clock3 className="h-3 w-3" aria-hidden="true" />{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Just now'}</p>
                                                                 </div>
                                                             </div>

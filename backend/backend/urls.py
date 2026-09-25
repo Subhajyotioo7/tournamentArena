@@ -26,7 +26,7 @@ from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
 @require_GET
 def wallet_add_money_redirect(request):
     """Forward payment-provider callbacks to the React add-money page."""
-    target = settings.PHONEPE_REDIRECT_URL
+    target = f"{settings.FRONTEND_URL.rstrip('/')}/wallet/add-money"
     parts = urlsplit(target)
     query = dict(parse_qsl(parts.query))
     query.update(request.GET.dict())

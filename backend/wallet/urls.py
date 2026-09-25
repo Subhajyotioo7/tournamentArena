@@ -2,7 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # PhonePe may call the backend host directly; forward it to the SPA.
+    # Payment providers may call the backend host directly; forward it to the SPA.
     path("add-money", views.add_money_redirect),
     path("add-money/", views.add_money_redirect),
     # Profile and balance

@@ -10,7 +10,7 @@ import App from "./App";
 // Pages
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
+import CognitoCallback from "./pages/CognitoCallback";
 import Profile from "./pages/Profile";
 import MyRooms from "./pages/MyRooms";
 import MyInvitations from "./pages/MyInvitations";
@@ -25,7 +25,6 @@ import TournamentParticipants from "./pages/TournamentParticipants";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import CreateTournament from "./pages/CreateTournament";
-import VerifyEmail from "./pages/VerifyEmail";
 import ErrorPage from "./pages/ErrorPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import TeamWaiting from "./pages/TeamWaiting";
@@ -46,7 +45,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             <Route index element={<Home />} />
 
             <Route path="login" element={<Login />} />
-            <Route path="register" element={<Register />} />
+            <Route path="auth/callback" element={<CognitoCallback />} />
             <Route path="profile" element={<Profile />} />
 
             <Route path="my-rooms" element={<MyRooms />} />
@@ -72,8 +71,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password/:uid/:token" element={<ResetPassword />} />
-            <Route path="verify-email" element={<VerifyEmail />} />
-            <Route path="verify-email/:uid/:token" element={<VerifyEmail />} />
             <Route path="create-tournament" element={<CreateTournament />} />
             <Route path="*" element={<ErrorPage title="Page not found" message="The page you requested does not exist." />} />
           </Route>

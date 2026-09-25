@@ -8,7 +8,7 @@
 
 
 import { useEffect, useState, useRef } from "react";
-import { Crown, MessageCircle, Send } from "lucide-react";
+import { Check, CheckCheck, Crown, MessageCircle, Send } from "lucide-react";
 
 export default function RoomChat({ roomId }) {
   const token = localStorage.getItem("token");
@@ -17,6 +17,8 @@ export default function RoomChat({ roomId }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
+  const messagesRef = useRef([]);
+  messagesRef.current = messages;
 
   useEffect(() => {
     fetch(`/chat/room/${roomId}/messages/`, {
@@ -49,11 +51,25 @@ export default function RoomChat({ roomId }) {
 
     ws.onopen = () => {
       console.log("WebSocket connected");
+      const unreadIds = messagesRef.current
+        .filter((item) => !item.is_self && !item.seen && item.id)
+        .map((item) => item.id);
+      if (unreadIds.length) {
+        ws.send(JSON.stringify({ type: "read_receipt", message_ids: unreadIds }));
+      }
     };
 
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
-      setMessages((prev) => [...prev, data]);
+      if (data.type === "messages_read") {
+        setMessages((prev) => prev.map((item) => (
+          data.message_ids.includes(item.id) ? { ...item, seen: true } : item
+        )));
+        return;
+      }
+      if (data.type === "chat_message") {
+        setMessages((prev) => [...prev, data]);
+      }
     };
 
     ws.onerror = (e) => {
@@ -70,6 +86,16 @@ export default function RoomChat({ roomId }) {
       ws.close();
     };
   }, [roomId, token]);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    const unreadIds = messages
+      .filter((item) => !item.is_self && !item.seen && item.id)
+      .map((item) => item.id);
+    if (socket?.readyState === WebSocket.OPEN && unreadIds.length) {
+      socket.send(JSON.stringify({ type: "read_receipt", message_ids: unreadIds }));
+    }
+  }, [messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -121,7 +147,14 @@ export default function RoomChat({ roomId }) {
                 {msg.is_admin ? <span className="flex items-center gap-1"><Crown className="h-3 w-3" aria-hidden="true" />Admin</span> : msg.sender}
               </div>
             )}
-            <div>{msg.message}</div>
+            <div className="flex items-end gap-2">
+              <span>{msg.message}</span>
+              {msg.is_self && (
+                msg.seen
+                  ? <CheckCheck className="h-4 w-4 text-sky-300 shrink-0" aria-label="Seen" />
+                  : <Check className="h-4 w-4 text-gray-300 shrink-0" aria-label="Sent" />
+              )}
+            </div>
           </div>
           );
         })}

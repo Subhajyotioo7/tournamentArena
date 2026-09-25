@@ -211,37 +211,28 @@ REST_FRAMEWORK = {
     ),
 }
 
-# PhonePe Standard Checkout (UPI only)
-PHONEPE_CLIENT_ID = (
-    os.environ.get("PHONEPE_CLIENT_ID") or os.environ.get("Client Id", "")
-).strip()
-PHONEPE_CLIENT_SECRET = (
-    os.environ.get("PHONEPE_CLIENT_SECRET") or os.environ.get("Client Secret", "")
-).strip()
-PHONEPE_CLIENT_VERSION = (
-    os.environ.get("PHONEPE_CLIENT_VERSION")
-    or os.environ.get("Client Version")
-    or "1"
-).strip()
-PHONEPE_ENV = os.environ.get("PHONEPE_ENV", "SANDBOX").upper()
-PHONEPE_REDIRECT_URL = os.environ.get(
-    "PHONEPE_REDIRECT_URL",
-    f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/wallet/add-money",
-)
+RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "").strip()
+RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "").strip()
 
 # PhonePe Payouts requires payout product access. Keep its credentials and
 # endpoint separate from Standard Checkout credentials.
-PHONEPE_PAYOUT_CLIENT_ID = os.environ.get("PHONEPE_PAYOUT_CLIENT_ID", PHONEPE_CLIENT_ID).strip()
-PHONEPE_PAYOUT_CLIENT_SECRET = os.environ.get("PHONEPE_PAYOUT_CLIENT_SECRET", PHONEPE_CLIENT_SECRET).strip()
-PHONEPE_PAYOUT_CLIENT_VERSION = os.environ.get("PHONEPE_PAYOUT_CLIENT_VERSION", PHONEPE_CLIENT_VERSION).strip()
+PHONEPE_ENV = os.environ.get("PHONEPE_ENV", "SANDBOX").upper()
+PHONEPE_PAYOUT_CLIENT_ID = os.environ.get("PHONEPE_PAYOUT_CLIENT_ID", "").strip()
+PHONEPE_PAYOUT_CLIENT_SECRET = os.environ.get("PHONEPE_PAYOUT_CLIENT_SECRET", "").strip()
+PHONEPE_PAYOUT_CLIENT_VERSION = os.environ.get("PHONEPE_PAYOUT_CLIENT_VERSION", "1").strip()
 PHONEPE_PAYOUT_URL = os.environ.get("PHONEPE_PAYOUT_URL", "").strip()
 PHONEPE_PAYOUT_FEE = os.environ.get("PHONEPE_PAYOUT_FEE", "5.00")
 PHONEPE_PAYOUT_GST_RATE = os.environ.get("PHONEPE_PAYOUT_GST_RATE", "18.00")
 PHONEPE_PAYOUT_TEST_MODE = (
     DEBUG and os.environ.get("PHONEPE_PAYOUT_TEST_MODE", "False").lower() == "true"
 )
-PHONEPE_PAYMENT_FEE = os.environ.get("PHONEPE_PAYMENT_FEE", "5.00")
-PHONEPE_PAYMENT_GST_RATE = os.environ.get("PHONEPE_PAYMENT_GST_RATE", "18.00")
+# Amazon Cognito Hosted UI / OAuth settings
+COGNITO_DOMAIN = os.environ.get("COGNITO_DOMAIN", "").strip().rstrip("/")
+COGNITO_CLIENT_ID = os.environ.get("COGNITO_CLIENT_ID", "").strip()
+COGNITO_CLIENT_SECRET = os.environ.get("COGNITO_CLIENT_SECRET", "").strip()
+COGNITO_REDIRECT_URI = os.environ.get("COGNITO_REDIRECT_URI", "").strip()
+COGNITO_ISSUER = os.environ.get("COGNITO_ISSUER", "").strip().rstrip("/")
+COGNITO_JWT_LEEWAY_SECONDS = int(os.environ.get("COGNITO_JWT_LEEWAY_SECONDS", "60"))
 
 # JWT Settings
 # The existing SIMPLE_JWT definition is replaced with this more comprehensive one.
@@ -268,6 +259,4 @@ CSRF_TRUSTED_ORIGINS = [
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
-RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "onboarding@resend.dev")

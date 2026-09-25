@@ -70,7 +70,7 @@ def _reset_profile_verification_statuses(profile, data):
 
 @require_GET
 def add_money_redirect(request):
-    """Forward PhonePe callbacks from the backend to the React wallet page."""
+    """Forward payment callbacks from the backend to the React wallet page."""
     target = f"{settings.FRONTEND_URL.rstrip('/')}/wallet/add-money"
     parts = urlsplit(target)
     query = dict(parse_qsl(parts.query))

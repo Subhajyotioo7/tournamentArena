@@ -84,7 +84,7 @@ apply to frontend, backend, documentation, and deployment changes.
 
 ### Integrations and infrastructure
 
-- Keep Resend, Razorpay/PhonePe, Redis, database, and deployment settings
+- Keep Resend, Razorpay, PhonePe Payouts, Redis, database, and deployment settings
   behind environment variables or deployment configuration.
 - Isolate provider-specific code in the relevant backend integration app.
 - Preserve the route behavior defined by Vite for development and Nginx for

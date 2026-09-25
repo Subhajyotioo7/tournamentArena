@@ -7,6 +7,8 @@ import uuid
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    cognito_sub = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    cognito_phone = models.CharField(max_length=32, blank=True, default="")
 
     # Unique UUID for tournaments
     player_uuid = models.UUIDField(editable=False, unique=True, null=True)

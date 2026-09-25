@@ -62,33 +62,10 @@ export const authService = {
     });
   },
 
-  register: async (userData) => {
-    return apiRequest('/api/register/', {
-      method: 'POST',
-      auth: false,
-      body: JSON.stringify(userData),
-    });
-  },
-
   getProfile: async () => {
     return apiRequest('/api/me/');
   },
 
-  verifyEmailCode: async (email, code) => {
-    return apiRequest('/api/verify-email/code/', {
-      method: 'POST',
-      auth: false,
-      body: JSON.stringify({ email, code }),
-    });
-  },
-
-  resendVerificationEmail: async (email) => {
-    return apiRequest('/api/verify-email/resend/', {
-      method: 'POST',
-      auth: false,
-      body: JSON.stringify({ email }),
-    });
-  },
 };
 
 // ============= WALLET SERVICES =============
@@ -147,16 +124,18 @@ export const walletService = {
 };
 
 export const paymentService = {
-  getPhonePePricing: async () => apiRequest('/payments/phonepe/pricing/'),
-  createPhonePePayment: async (amount) => {
-    return apiRequest('/payments/phonepe/create/', {
+  getRazorpayPricing: async () => apiRequest('/payments/razorpay/pricing/'),
+  createRazorpayPayment: async (amount) => {
+    return apiRequest('/payments/razorpay/create/', {
       method: 'POST',
       body: JSON.stringify({ amount }),
     });
   },
-
-  getPhonePePaymentStatus: async (merchantOrderId) => {
-    return apiRequest(`/payments/phonepe/status/${merchantOrderId}/`);
+  verifyRazorpayPayment: async (details) => {
+    return apiRequest('/payments/razorpay/verify/', {
+      method: 'POST',
+      body: JSON.stringify(details),
+    });
   },
 };
 

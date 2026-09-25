@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { logoutFromCognito } from '../services/auth';
 import { Button } from './ui/button';
-import { buttonVariants } from './ui/button-variants';
 import { Trophy } from 'lucide-react';
 
 const navLinkClass = 'text-sm font-medium text-gray-700 transition-colors hover:text-[#d97706]';
@@ -10,15 +10,14 @@ const mobileLinkClass = 'rounded-md px-4 py-2 text-sm font-medium text-gray-700 
 
 export default function Navbar() {
   const { isLoggedIn, logout, user } = useAuth();
-  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isAdmin = user?.is_staff || user?.is_superuser;
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
   const handleLogout = () => {
+    logoutFromCognito(user?.email);
     logout();
     closeMobileMenu();
-    navigate('/');
   };
 
   return (
@@ -43,10 +42,7 @@ export default function Navbar() {
               </>
             )}
             {!isLoggedIn && (
-              <>
-                <Link to="/login" className={navLinkClass}>Login</Link>
-                <Link to="/register" className={buttonVariants({ size: 'sm' })}>Sign Up</Link>
-              </>
+              <Link to="/login" className={navLinkClass}>Login</Link>
             )}
           </div>
 
@@ -83,10 +79,7 @@ export default function Navbar() {
                 </>
               )}
               {!isLoggedIn && (
-                <>
-                  <Link to="/login" onClick={closeMobileMenu} className={mobileLinkClass}>Login</Link>
-                  <Link to="/register" onClick={closeMobileMenu} className={buttonVariants({ className: 'mt-2 w-full' })}>Sign Up</Link>
-                </>
+                <Link to="/login" onClick={closeMobileMenu} className={mobileLinkClass}>Login</Link>
               )}
             </div>
           </div>

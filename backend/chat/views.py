@@ -22,6 +22,8 @@ def get_room_messages(request, room_id):
             "is_admin": msg.is_admin,
             "msg_type": "chat",
             "created_at": msg.created_at
+            ,"seen": msg.seen_at is not None or msg.sender_id == request.user.id
+            ,"is_self": msg.sender_id == request.user.id
         })
     
     return Response(data)

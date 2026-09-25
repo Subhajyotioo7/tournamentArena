@@ -7,16 +7,118 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
+from django.conf import settings
+from django.db import transaction
+from requests import RequestException, post as http_post
+from jwt import PyJWKClient, decode as jwt_decode
+from jwt.exceptions import PyJWKClientConnectionError
+from jwt.exceptions import InvalidTokenError
+import base64
 import logging
-from wallet.models import EmailVerification, Profile
-from .utils import send_verification_email
+from wallet.models import Profile
 
 logger = logging.getLogger(__name__)
+
+
+def _cognito_configured():
+    return all((settings.COGNITO_DOMAIN, settings.COGNITO_CLIENT_ID, settings.COGNITO_REDIRECT_URI, settings.COGNITO_ISSUER))
+
+
+@api_view(["POST"])
+@require_POST
+@permission_classes([AllowAny])
+def cognito_callback(request):
+    """Exchange a Cognito authorization code and create the local app session."""
+    code = request.data.get("code")
+    if not code:
+        return Response({"error": "Authorization code is required"}, status=status.HTTP_400_BAD_REQUEST)
+    if not _cognito_configured():
+        logger.error("Cognito callback requested but Cognito settings are incomplete")
+        return Response({"error": "Cognito authentication is not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    token_data = {
+        "grant_type": "authorization_code",
+        "client_id": settings.COGNITO_CLIENT_ID,
+        "code": code,
+        "redirect_uri": settings.COGNITO_REDIRECT_URI,
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    if settings.COGNITO_CLIENT_SECRET:
+        credentials = f"{settings.COGNITO_CLIENT_ID}:{settings.COGNITO_CLIENT_SECRET}".encode()
+        headers["Authorization"] = f"Basic {base64.b64encode(credentials).decode()}"
+        token_data.pop("client_id")
+
+    try:
+        token_response = http_post(f"{settings.COGNITO_DOMAIN}/oauth2/token", data=token_data, headers=headers, timeout=10)
+        token_response.raise_for_status()
+        id_token = token_response.json().get("id_token")
+        if not id_token:
+            raise InvalidTokenError("Cognito did not return an ID token")
+        signing_key = PyJWKClient(f"{settings.COGNITO_ISSUER}/.well-known/jwks.json").get_signing_key_from_jwt(id_token)
+        claims = jwt_decode(
+            id_token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=settings.COGNITO_CLIENT_ID,
+            issuer=settings.COGNITO_ISSUER,
+            leeway=settings.COGNITO_JWT_LEEWAY_SECONDS,
+        )
+        if claims.get("token_use") != "id":
+            raise InvalidTokenError("Unexpected Cognito token type")
+    except (RequestException, ValueError, InvalidTokenError, PyJWKClientConnectionError) as error:
+        logger.warning("Cognito token exchange failed: %s", error)
+        return Response(
+            {"error": "Cognito authentication failed. Check COGNITO_ISSUER and its User Pool ID."},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    cognito_sub = claims.get("sub")
+    email = (claims.get("email") or "").strip().lower()
+    if not cognito_sub or not email:
+        return Response({"error": "Cognito must provide sub and email claims"}, status=status.HTTP_400_BAD_REQUEST)
+
+    phone = (claims.get("phone_number") or "").strip()
+    display_name = (
+        claims.get("name")
+        or claims.get("preferred_username")
+        or claims.get("given_name")
+        or email.split("@", 1)[0]
+    ).strip()
+    display_name = display_name[:150]
+    with transaction.atomic():
+        profile = Profile.objects.filter(cognito_sub=cognito_sub).select_related("user").first()
+        user = profile.user if profile else (
+            User.objects.filter(username=f"cognito_{cognito_sub}").first()
+            or User.objects.filter(email__iexact=email).first()
+        )
+        if user is None:
+            username = display_name
+            if User.objects.filter(username=username).exclude(email__iexact=email).exists():
+                username = f"{display_name[:130]}_{cognito_sub[:18]}"
+            user = User(username=username, email=email)
+            user.set_unusable_password()
+            user.save()
+        else:
+            update_fields = []
+            if user.email != email:
+                user.email = email
+                update_fields.append("email")
+            if (profile is not None or user.username.startswith("cognito_")) and not User.objects.filter(username=display_name).exclude(pk=user.pk).exists():
+                user.username = display_name
+                update_fields.append("username")
+            if update_fields:
+                user.save(update_fields=update_fields)
+        profile, _ = Profile.objects.get_or_create(user=user)
+        profile.cognito_sub = cognito_sub
+        profile.cognito_phone = phone
+        if phone and len(phone) <= 15:
+            profile.mobile_number = phone
+        profile.is_email_verified = bool(claims.get("email_verified", True))
+        profile.save(update_fields=["cognito_sub", "cognito_phone", "mobile_number", "is_email_verified"])
+
+    refresh = RefreshToken.for_user(user)
+    return Response({"refresh": str(refresh), "access": str(refresh.access_token)})
 
 
 

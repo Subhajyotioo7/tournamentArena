@@ -36,9 +36,6 @@ export default function Landing() {
                 <Button onClick={() => navigate('/')} size="lg" className="uppercase tracking-wider">
                   View open brackets <span className="ml-3">-&gt;</span>
                 </Button>
-                <Button onClick={() => navigate('/register')} variant="outline" size="lg">
-                  Join the roster
-                </Button>
               </div>
               <div className="mt-12 flex flex-wrap gap-x-8 gap-y-4 border-t border-white/10 pt-5 text-xs text-[#8E9AA8]">
                 <span><strong className="text-white">24/7</strong> match access</span>

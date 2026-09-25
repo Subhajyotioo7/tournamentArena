@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { walletService } from '../services/api';
+import { logoutFromCognito } from '../services/auth';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { notify } from '../lib/toast';
@@ -92,8 +93,7 @@ export default function Profile() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+    logoutFromCognito(profile?.email);
   };
 
   const getStatusBadge = (status, reason) => {

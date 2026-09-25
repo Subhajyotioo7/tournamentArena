@@ -1,4 +1,8 @@
-import { Flame, Gamepad2, Trophy, Volleyball } from 'lucide-react';
+import { Trophy } from 'lucide-react';
+import { EsportsIcon } from '../components/EsportsIcon';
+import { createElement } from 'react';
+
+const gameIcon = (name) => (props) => createElement(EsportsIcon, { name, ...props });
 
 const defaultTheme = {
   key: 'other',
@@ -17,7 +21,7 @@ export const gameThemes = {
   fifa: {
     key: 'fifa',
     label: 'FIFA',
-    icon: Volleyball,
+    icon: gameIcon('fifa'),
     gradient: 'from-green-600 to-emerald-700',
     accent: 'text-emerald-700',
     soft: 'bg-emerald-50',
@@ -29,7 +33,7 @@ export const gameThemes = {
   bgmi: {
     key: 'bgmi',
     label: 'BGMI',
-    icon: Gamepad2,
+    icon: gameIcon('bgmi'),
     gradient: 'from-[#d4d4d8] to-[#a1a1aa]',
     accent: 'text-zinc-700',
     soft: 'bg-zinc-50',
@@ -41,7 +45,7 @@ export const gameThemes = {
   freefire: {
     key: 'freefire',
     label: 'Free Fire',
-    icon: Flame,
+    icon: gameIcon('freefire'),
     gradient: 'from-[#f59e0b] to-[#d97706]',
     accent: 'text-amber-700',
     soft: 'bg-amber-50',

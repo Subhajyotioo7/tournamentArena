@@ -1,8 +1,10 @@
-import { Crosshair, User, Users, UsersRound } from 'lucide-react';
+import { User, Users, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
+import { EsportsIcon } from './EsportsIcon';
 
 const TEAMMATE_KEYS = ['first', 'second', 'third', 'fourth'];
+const TeamAssetIcon = (props) => <EsportsIcon name="team" {...props} />;
 
 export default function TeamFormationModal({ tournament, onClose, onJoinSolo, onCreateTeam }) {
     const [gameIds, setGameIds] = useState(['', '', '']);
@@ -24,8 +26,8 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
 
     const teamInfo = {
         solo: { players: 1, share: 100, icon: User, invites: 0 },
-        duo: { players: 2, share: 50, icon: Users, invites: 1 },
-        squad: { players: 4, share: 25, icon: UsersRound, invites: 3 }
+        duo: { players: 2, share: 50, icon: TeamAssetIcon, invites: 1 },
+        squad: { players: 4, share: 25, icon: TeamAssetIcon, invites: 3 }
     };
 
     const info = teamInfo[tournament.team_mode];
@@ -148,7 +150,7 @@ export default function TeamFormationModal({ tournament, onClose, onJoinSolo, on
                             </div>
 
                             <p className="text-sm text-gray-600 mb-6 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                <Crosshair className="mr-1 inline h-4 w-4" aria-hidden="true" />Enter your teammates&apos; <strong>{gameLabel} IDs</strong> below. We will send invitations using their {gameLabel} ID.
+                                <EsportsIcon name="crosshair" className="mr-1 inline h-4 w-4" />Enter your teammates&apos; <strong>{gameLabel} IDs</strong> below. We will send invitations using their {gameLabel} ID.
                             </p>
 
                             {/* Team Presets Selection */}

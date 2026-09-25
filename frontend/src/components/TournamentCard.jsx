@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getGameTheme } from '../config/gameThemes';
 import { DragButton } from './ui/drag-button';
 import TournamentCountdown from './TournamentCountdown';
+import { EsportsIcon } from './EsportsIcon';
 
 export default function TournamentCard({ tournament }) {
   const navigate = useNavigate();
@@ -13,15 +14,9 @@ export default function TournamentCard({ tournament }) {
       <div className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden group">
         {/* Header with gradient */}
         <div className={`bg-gradient-to-r ${theme.gradient} p-4 sm:p-6 relative overflow-hidden`}>
-          <div className="absolute top-0 right-0 text-6xl sm:text-8xl opacity-10 transform translate-x-4 -translate-y-4">
-            <GameIcon className="h-16 w-16 sm:h-24 sm:w-24" aria-hidden="true" />
-          </div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-2">
-              <span className="flex items-center gap-1.5 text-white/90 text-xs sm:text-sm font-bold uppercase tracking-wide">
-                <GameIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                {theme.label}
-              </span>
+              <span className="text-white/90 text-xs sm:text-sm font-bold uppercase tracking-wide">{theme.label}</span>
               {tournament.is_active && (
                 <span className="bg-white/20 backdrop-blur-sm text-white text-xs px-2 sm:px-3 py-1 rounded-full font-semibold">
                   Active
@@ -57,18 +52,30 @@ export default function TournamentCard({ tournament }) {
                   </div>
                 </div>
 
-                <div className="mb-4 space-y-2">
-                  <div className="text-xs sm:text-sm text-gray-600 flex justify-between border-b border-gray-50 pb-1">
-                    <span>Game:</span>
-                    <span className="font-semibold text-gray-900 uppercase">{tournament.game}</span>
+                <div className="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-white px-3 sm:px-4">
+                  <div className="flex min-h-[4.25rem] items-center gap-3 border-b border-gray-100">
+                    <GameIcon className="h-11 w-11 shrink-0" />
+                    <span className="text-sm font-medium text-gray-600 sm:text-base">Game</span>
+                    <span className="ml-auto text-sm font-bold uppercase text-gray-900 sm:text-base">{tournament.game}</span>
                   </div>
-                  <div className="text-xs sm:text-sm text-gray-600 flex justify-between border-b border-gray-50 pb-1">
-                    <span>Mode:</span>
-                    <span className="font-semibold text-gray-900 capitalize">{tournament.team_mode || 'Solo'}</span>
+                  <div className="flex min-h-[4.25rem] items-center gap-3 border-b border-gray-100">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-800">
+                      <EsportsIcon name="crosshair" className="h-7 w-7" />
+                    </span>
+                    <span className="text-sm font-medium text-gray-600 sm:text-base">Mode</span>
+                    <span className="ml-auto text-sm font-bold capitalize text-gray-900 sm:text-base">{tournament.team_mode || 'Solo'}</span>
                   </div>
-                  <div className="text-xs sm:text-sm text-gray-600 flex justify-between">
-                    <span>Slots:</span>
-                    <span className="font-semibold text-blue-600">{tournament.total_participants || 0} / {tournament.max_participants || 100} ({Math.max(0, (tournament.max_participants || 100) - (tournament.total_participants || 0))} available)</span>
+                  <div className="flex min-h-[4.25rem] items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-800">
+                      <EsportsIcon name="team" className="h-7 w-7" />
+                    </span>
+                    <span className="text-sm font-medium text-gray-600 sm:text-base">Slots</span>
+                    <span className="ml-auto text-right text-sm font-bold text-blue-600 sm:text-base">
+                      {tournament.total_participants || 0} / {tournament.max_participants || 100}
+                      <span className="ml-1 hidden font-medium text-gray-500 sm:inline">
+                        ({Math.max(0, (tournament.max_participants || 100) - (tournament.total_participants || 0))} available)
+                      </span>
+                    </span>
                   </div>
                 </div>
                 {tournament.start_time && (

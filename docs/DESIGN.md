@@ -89,6 +89,23 @@ content area readable:
 Game gradients are for identity and visual distinction, not for conveying
 status. Status must still use the semantic colors above.
 
+### Esports icon assets
+
+The reusable 64x64 SVG icons in `frontend/public/icons/` use a transparent
+canvas and the following documented tokens:
+
+| Asset | Background | Border/icon color |
+| --- | --- | --- |
+| BGMI badge | `#0B1830` dark navy | `#FACC15` glowing yellow |
+| Free Fire badge | `#0B1830` dark navy | `#EF4444` glowing red |
+| FIFA badge | `#0B1830` dark navy | `#3B82F6` glowing blue |
+| Crosshair | transparent | `#FFFFFF` outline and center dot |
+| Team | transparent | `#FFFFFF` silhouette |
+
+Use `EsportsIcon` for these assets instead of duplicating inline SVG markup.
+The badge icons are intentionally text-led and remain legible at compact card
+sizes; the outer transparent canvas lets them sit on any surface.
+
 ## Typography
 
 ### Font family

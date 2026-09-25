@@ -137,11 +137,9 @@ export default function MyRooms() {
         const wsHost = apiBaseUrl.replace(/^https?:\/\//, '');
         const wsUrl = `${wsProtocol}://${wsHost}/ws/room/${roomId}/?token=${token}`;
 
-        console.log('🚀 Connecting to WebSocket:', wsUrl);
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
-            console.log('✅ WebSocket Connected!');
             setWsStatus('connected');
             const unreadIds = messagesRef.current
                 .filter(message => !message.is_self && !message.seen && message.id)
@@ -178,7 +176,6 @@ export default function MyRooms() {
         };
 
         ws.onclose = () => {
-            console.log('🔌 WebSocket Closed');
             // Don't set error on close if it was manual or successful before
         };
 

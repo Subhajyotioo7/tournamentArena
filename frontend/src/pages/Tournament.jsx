@@ -43,7 +43,6 @@ export default function Tournament() {
 
   const fetchTournamentData = useCallback(async () => {
     try {
-      console.log('Fetching tournament with ID:', id);
       const [tournamentData, prizeData] = await Promise.all([
         tournamentService.getById(id),
         tournamentService.getPrizeDistribution(id).catch((err) => {
@@ -51,8 +50,6 @@ export default function Tournament() {
           return [];
         })
       ]);
-      console.log('Tournament data:', tournamentData);
-      console.log('Prize data:', prizeData);
       setTournament(tournamentData);
       setPrizes(prizeData);
       setRooms(tournamentData.rooms || []);
